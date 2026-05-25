@@ -8,7 +8,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
       - name: Install ripgrep and clang-format
-        run: apt update && apt install -y ripgrep clang-format
+        run: sudo apt update && sudo apt install -y ripgrep clang-format
       - name: Run clang format on every C++ file
         run: find -type f \( -name '*.cpp' -o -name '*.hpp' \) -print0 | xargs -0L10 clang-format --dry-run --Werror
       - name: Check that guards are not duplicated
