@@ -1,0 +1,13 @@
+name: Check code compilation
+on: [push]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Run make
+        run: make
+      - name: Run make on vec example
+        run: make -C examples/vec

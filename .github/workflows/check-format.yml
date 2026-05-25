@@ -1,0 +1,15 @@
+name: Check code formatting
+on: [push]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install ripgrep and clang-format
+        run: apt update && apt install -y ripgrep clang-format
+      - name: Run clang format on every C++ file
+        run: find -type f \( -name '*.cpp' -o -name '*.hpp' \) -print0 | xargs -0L10 clang-format --dry-run --Werror
+      - name: Check that guards are not duplicated
+        run: rg -I "define GUARD_" | sort | uniq -c | tr -s " " | cut -f2 -d" " | grep -qv 1 && exit 1 || exit 0
