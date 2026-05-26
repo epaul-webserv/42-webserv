@@ -2,17 +2,16 @@
 #include "webserv.h"
 #include <cstring>
 #include <fcntl.h>
+#include <stdexcept>
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <stdexcept>
 
 Response::Response(int fd)
-    : _send_status(_first_step), _fetch_status(_init),
-      _conn_fd(fd), _file_fd(-1),
-      _body(NULL),
-      _header_read_index(0), _header_write_index(0), _body_read_index(0),
-      _body_write_index(0), _content_length(0), _sent_bytes(0), _map(NULL) {
+    : _send_status(_first_step), _fetch_status(_init), _conn_fd(fd),
+      _file_fd(-1), _body(NULL), _header_read_index(0), _header_write_index(0),
+      _body_read_index(0), _body_write_index(0), _content_length(0),
+      _sent_bytes(0), _map(NULL) {
     bzero(&this->_sb, sizeof(this->_sb));
 }
 
@@ -95,7 +94,7 @@ t_file_status Response::openFile(std::string const &path) {
 
 void Response::setHttpVersion(std::string const &http_version) {
     if (http_version != "HTTP/1.0" && http_version != "HTTP/1.1") {
-        throw (std::runtime_error("Invalid HTTP version"));
+        throw(std::runtime_error("Invalid HTTP version"));
     }
     this->_http_version = http_version;
 }

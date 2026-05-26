@@ -12,7 +12,7 @@ typedef enum { _first_step, _head_sent, _body_sent } t_send_status;
 typedef enum { _init, __pending, _ready } t_fetch_status;
 
 class Response {
-public:
+  public:
     Response(int fd);
     ~Response(void);
 
@@ -24,7 +24,7 @@ public:
     t_file_status openFile(std::string const &path);
     void setHttpVersion(std::string const &http_version);
 
-private:
+  private:
     Response(void);
     Response(Response const &Response);
 

@@ -1,11 +1,9 @@
 #include "../includes/FdStream.hpp"
 
 FdStream::FdStream(int fd)
-    : _end(false), _fd(fd), _read_index(0), _write_index(0) {
-}
+    : _end(false), _fd(fd), _read_index(0), _write_index(0) {}
 
-FdStream::~FdStream(void) {
-}
+FdStream::~FdStream(void) {}
 
 bool FdStream::end(void) const {
     if (this->_end && this->_write_index - this->_read_index == 0)

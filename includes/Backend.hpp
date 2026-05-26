@@ -5,13 +5,12 @@
 #include "Response.hpp"
 
 class Backend {
-public:
+  public:
     Backend(void);
     virtual ~Backend(void);
 
-    virtual void generateResponse(Request const &request, Response &response) =
-    0;
+    virtual void generateResponse(Request const &request,
+                                  Response &response) = 0;
 };
-
 
 #endif

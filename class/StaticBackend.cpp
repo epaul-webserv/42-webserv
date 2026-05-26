@@ -98,8 +98,8 @@ void StaticBackend::setHeaders() {
     headers << "Content-Type: text/html\r\n";
     if (this->_map || this->_content_length)
         headers << "Content-Length: "
-            << (this->_map ? this->_sb.st_size : this->_content_length)
-            << "\r\n";
+                << (this->_map ? this->_sb.st_size : this->_content_length)
+                << "\r\n";
     headers << "Connection: close" << "\r\n";
     headers << "\r\n";
     this->headAppend(headers.str());
