@@ -1,6 +1,3 @@
 #include "ResponsePool.hpp"
 
-Response &ResponsePool::getResponse(int const &fd)
-{
-		
-}
+Response &ResponsePool::getResponse(int const &fd) {}

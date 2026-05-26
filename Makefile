@@ -6,7 +6,6 @@ SRCS = main.cpp \
 		init.cpp \
 		html_generator/html_error.cpp \
 		html_generator/html_dir.cpp \
-		response/fastcgi.cpp \
 		url_encoding/url_decoder.cpp
 
 CLASS_DIR = class

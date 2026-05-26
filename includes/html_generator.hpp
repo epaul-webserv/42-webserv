@@ -1,18 +1,18 @@
 #ifndef HTML_GENERATOR_HPP
-# define HTML_GENERATOR_HPP
+#define HTML_GENERATOR_HPP
 
-# include <iostream>
-# include <iomanip>
-# include <fstream>
-# include <sstream>
-# include <cstring>
-# include <ctime>
-# include <dirent.h>
-# include <sys/types.h>
-# include <sys/stat.h>
-# include <map>
-# include <fcntl.h>
-# include "Date.hpp"
-# include "FdStream.hpp"
+#include "Date.hpp"
+#include "FdStream.hpp"
+#include <cstring>
+#include <ctime>
+#include <dirent.h>
+#include <fcntl.h>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #endif
