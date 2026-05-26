@@ -16,7 +16,7 @@ typedef enum { _reading, _read, _close } t_request_state;
 typedef enum { _dir, _file, _no_access, _none, _err } t_file_type;
 
 class Request {
-  public:
+public:
     Request(void);
     Request(const Request &Request);
     Request(int fd);
@@ -27,18 +27,18 @@ class Request {
     void prepareNextRead(void);
     t_request_state readRequest(void);
     bool sendResponse(void);
-    std::string peekHeader(std::string const key = "");
+    std::string peekHeader(std::string const key = "") const;
     std::string getHeader(std::string const key = "");
-    std::string getMethod(void);
-    std::string getURI(void);
-    std::string getHTTPVersion(void);
+    std::string getMethod(void) const;
+    std::string getURI(void) const;
+    std::string getHTTPVersion(void) const;
     void prepareResponse();
 
     class InvalidReadException : public std::exception {
         const char *what(void) const throw();
     };
 
-  private:
+private:
     t_request_state readFirstLine(void);
     t_request_state readHeaders(void);
     std::string getFirstLine(void) const;

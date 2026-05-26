@@ -5,19 +5,23 @@
 
 Request::Request(void)
     : _fd(-1), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(int fd)
     : _fd(fd), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(Request const &Request)
     : _fd(Request._fd), _first_line_read(Request._first_line_read),
       _headers_read(Request._headers_read), _read_index(0), _write_index(0),
       _method(Request._method), _URI(Request._URI),
-      _http_version(Request._http_version), _headers(Request._headers) {}
+      _http_version(Request._http_version), _headers(Request._headers) {
+}
 
-Request::~Request(void) {}
+Request::~Request(void) {
+}
 
 Request const &Request::operator=(Request const &Request) {
     this->_method = Request._method;
@@ -87,8 +91,6 @@ t_request_state Request::readFirstLine(void) {
             get_word(this->_buffer + this->_read_index, this->_URI);
         this->_read_index +=
             get_word(this->_buffer + this->_read_index, this->_http_version);
-        // if (!this->_URI.empty())
-        //     this->_response = "HTTP/1.0 200 OK \r\n\r\ncoucou\r\n\r\n";
         this->_first_line_read = true;
         return (this->readHeaders());
     }
@@ -148,9 +150,9 @@ t_request_state Request::readHeaders(void) {
 /// (use getHeader for deletion).
 /// @param key Key of the requested header, do not send to get the next header
 /// @return value of the requested header or empty string if it does not exist
-std::string Request::peekHeader(std::string const key) {
+std::string Request::peekHeader(std::string const key) const {
     std::string ret;
-    std::map<std::string, std::string>::iterator it;
+    std::map<std::string, std::string>::const_iterator it;
 
     if (key.empty())
         it = this->_headers.begin();
@@ -173,11 +175,13 @@ std::string Request::getHeader(std::string const key) {
     return (ret);
 }
 
-std::string Request::getMethod(void) { return (this->_method); }
+std::string Request::getMethod(void) const { return (this->_method); }
 
-std::string Request::getURI(void) { return (this->_URI); }
+std::string Request::getURI(void) const { return (this->_URI); }
 
-std::string Request::getHTTPVersion(void) { return (this->_http_version); }
+std::string Request::getHTTPVersion(void) const {
+    return (this->_http_version);
+}
 
 const char *Request::InvalidReadException::what() const throw() {
     return ("Error while reading");
