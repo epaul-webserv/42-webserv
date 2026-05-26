@@ -7,26 +7,29 @@
 
 typedef enum { _open, _not_found, _no_permission, _already_open } t_file_status;
 
-typedef enum { _init, _head_sent, _body_sent } t_resp_status;
+typedef enum { _first_step, _head_sent, _body_sent } t_send_status;
+
+typedef enum { _init, __pending, _ready } t_fetch_status;
 
 class Response {
-  public:
-    Response(int fd, Request const &request);
-    virtual ~Response(void);
+public:
+    Response(int fd);
+    ~Response(void);
 
-    virtual bool sendResponse(void) = 0;
-    virtual bool ready(void) = 0;
-
-  protected:
-    virtual void setHeaders() = 0;
+    void set(int fd);
+    bool sendResponse(void);
+    bool ready(void);
     void headAppend(std::string const &resp);
     void bodyAppend(std::string const &resp);
+    t_file_status openFile(std::string const &path);
+    void setHttpVersion(std::string const &http_version);
 
-  private:
+private:
     Response(void);
     Response(Response const &Response);
 
-    t_resp_status _status;
+    t_send_status _send_status;
+    t_fetch_status _fetch_status;
     int _conn_fd;
     int _file_fd;
     char _head[8192];
@@ -37,8 +40,10 @@ class Response {
     size_t _body_write_index;
     size_t _content_length;
     size_t _sent_bytes;
+    std::string _http_version;
+    std::string _http_status;
     struct stat _sb;
-    Request const &_request;
+    void *_map;
 };
 
 #endif
