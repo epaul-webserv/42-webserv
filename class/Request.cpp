@@ -152,15 +152,16 @@ t_request_state Request::readHeaders(void) {
 /// (use getHeader for deletion).
 /// @param key Key of the requested header, do not send to get the next header
 /// @return value of the requested header or empty string if it does not exist
-std::pair<std::string, std::string> Request::peekHeader(std::string const key) {
-    std::pair<std::string, std::string> ret;
+std::string Request::peekHeader(std::string const key) {
+    std::string ret;
     std::map<std::string, std::string>::iterator it;
 
     if (key.empty())
         it = this->_headers.begin();
     else
         it = this->_headers.find(key);
-    ret = *it;
+    if (it == this->_headers.end())
+        return ("");
     return (ret);
 }
 
@@ -169,8 +170,8 @@ std::pair<std::string, std::string> Request::peekHeader(std::string const key) {
 /// (use peekHeader if this behavior is not desired).
 /// @param key Key of the requested header, do not send to get the next header
 /// @return value of the requested header or empty string if it does not exist
-std::pair<std::string, std::string> Request::getHeader(std::string const key) {
-    std::pair<std::string, std::string> ret = peekHeader(key);
+std::string Request::getHeader(std::string const key) {
+    std::string ret = peekHeader(key);
 
     this->_headers.erase(key);
     return (ret);
