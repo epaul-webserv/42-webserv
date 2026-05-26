@@ -1,4 +1,4 @@
-#include "StaticResponse.hpp"
+#include "StaticBackend.hpp"
 #include "webserv.h"
 #include <cstring>
 #include <fcntl.h>
@@ -6,12 +6,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-StaticResponse::~StaticResponse(void) {
+StaticBackend::~StaticBackend(void) {
     if (this->_map)
         munmap(this->_map, this->_sb.st_size);
 }
 
-void StaticResponse::clear(int fd) {
+void StaticBackend::clear(int fd) {
     this->_conn_fd = fd;
     if (this->_file_fd != -1)
         close(this->_file_fd);
@@ -28,7 +28,7 @@ void StaticResponse::clear(int fd) {
     bzero(&this->_sb, sizeof(this->_sb));
 }
 
-void StaticResponse::prepareNext(void) {
+void StaticBackend::prepareNext(void) {
     this->_status = _init;
     if (this->_file_fd != -1)
         close(this->_file_fd);
@@ -45,14 +45,14 @@ void StaticResponse::prepareNext(void) {
     bzero(&this->_sb, sizeof(this->_sb));
 }
 
-void StaticResponse::headAppend(std::string const &resp) {
+void StaticBackend::headAppend(std::string const &resp) {
     const char *c_resp = resp.c_str();
 
     std::memcpy(this->_head + this->_write_index, c_resp, resp.size());
     this->_write_index += resp.size();
 }
 
-void StaticResponse::bodyAppend(std::string const &resp) {
+void StaticBackend::bodyAppend(std::string const &resp) {
     char *new_body = new char[sizeof(this->_body) + resp.size()];
 
     if (this->_body) {
@@ -66,7 +66,7 @@ void StaticResponse::bodyAppend(std::string const &resp) {
     this->_body_write_index += resp.size();
 }
 
-t_file_status StaticResponse::openFile(std::string path) {
+t_file_status StaticBackend::openFile(std::string path) {
     if (this->_map)
         return (_already_open);
     if (stat((path).c_str(), &this->_sb) == -1)
@@ -90,7 +90,7 @@ t_file_status StaticResponse::openFile(std::string path) {
     return (_open);
 }
 
-void StaticResponse::setHeaders() {
+void StaticBackend::setHeaders() {
     std::ostringstream headers;
 
     headers << "Server: " << PROGNAME << "\r\n";
@@ -98,14 +98,14 @@ void StaticResponse::setHeaders() {
     headers << "Content-Type: text/html\r\n";
     if (this->_map || this->_content_length)
         headers << "Content-Length: "
-                << (this->_map ? this->_sb.st_size : this->_content_length)
-                << "\r\n";
+            << (this->_map ? this->_sb.st_size : this->_content_length)
+            << "\r\n";
     headers << "Connection: close" << "\r\n";
     headers << "\r\n";
     this->headAppend(headers.str());
 }
 
-void StaticResponse::sendHead(void) {
+void StaticBackend::sendHead(void) {
     int sent_bytes = send(this->_conn_fd, this->_head + this->_read_index,
                           this->_write_index - this->_read_index, 0);
 
@@ -116,7 +116,7 @@ void StaticResponse::sendHead(void) {
         this->_status = _head_sent;
 }
 
-bool StaticResponse::sendBody(void) {
+bool StaticBackend::sendBody(void) {
     char *buffer;
     size_t to_read;
 
@@ -151,7 +151,7 @@ bool StaticResponse::sendBody(void) {
     return (false);
 }
 
-bool StaticResponse::sendStaticResponse(void) {
+bool StaticBackend::sendStaticBackend(void) {
     if (this->_status == _init)
         return (this->sendHead(), false);
     if (this->_status == _head_sent)
