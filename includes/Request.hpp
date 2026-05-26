@@ -16,7 +16,7 @@ typedef enum { _reading, _read, _close } t_request_state;
 typedef enum { _dir, _file, _no_access, _none, _err } t_file_type;
 
 class Request {
-public:
+  public:
     Request(void);
     Request(const Request &Request);
     Request(int fd);
@@ -38,7 +38,7 @@ public:
         const char *what(void) const throw();
     };
 
-private:
+  private:
     t_request_state readFirstLine(void);
     t_request_state readHeaders(void);
     std::string getFirstLine(void) const;
