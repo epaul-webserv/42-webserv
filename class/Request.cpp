@@ -5,19 +5,23 @@
 
 Request::Request(void)
     : _fd(-1), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(int fd)
     : _fd(fd), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(Request const &Request)
     : _fd(Request._fd), _first_line_read(Request._first_line_read),
       _headers_read(Request._headers_read), _read_index(0), _write_index(0),
       _method(Request._method), _URI(Request._URI),
-      _http_version(Request._http_version), _headers(Request._headers) {}
+      _http_version(Request._http_version), _headers(Request._headers) {
+}
 
-Request::~Request(void) {}
+Request::~Request(void) {
+}
 
 Request const &Request::operator=(Request const &Request) {
     this->_method = Request._method;
@@ -95,8 +99,8 @@ t_request_state Request::readFirstLine(void) {
     return (_reading);
 }
 
-static size_t get_header(char *buffer,
-                         std::map<std::string, std::string> &headers) {
+static size_t readHeadersCore(char *buffer,
+                              std::map<std::string, std::string> &headers) {
     size_t whole_len = 0;
     size_t len = 0;
     std::pair<std::string, std::string> new_pair;
@@ -136,7 +140,7 @@ t_request_state Request::readHeaders(void) {
            std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") &&
            std::strstr(this->_buffer, "\n"))
         this->_read_index +=
-            get_header(this->_buffer + this->_read_index, this->_headers);
+            readHeadersCore(this->_buffer + this->_read_index, this->_headers);
     if (std::strstr(this->_buffer, "\r\n\r\n") ||
         std::strstr(this->_buffer, "\n\n"))
         return (_read);
