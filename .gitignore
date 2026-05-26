@@ -1,0 +1,7 @@
+webserv
+webserv_debug
+objs
+*.o
+.idea
+.vscode
+test*
