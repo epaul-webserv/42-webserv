@@ -5,6 +5,33 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <string>
+
+void StaticBackend::generateResponse(Request const &request,
+                                     Response &response) {
+    std::string URI = decodeURL(request.getURI());
+    if (URI) {
+        response.set_http_version = "HTTP/1.1";
+        this->createErrorResponse("400", "Bad Request", response);
+    } else if (this->_http_version.empty())
+        this->response_0_9();
+    else if (this->_http_version == "HTTP/1.0")
+        this->response_1_0();
+    else if (this->_http_version == "HTTP/1.1")
+        this->response_1_1();
+    else {
+        if (this->_http_version.find("HTTP/") == std::string::npos) {
+            this->_http_version = "HTTP/1.1";
+            this->createErrorResponse("400", "Bad Request");
+        } else {
+            this->_http_version = "HTTP/1.1";
+            this->createErrorResponse("505", "HTTP Version Not Supported");
+        }
+    }
+    std::cout << this->_method << " " << this->_URI << " " << this->
+        _http_version << std::endl;
+}
+
 
 StaticBackend::~StaticBackend(void) {
     if (this->_map)
@@ -177,4 +204,13 @@ static t_file_type fileType(std::string const &path, std::string const &root) {
     default:
         return (_none);
     }
+}
+
+void StaticBackend::createErrorResponse(std::string const &statusCode,
+                                        std::string const &errorMessage,
+                                        Response &response) {
+    response.headAppend(
+        this->_http_version + " " + statusCode + " " + errorMessage + "\r\n");
+    response.bodyAppend(get_html_error(statusCode, errorMessage));
+    response.setHeaders();
 }
