@@ -1,4 +1,3 @@
-Style settings
 ---
 Language: Cpp
 BasedOnStyle: LLVM
@@ -53,4 +52,3 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 TabWidth: 4
 UseTab: Always
-...
