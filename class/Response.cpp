@@ -1,17 +1,16 @@
 #include "Response.hpp"
-#include "webserv.h"
 #include <cstring>
 #include <fcntl.h>
 #include <stdexcept>
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "webserv.h"
 
 Response::Response(int fd) :
-	_send_status(_first_step), _fetch_status(_init), _conn_fd(fd),
-	_file_fd(-1), _header_read_index(0), _header_write_index(0),
-	_body_read_index(0), _body_write_index(0), _content_length(0),
-	_sent_bytes(0), _map(NULL)
+	_send_status(_first_step), _fetch_status(_init), _conn_fd(fd), _file_fd(-1),
+	_header_read_index(0), _header_write_index(0), _body_read_index(0),
+	_body_write_index(0), _content_length(0), _sent_bytes(0), _map(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -31,14 +30,14 @@ void Response::set(int fd)
 		close(this->_file_fd);
 	if (this->_map)
 		munmap(this->_map, this->_sb.st_size);
-	this->_send_status        = _first_step;
-	this->_map                = NULL;
+	this->_send_status		  = _first_step;
+	this->_map				  = NULL;
 	this->_header_read_index  = 0;
 	this->_header_write_index = 0;
-	this->_body_read_index    = 0;
-	this->_body_write_index   = 0;
-	this->_sent_bytes         = 0;
-	this->_content_length     = 0;
+	this->_body_read_index	  = 0;
+	this->_body_write_index	  = 0;
+	this->_sent_bytes		  = 0;
+	this->_content_length	  = 0;
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
@@ -74,7 +73,7 @@ void Response::setHTTPVersion(std::string const &http_version)
 }
 
 void Response::setHTTPStatus(std::string const &status,
-							std::string const & message)
+							 std::string const &message)
 {
 	this->_http_status = status + " " + message;
 }
@@ -106,12 +105,12 @@ t_file_status Response::openFile(std::string const &path)
 	// if (!this->_sb.st_size)
 	//     return (_open);
 	this->_map = mmap(NULL, this->_sb.st_size, PROT_READ, MAP_PRIVATE,
-					this->_file_fd, 0);
+					  this->_file_fd, 0);
 	if (this->_map == MAP_FAILED)
 	{
 		close(this->_file_fd);
 		this->_file_fd = -1;
-		this->_map     = NULL;
+		this->_map	   = NULL;
 		return (_not_found);
 	}
 	return (_open);
@@ -126,10 +125,7 @@ void Response::setHttpVersion(std::string const &http_version)
 	this->_http_version = http_version;
 }
 
-t_fetch_status Response::getStatus(void)
-{
-	return (this->_fetch_status);
-}
+t_fetch_status Response::getStatus(void) { return (this->_fetch_status); }
 
 void Response::setStatus(t_fetch_status status)
 {
@@ -147,18 +143,18 @@ void Response::addBase()
 	head << "Date: " << Date().str() << "\r\n";
 	head << "Content-Type: text/html\r\n";
 	if (this->_map || this->_content_length)
-		head << "Content-Length: " << (this->_map
-											? this->_sb.st_size
-											: this->_content_length) << "\r\n";
+		head << "Content-Length: "
+			 << (this->_map ? this->_sb.st_size : this->_content_length)
+			 << "\r\n";
 	this->_head.insert(0, head.str());
 	this->_head.append("\r\n");
 }
 
 void Response::sendHead(void)
 {
-	int sent_bytes = send(this->_conn_fd,
-						this->_head.c_str() + this->_header_read_index,
-						this->_head.size() - this->_header_read_index, 0);
+	int sent_bytes =
+		send(this->_conn_fd, this->_head.c_str() + this->_header_read_index,
+			 this->_head.size() - this->_header_read_index, 0);
 
 	if (sent_bytes == -1)
 		return;
@@ -170,22 +166,22 @@ void Response::sendHead(void)
 bool Response::sendBody(void)
 {
 	char const *buffer;
-	size_t      to_read;
+	size_t		to_read;
 
 	if (this->_map)
 	{
-		buffer  = (char *)this->_map;
+		buffer	= (char *)this->_map;
 		to_read = this->_sb.st_size;
 	}
 	else if (!this->_body.empty())
 	{
-		buffer  = this->_body.c_str();
+		buffer	= this->_body.c_str();
 		to_read = this->_body.size();
 	}
 	else
 		return (this->_send_status = _body_sent);
 	int sent_bytes = send(this->_conn_fd, buffer + this->_sent_bytes,
-						to_read - this->_sent_bytes, MSG_NOSIGNAL);
+						  to_read - this->_sent_bytes, MSG_NOSIGNAL);
 
 	if (sent_bytes == -1)
 		return (true);

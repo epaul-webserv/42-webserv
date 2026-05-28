@@ -3,19 +3,20 @@
 
 #include <string>
 
-class CGI {
-  public:
-    CGI(std::string executable_path) : executable_path(executable_path) {}
+class CGI
+{
+public:
+	CGI(std::string executable_path) : executable_path(executable_path) {}
 
-    CGI(CGI const &CGI) : executable_path(CGI.executable_path) {}
+	CGI(CGI const &CGI) : executable_path(CGI.executable_path) {}
 
-    ~CGI(void) {}
+	~CGI(void) {}
 
-    bool done();
+	bool done();
 
-  private:
-    CGI(void);
-    std::string executable_path;
+private:
+	CGI(void);
+	std::string executable_path;
 };
 
 #endif

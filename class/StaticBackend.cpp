@@ -1,13 +1,12 @@
 #include "StaticBackend.hpp"
-#include "webserv.h"
 #include <cstring>
 #include <fcntl.h>
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "webserv.h"
 
-StaticBackend::StaticBackend(void) :
-	_map(NULL)
+StaticBackend::StaticBackend(void) : _map(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -41,8 +40,7 @@ static t_file_type fileType(std::string const &path, std::string const &root)
 	}
 }
 
-void StaticBackend::generateResponse(Request const &request,
-									Response &      response)
+void StaticBackend::generateResponse(Request const &request, Response &response)
 {
 	if (request.getURI().empty())
 	{
@@ -68,12 +66,11 @@ void StaticBackend::generateResponse(Request const &request,
 			this->setError("400", "Bad Request", response);
 		}
 	}
-	std::cout << request.getMethod() << " " << request.getURI() << " " <<
-		response.getHTTPVersion() << std::endl;
+	std::cout << request.getMethod() << " " << request.getURI() << " "
+			  << response.getHTTPVersion() << std::endl;
 }
 
-void StaticBackend::response_0_9(Request const &request,
-								Response &      response)
+void StaticBackend::response_0_9(Request const &request, Response &response)
 {
 	response.setHTTPVersion("HTTP/0.9");
 	if (request.getMethod() == "GET")
@@ -84,11 +81,9 @@ void StaticBackend::response_0_9(Request const &request,
 			return response.bodyAppend(
 				get_html_dir(request.getURI(), DEFAULT_ROOT));
 		case _no_access:
-			return response.bodyAppend(
-				get_html_error("405", "Forbidden"));
+			return response.bodyAppend(get_html_error("405", "Forbidden"));
 		case _none:
-			return response.bodyAppend(
-				get_html_error("404", "Not found"));
+			return response.bodyAppend(get_html_error("404", "Not found"));
 		case _err:
 			return response.bodyAppend(
 				get_html_error("500", "Internal Server Error"));
@@ -98,8 +93,7 @@ void StaticBackend::response_0_9(Request const &request,
 		switch (response.openFile(DEFAULT_ROOT + request.getURI()))
 		{
 		case _no_permission:
-			return response.bodyAppend(
-				get_html_error("405", "Forbidden"));
+			return response.bodyAppend(get_html_error("405", "Forbidden"));
 		default:
 			return;
 		}
@@ -108,8 +102,7 @@ void StaticBackend::response_0_9(Request const &request,
 		response.headAppend(get_html_error("405", "Method not allowed"));
 }
 
-void StaticBackend::response_1_0(Request const &request,
-								Response &      response)
+void StaticBackend::response_1_0(Request const &request, Response &response)
 {
 	response.setHTTPVersion("HTTP/1.0");
 	if (request.getMethod() == "GET")
@@ -118,8 +111,7 @@ void StaticBackend::response_1_0(Request const &request,
 		{
 		case _dir:
 			response.setHTTPStatus("200", "Continue");
-			response.bodyAppend(
-				get_html_dir(request.getURI(), DEFAULT_ROOT));
+			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
 			return;
 		case _no_access:
 			return this->setError("403", "Forbidden", response);
@@ -146,13 +138,11 @@ void StaticBackend::response_1_0(Request const &request,
 	else
 	{
 		this->setError("405", "Method not allowed", response);
-		return response.bodyAppend(
-			get_html_error("405", "Method Not Allowed"));
+		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
 }
 
-void StaticBackend::response_1_1(Request const &request,
-								Response &      response)
+void StaticBackend::response_1_1(Request const &request, Response &response)
 {
 	response.setHTTPVersion("HTTP/1.1");
 	if (request.getMethod() == "GET")
@@ -161,8 +151,7 @@ void StaticBackend::response_1_1(Request const &request,
 		{
 		case _dir:
 			response.setHTTPStatus("200", "Ok");
-			response.bodyAppend(
-				get_html_dir(request.getURI(), DEFAULT_ROOT));
+			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
 			return;
 		case _no_access:
 			return this->setError("403", "Forbidden", response);
@@ -198,9 +187,8 @@ void StaticBackend::response_1_1(Request const &request,
 	//     return (this->CONNECT());
 	else
 	{
-		response.headAppend(
-			request.getHTTPVersion() + " 405 Method Not Allowed\r\n");
-		return response.bodyAppend(
-			get_html_error("405", "Method Not Allowed"));
+		response.headAppend(request.getHTTPVersion() +
+							" 405 Method Not Allowed\r\n");
+		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
 }
