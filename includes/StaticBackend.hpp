@@ -1,26 +1,32 @@
-#ifndef STATIC_RESPONSE_HPP
-#define STATIC_RESPONSE_HPP
+#ifndef STATIC_BACKEND_HPP
+#define STATIC_BACKEND_HPP
 
-#include "Response.hpp"
+#include "ABackend.hpp"
 #include <string>
 #include <sys/stat.h>
 
-class StaticResponse : public Response {
-  public:
-    StaticResponse(int fd, Request const &request) : Response(fd, request) {}
+class StaticBackend : public ABackend
+{
+public:
+	StaticBackend(void);
+	~StaticBackend(void);
 
-    // void                clear(int fd);
-    // void                prepareNext(void);
-    t_file_status openFile(std::string path);
-    bool sendResponse(void) override;
+	t_file_status openFile(std::string path);
+	void          generateResponse(Request const &request, Response &response);
 
-  private:
-    void setHeaders();
-    void sendHead(void);
-    bool sendBody(void);
+private:
+	void setHeaders();
+	void sendHead(void);
+	bool sendBody(void);
+	void response_0_9(Request const &request,
+					Response &       response);
+	void response_1_0(Request const &request,
+					Response &       response);
+	void response_1_1(Request const &request,
+					Response &       response);
 
-    void *_map;
-    struct stat _sb;
+	void *      _map;
+	struct stat _sb;
 };
 
 #endif

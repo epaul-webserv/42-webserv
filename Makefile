@@ -9,12 +9,14 @@ SRCS = main.cpp \
 		url_encoding/url_decoder.cpp
 
 CLASS_DIR = class
-CLASS = RequestPool.cpp \
+CLASS = ABackend.cpp \
+		RequestPool.cpp \
 		Date.cpp \
 		FdStream.cpp \
 		Headers.cpp \
 		Response.cpp \
-		Request.cpp
+		Request.cpp \
+		StaticBackend.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))

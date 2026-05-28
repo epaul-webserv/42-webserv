@@ -5,19 +5,23 @@
 
 Request::Request(void)
     : _fd(-1), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(int fd)
     : _fd(fd), _first_line_read(false), _headers_read(false), _read_index(0),
-      _write_index(0) {}
+      _write_index(0) {
+}
 
 Request::Request(Request const &Request)
     : _fd(Request._fd), _first_line_read(Request._first_line_read),
       _headers_read(Request._headers_read), _read_index(0), _write_index(0),
       _method(Request._method), _URI(Request._URI),
-      _http_version(Request._http_version), _headers(Request._headers) {}
+      _http_version(Request._http_version), _headers(Request._headers) {
+}
 
-Request::~Request(void) {}
+Request::~Request(void) {
+}
 
 Request const &Request::operator=(Request const &Request) {
     this->_method = Request._method;
@@ -88,6 +92,7 @@ t_request_state Request::readFirstLine(void) {
         this->_read_index +=
             get_word(this->_buffer + this->_read_index, this->_http_version);
         this->_first_line_read = true;
+        decodeURL(this->_URI);
         return (this->readHeaders());
     }
     return (_reading);
