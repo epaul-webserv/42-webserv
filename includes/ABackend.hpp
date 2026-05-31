@@ -4,6 +4,13 @@
 #include "Request.hpp"
 #include "Response.hpp"
 
+typedef enum
+{
+	_static,
+	_cgi,
+	_fast_cgi
+} t_backend_type;
+
 class ABackend
 {
 public:
@@ -11,9 +18,9 @@ public:
 	virtual ~ABackend(void);
 
 	virtual void generateResponse(Request const &request,
-								  Response		&response) = 0;
-	void		 setError(std::string const &status, std::string const &message,
-						  Response &response);
+								Response &       response) = 0;
+	void setError(std::string const &status, std::string const &message,
+				Response &           response);
 };
 
 #endif
