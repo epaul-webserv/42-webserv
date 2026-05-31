@@ -10,6 +10,7 @@
 #include <string>
 #include "FdStream.hpp"
 #include "default_conf.hpp"
+#include "string_overload.hpp"
 
 typedef enum
 {
@@ -35,17 +36,17 @@ public:
 	Request(int fd);
 	~Request(void);
 
-	Request const  &operator=(const Request &Request);
-	void			clear(int fd);
-	void			prepareNextRead(void);
+	Request const & operator=(const Request &Request);
+	void            clear(int fd);
+	void            prepareNextRead(void);
 	t_request_state readRequest(void);
-	bool			sendResponse(void);
-	std::string		peekHeader(std::string const key = "") const;
-	std::string		getHeader(std::string const key = "");
-	std::string		getMethod(void) const;
-	std::string		getURI(void) const;
-	std::string		getHTTPVersion(void) const;
-	void			prepareResponse();
+	bool            sendResponse(void);
+	std::string     peekHeader(std::string const key = "") const;
+	std::string     getHeader(std::string const key = "");
+	std::string     getMethod(void) const;
+	std::string     getURI(void) const;
+	std::string     getHTTPVersion(void) const;
+	void            prepareResponse();
 
 	class InvalidReadException : public std::exception
 	{
@@ -55,23 +56,24 @@ public:
 private:
 	t_request_state readFirstLine(void);
 	t_request_state readHeaders(void);
-	std::string		getFirstLine(void) const;
-	void			response_0_9(void);
-	void			response_1_0(void);
-	void			response_1_1(void);
-	bool			sendFile(void);
-	void			createErrorResponse(std::string const &errorCode,
-										std::string const &errorMessage);
+	std::string     getFirstLine(void) const;
+	void            response_0_9(void);
+	void            response_1_0(void);
+	void            response_1_1(void);
+	bool            sendFile(void);
+	void            createErrorResponse(std::string const &errorCode,
+							std::string const &            errorMessage);
 
-	int								   _fd;
-	bool							   _first_line_read;
-	bool							   _headers_read;
-	char							   _buffer[MAX_REQUEST_SIZE + 1];
-	size_t							   _read_index;
-	size_t							   _write_index;
-	std::string						   _method;
-	std::string						   _URI;
-	std::string						   _http_version;
+	int                                _fd;
+	bool                               _first_line_read;
+	bool                               _headers_read;
+	char                               _buffer[MAX_REQUEST_SIZE + 1];
+	size_t                             _read_index;
+	size_t                             _write_index;
+	std::string                        _method;
+	std::string                        _URI;
+	std::string                        _query_string;
+	std::string                        _http_version;
 	std::map<std::string, std::string> _headers;
 	// StaticResponse                     _response;
 };
