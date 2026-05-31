@@ -1,7 +1,7 @@
 #ifndef BACKENDHOLDER_HPP
 #define BACKENDHOLDER_HPP
 
-#include "CGIBackend.hpp"
+// #include "CGIBackend.hpp"
 #include "StaticBackend.hpp"
 
 struct BackendHolder
@@ -11,11 +11,13 @@ struct BackendHolder
 	~BackendHolder(void);
 
 	t_backend_type backend_type;
-	std::string	   cgi_path;
-	ABackend	  *addr;
+	std::string    cgi_path;
+	ABackend *     addr;
 
 private:
-	BackendHolder(void) {}
+	BackendHolder(void)
+	{
+	}
 };
 
 #endif
