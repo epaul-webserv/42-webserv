@@ -5,26 +5,24 @@
 #include "Router.hpp"
 #include <iostream>
 
-Router::Router()
-{
-	this->_backends.push_back(BackendHolder(_static, ""));
-}
+Router::Router() { this->_backends.push_back(BackendHolder(_static, "")); }
 
-Router::~Router()
-{
-}
+Router::~Router() {}
 
 
 void Router::addBackend(t_backend_type const &type, std::string const &path)
 {
-	if (type == _cgi)
-		this->_backends.push_back(BackendHolder(type, path));
-	else
-		std::cerr << "Backend type not implemented yet" << std::endl;
+	// if (type == _cgi)
+	// 	this->_backends.push_back(BackendHolder(type, path));
+	// else
+	(void)type;
+	(void)path;
+	// This function is waiting for the CGIBackend implementation
+	std::cerr << "Backend type not implemented yet" << std::endl;
 }
 
 void Router::addRule(t_backend_type const &type, std::string const &path,
-					std::string const &    domain, std::string file_extension)
+					 std::string const &domain, std::string file_extension)
 {
 	if (!getBackend(type, path))
 		addBackend(type, path);
@@ -34,7 +32,7 @@ void Router::addRule(t_backend_type const &type, std::string const &path,
 }
 
 ABackend *Router::getBackend(t_backend_type const &backend_type,
-							std::string const &    cgi_path) const
+							 std::string const	  &cgi_path) const
 {
 	std::vector<BackendHolder>::const_iterator it;
 	std::vector<BackendHolder>::const_iterator ite = this->_backends.end();
@@ -51,18 +49,18 @@ ABackend *Router::getBackend(t_backend_type const &backend_type,
 
 void Router::resolve(Request const &request, Response &response) const
 {
-	std::string domain = to_lower(request.peekHeader("host"));
+	std::string domain		   = to_lower(request.peekHeader("host"));
 	std::string file_extension = get_file_ext(request.getURI());
 	std::vector<backend_rule>::const_iterator it;
-	std::vector<backend_rule>::const_iterator ite = this->_rules.end();
-	ABackend *backend = NULL;
+	std::vector<backend_rule>::const_iterator ite	  = this->_rules.end();
+	ABackend								 *backend = NULL;
 
 	for (it = this->_rules.begin(); it != ite; ++it)
 	{
 		if (it->domain == domain && it->file_extension == file_extension)
 		{
 			backend = it->addr;
-			break ;
+			break;
 		}
 	}
 	if (!backend)
