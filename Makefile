@@ -6,16 +6,21 @@ SRCS = main.cpp \
 		init.cpp \
 		html_generator/html_error.cpp \
 		html_generator/html_dir.cpp \
-		url_encoding/url_decoder.cpp
+		string_overload/string_overload.cpp \
+		url_encoding/file_extension.cpp \
+		url_encoding/url_decoder.cpp \
+		url_encoding/url_encoder.cpp
 
 CLASS_DIR = class
 CLASS = ABackend.cpp \
+		BackendHolder.cpp \
 		RequestPool.cpp \
 		Date.cpp \
 		FdStream.cpp \
 		Headers.cpp \
 		Response.cpp \
 		Request.cpp \
+		Router.cpp \
 		StaticBackend.cpp
 
 OBJS_DIR = objs
