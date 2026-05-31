@@ -11,13 +11,11 @@ struct BackendHolder
 	~BackendHolder(void);
 
 	t_backend_type backend_type;
-	std::string    cgi_path;
-	ABackend *     addr;
+	std::string	   cgi_path;
+	ABackend	  *addr;
 
-private :
-	BackendHolder(void)
-	{
-	}
+private:
+	BackendHolder(void) {}
 };
 
 #endif

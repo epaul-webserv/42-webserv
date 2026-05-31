@@ -41,14 +41,14 @@ public:
 	void bodyAppend(std::string const &resp);
 	void addHeader(std::string const &key, std::string const &value);
 	std::string const &getHTTPVersion(void);
-	t_fetch_status getStatus(void);
+	t_fetch_status	   getStatus(void);
 	std::string const &getHTTPStatus(void);
-	void setHTTPVersion(std::string const &http_version);
+	void			   setHTTPVersion(std::string const &http_version);
 	void setHTTPStatus(std::string const &status, std::string const &message);
 	void setHTTPStatus(std::string const &completeStatus);
 	t_file_status openFile(std::string const &path);
-	void setHttpVersion(std::string const &http_version);
-	void setStatus(t_fetch_status status);
+	void		  setHttpVersion(std::string const &http_version);
+	void		  setStatus(t_fetch_status status);
 
 private:
 	Response(void);
@@ -59,20 +59,20 @@ private:
 
 	t_send_status  _send_status;
 	t_fetch_status _fetch_status;
-	int            _conn_fd;
-	int            _file_fd;
-	std::string    _head;
-	std::string    _body;
-	size_t         _header_read_index;
-	size_t         _header_write_index;
-	size_t         _body_read_index;
-	size_t         _body_write_index;
-	size_t         _content_length;
-	size_t         _sent_bytes;
-	std::string    _http_version;
-	std::string    _http_status;
-	struct stat    _sb;
-	void *         _map;
+	int			   _conn_fd;
+	int			   _file_fd;
+	std::string	   _head;
+	std::string	   _body;
+	size_t		   _header_read_index;
+	size_t		   _header_write_index;
+	size_t		   _body_read_index;
+	size_t		   _body_write_index;
+	size_t		   _content_length;
+	size_t		   _sent_bytes;
+	std::string	   _http_version;
+	std::string	   _http_status;
+	struct stat	   _sb;
+	void		  *_map;
 };
 
 #endif

@@ -12,19 +12,19 @@ static std::string get_filetype_str(unsigned char type)
 	}
 }
 
-std::string get_filled_line(std::string        sample_line, struct dirent *file,
-							std::string const &path, std::string const &   root)
+std::string get_filled_line(std::string sample_line, struct dirent *file,
+							std::string const &path, std::string const &root)
 {
-	const char *      c_sample_line = sample_line.c_str();
-	size_t            ebpos         = 0;
-	struct stat       filestat;
+	const char		 *c_sample_line = sample_line.c_str();
+	size_t			  ebpos			= 0;
+	struct stat		  filestat;
 	std::stringstream o;
 
 	if (stat((root + path + (path == "/" ? "" : "/") + file->d_name).c_str(),
-			&filestat))
+			 &filestat))
 		return (o.str());
 	for (size_t bpos = sample_line.find('[', 0); bpos != std::string::npos;
-		bpos         = sample_line.find('[', ebpos))
+		 bpos		 = sample_line.find('[', ebpos))
 	{
 		o << sample_line.substr(ebpos, bpos - ebpos);
 		ebpos = sample_line.find(']', bpos) + 1;
@@ -32,18 +32,18 @@ std::string get_filled_line(std::string        sample_line, struct dirent *file,
 			o << get_filetype_str(file->d_type);
 		else if (!std::strncmp(c_sample_line + bpos, "[FILEPATH]", 10))
 			o << path << "/" << encodeURL(file->d_name)
-				<< (file->d_type == DT_DIR ? "/" : "");
+			  << (file->d_type == DT_DIR ? "/" : "");
 		else if (!std::strncmp(c_sample_line + bpos, "[FILENAME]", 10))
 			o << file->d_name << (file->d_type == DT_DIR ? "/" : "")
-				<< std::setw(50 - std::strlen(file->d_name)) << std::left << "";
+			  << std::setw(50 - std::strlen(file->d_name)) << std::left << "";
 		else if (!std::strncmp(c_sample_line + bpos, "[FILELINK]", 10))
 			o << "<a href=\"" << encodeURL(file->d_name)
-				<< (file->d_type == DT_DIR ? "/" : "") << "\" class=\""
-				<< get_filetype_str(file->d_type) << "\">" << file->d_name
-				<< (file->d_type == DT_DIR ? "/" : "") << "</a>"
-				<< std::setw(50 - (file->d_type == DT_DIR ? 1 : 0) -
-							std::strlen(file->d_name))
-				<< std::left << "";
+			  << (file->d_type == DT_DIR ? "/" : "") << "\" class=\""
+			  << get_filetype_str(file->d_type) << "\">" << file->d_name
+			  << (file->d_type == DT_DIR ? "/" : "") << "</a>"
+			  << std::setw(50 - (file->d_type == DT_DIR ? 1 : 0) -
+						   std::strlen(file->d_name))
+			  << std::left << "";
 		else if (!std::strncmp(c_sample_line + bpos, "[FILEDATE]", 10))
 			o << Date(&filestat.st_mtime).hstr();
 		else if (!std::strncmp(c_sample_line + bpos, "[FILESIZE]", 10))
@@ -63,11 +63,11 @@ std::string get_filled_line(std::string        sample_line, struct dirent *file,
 	return (o.str());
 }
 
-static std::string list_files(std::string const &sample_line, DIR *       dir,
-							std::string const &  path, std::string const &root)
+static std::string list_files(std::string const &sample_line, DIR *dir,
+							  std::string const &path, std::string const &root)
 {
 	std::map<std::string, struct dirent *> files;
-	std::string                            dest;
+	std::string							   dest;
 
 	for (struct dirent *file = readdir(dir); file; file = readdir(dir))
 	{
@@ -75,18 +75,18 @@ static std::string list_files(std::string const &sample_line, DIR *       dir,
 			files.insert(
 				std::pair<std::string, struct dirent *>(file->d_name, file));
 	}
-	for (std::map<std::string, struct dirent *>::iterator it = files.begin(),
-				ite                                          = files.end();
-		it != ite; ++it)
+	for (std::map<std::string, struct dirent *>::iterator it  = files.begin(),
+														  ite = files.end();
+		 it != ite; ++it)
 	{
 		if (it->second->d_type == DT_DIR &&
 			(it->first == ".." || it->first[0] != '.'))
 			dest.append(get_filled_line(sample_line, it->second, path, root) +
 						'\n');
 	}
-	for (std::map<std::string, struct dirent *>::iterator it = files.begin(),
-				ite                                          = files.end();
-		it != ite; ++it)
+	for (std::map<std::string, struct dirent *>::iterator it  = files.begin(),
+														  ite = files.end();
+		 it != ite; ++it)
 	{
 		if (it->second->d_type != DT_DIR && it->first[0] != '.')
 			dest.append(get_filled_line(sample_line, it->second, path, root) +
@@ -119,10 +119,10 @@ std::string fill_blanks(DIR *dir, FdStream &fdstream, std::string const &path,
 std::string get_html_dir(std::string const &path, std::string const &root)
 {
 	DIR *dir;
-	int  fd = open("srcs/html_generator/dir_sample.html", O_RDONLY);
+	int	 fd = open("srcs/html_generator/dir_sample.html", O_RDONLY);
 	if (fd == -1)
 		throw(std::runtime_error("Template is absent"));
-	FdStream    fdstream(fd);
+	FdStream	fdstream(fd);
 	std::string html;
 
 	dir = opendir((root + path).c_str());

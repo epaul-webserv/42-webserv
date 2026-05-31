@@ -18,9 +18,9 @@ public:
 	virtual ~ABackend(void);
 
 	virtual void generateResponse(Request const &request,
-								Response &       response) = 0;
-	void setError(std::string const &status, std::string const &message,
-				Response &           response);
+								  Response		&response) = 0;
+	void		 setError(std::string const &status, std::string const &message,
+						  Response &response);
 };
 
 #endif

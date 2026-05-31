@@ -6,8 +6,7 @@
 #include <unistd.h>
 #include "webserv.h"
 
-StaticBackend::StaticBackend(void) :
-	_map(NULL)
+StaticBackend::StaticBackend(void) : _map(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -68,8 +67,8 @@ void StaticBackend::generateResponse(Request const &request, Response &response)
 		}
 	}
 	std::cerr << request.getMethod() << " " << request.getURI() << " "
-		<< response.getHTTPVersion() << " - " << response.getHTTPStatus() <<
-		std::endl;
+			  << response.getHTTPVersion() << " - " << response.getHTTPStatus()
+			  << std::endl;
 	response.setStatus(_ready);
 }
 

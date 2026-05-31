@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "Router.hpp"
 #include "StaticBackend.hpp"
 #include "webserv.h"
 
@@ -80,7 +81,7 @@ static void wait_to_send(int const &socketpoll, int const &connfd)
 
 void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 				   socklen_t &addrlen, int &socketpoll, int sockfd,
-				   RequestPool &pool)
+				   RequestPool &pool, Router &router)
 {
 	StaticBackend static_backend;
 	Response	  response(-1);
@@ -94,6 +95,11 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 				break;
 			for (int i = 0; i < nbev; ++i)
 			{
+				socklen_t test_len;
+				getsockname(events[i].data.fd, (struct sockaddr *)&addr,
+							&test_len);
+				std::cerr << inet_ntoa(addr.sin_addr) << std::endl;
+				;
 				if (events[i].data.fd == sockfd && events[i].events & EPOLLIN)
 					new_conn(events[i].data.fd, addr, addrlen, socketpoll,
 							 pool);
@@ -105,10 +111,13 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 					if (s == _read)
 					{
 						response.set(events[i].data.fd);
-						static_backend.generateResponse(
-							pool.getRequest(events[i].data.fd), response);
+						router.resolve(pool.getRequest(events[i].data.fd),
+									   response);
+						// static_backend.generateResponse(
+						// 	pool.getRequest(events[i].data.fd), response);
 						// pool.getRequest(events[i].data.fd).prepareResponse();
-						wait_to_send(socketpoll, events[i].data.fd);
+						if (response.ready())
+							wait_to_send(socketpoll, events[i].data.fd);
 					}
 					if (s == _close)
 					{
@@ -151,7 +160,9 @@ void sigint_handler(int sig)
 int main(int ac, char *av[])
 {
 	RequestPool pool;
+	Router		router;
 
+	// router.addRule(_cgi, "/testpath/", "lomartin.42.fr:33000", "php");
 	if (ac > 2)
 	{
 		std::cerr << "Usage: " << av[0] << " [configuration file]" << std::endl;
@@ -181,7 +192,7 @@ int main(int ac, char *av[])
 	sockevent.data.fd = sockfd;
 	epoll_ctl(socketpoll, EPOLL_CTL_ADD, sockfd, &sockevent);
 	// chdir("/var/www/html");
-	handle_events(events, addr, addrlen, socketpoll, sockfd, pool);
+	handle_events(events, addr, addrlen, socketpoll, sockfd, pool, router);
 	if (sockfd > 0)
 	{
 		shutdown(sockfd, SHUT_RDWR);
