@@ -3,17 +3,34 @@
 #include <cstdlib>
 #include <string>
 
-std::string encodeChar(char high, char low)
+bool to_encode(char c)
 {
-	char buf[3] = {high, low, '\0'};
+	if (c >= 'A' && c <= 'Z')
+		return (false);
+	if (c >= 'a' && c <= 'z')
+		return (false);
+	if (c >= '0' && c <= '9')
+		return (false);
+	if (c == '-' || c == '.' || c == '_' || c == '~')
+		return (false);
+	return (true);
+}
 
-	return (static_cast<char>(std::strtol(buf, NULL, 16)));
+std::string encode_char(char c)
+{
+	std::string ret;
+	std::string base = "0123456789ABCDEF";
+
+	ret += '%';
+	ret += base[c / 16];
+	ret += base[c % 16];
+	return (ret);
 }
 
 /// @brief Traslates a URL-encoded string into its ASCII form
 /// @param URI Reference to the string to transform.
 /// @return The translated ASCII string
-std::string decodeURL(std::string const &URI)
+std::string encodeURL(std::string const &URI)
 {
 	std::string result;
 
@@ -21,16 +38,8 @@ std::string decodeURL(std::string const &URI)
 		return result;
 	for (size_t read = 0; read < URI.size(); ++read)
 	{
-		if (URI[read] == '%' && read + 2 < URI.size())
-		{
-			if (std::isxdigit(URI[read + 1]) && std::isxdigit(URI[read + 2]))
-			{
-				result += decodeChar(URI[read + 1], URI[read + 2]);
-				read += 2;
-			}
-			else
-				result += URI[++read];
-		}
+		if (to_encode(URI[read]))
+			result += encode_char(URI[read]);
 		else if (URI[read] == '+')
 			result += ' ';
 		else
