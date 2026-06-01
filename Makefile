@@ -15,9 +15,9 @@ CLASS_DIR = class
 CLASS = ABackend.cpp \
 		BackendHolder.cpp \
 		RequestPool.cpp \
+		CGIBackend.cpp \
 		Date.cpp \
 		FdStream.cpp \
-		Headers.cpp \
 		Response.cpp \
 		Request.cpp \
 		Router.cpp \
