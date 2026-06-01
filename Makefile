@@ -34,26 +34,35 @@ INCLUDES = includes
 
 NAME = webserv
 
-.PHONY = $(NAME) all clean fclean re
+LIBASYNC_DIR = libasync
+LIBASYNC = $(LIBASYNC_DIR)/libasync.a
+LIBASYNC_INC = $(LIBASYNC_DIR)/include
+
+.PHONY = $(NAME) all clean fclean re $(LIBASYNC)
 
 all : $(NAME)
 
+$(LIBASYNC):
+	$(MAKE) -C $(LIBASYNC_DIR)
+
 $(OBJS_DIR)/%.o : $(SRCS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INC) -c $< -o $@
 
 $(OBJS_DIR)/%.o : $(CLASS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INC) -c $< -o $@
 
-$(NAME) : $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -I$(INCLUDES) -o $(NAME)
+$(NAME) : $(OBJS) $(LIBASYNC)
+	$(CC) $(CFLAGS) $(OBJS) -I$(INCLUDES) -I$(LIBASYNC_INC) -o $(NAME)
 
 clean :
 	$(RM) -r $(OBJS) $(DEPS) $(OBJS_DIR)
+	$(MAKE) -C $(LIBASYNC_DIR) clean
 
 fclean : clean
 	$(RM) $(NAME)
+	$(MAKE) -C $(LIBASYNC_DIR) fclean
 
 re : fclean all
 
