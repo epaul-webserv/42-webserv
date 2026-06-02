@@ -4,11 +4,11 @@
 
 #include "Router.hpp"
 #include <iostream>
+#include "StaticBackend.hpp"
 
 Router::Router() { this->_backends.push_back(BackendHolder(_static, "")); }
 
 Router::~Router() {}
-
 
 void Router::addBackend(t_backend_type const &type, std::string const &path)
 {
