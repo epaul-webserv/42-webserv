@@ -7,9 +7,9 @@
 #include <unistd.h>
 #include "webserv.h"
 
-Response::Response(int fd) :
-	_send_status(_first_step), _fetch_status(_init), _conn_fd(fd), _file_fd(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0),
-	_body_write_index(0), _content_length(0), _sent_bytes(0), _map(NULL)
+Response::Response(void) :
+	_send_status(_first_step), _fetch_status(_init), _file_fd(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0), _body_write_index(0),
+	_content_length(0), _sent_bytes(0), _map(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -22,9 +22,8 @@ Response::~Response(void)
 		close(this->_file_fd);
 }
 
-void Response::set(int fd)
+void Response::clear()
 {
-	this->_conn_fd = fd;
 	if (this->_file_fd != -1)
 		close(this->_file_fd);
 	if (this->_map)
@@ -131,9 +130,9 @@ void Response::addBase()
 	this->_head.append("\r\n");
 }
 
-void Response::sendHead(void)
+void Response::sendHead(int fd)
 {
-	int sent_bytes = send(this->_conn_fd, this->_head.c_str() + this->_header_read_index, this->_head.size() - this->_header_read_index, 0);
+	int sent_bytes = send(fd, this->_head.c_str() + this->_header_read_index, this->_head.size() - this->_header_read_index, 0);
 
 	if (sent_bytes == -1)
 		return;
@@ -142,7 +141,7 @@ void Response::sendHead(void)
 		this->_send_status = _sending_body;
 }
 
-bool Response::sendBody(void)
+bool Response::sendBody(int fd)
 {
 	char const *buffer;
 	size_t		to_read;
@@ -159,7 +158,7 @@ bool Response::sendBody(void)
 	}
 	else
 		return (this->_send_status = _body_sent);
-	int sent_bytes = send(this->_conn_fd, buffer + this->_sent_bytes, to_read - this->_sent_bytes, MSG_NOSIGNAL);
+	int sent_bytes = send(fd, buffer + this->_sent_bytes, to_read - this->_sent_bytes, MSG_NOSIGNAL);
 
 	if (sent_bytes == -1)
 		return (true);
@@ -179,7 +178,7 @@ bool Response::sendBody(void)
 	return (false);
 }
 
-bool Response::sendResponse(void)
+bool Response::sendResponse(int fd)
 {
 
 	if (this->_send_status == _first_step)
@@ -188,8 +187,8 @@ bool Response::sendResponse(void)
 		this->_send_status = _sending_head;
 	}
 	if (this->_send_status == _sending_head)
-		return (this->sendHead(), false);
+		return (this->sendHead(fd), false);
 	if (this->_send_status == _sending_body)
-		return (this->sendBody());
+		return (this->sendBody(fd));
 	return (true);
 }

@@ -1,7 +1,7 @@
 #ifndef REQUEST_POOL_H
 #define REQUEST_POOL_H
 
-#include "Request.hpp"
+#include "HTTPStream.hpp"
 
 class RequestPool
 {
@@ -10,17 +10,17 @@ public:
 	RequestPool(RequestPool const &ConnectionPool);
 	~RequestPool(void);
 
-	Request &getRequest(int fd);
-	void	 delRequest(int fd);
+	HTTPStream &getRequest(int fd);
+	void		delRequest(int fd);
 
 private:
 	void growPool(void);
 	void decrPool(void);
 
-	size_t	 _pool_size;
-	Request *_request_pool;
-	int		*_fds;
-	long	 _active_connections;
+	size_t		_pool_size;
+	HTTPStream *_request_pool;
+	int		   *_fds;
+	long		_active_connections;
 };
 
 #endif

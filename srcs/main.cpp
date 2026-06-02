@@ -81,7 +81,7 @@ static void wait_to_send(int const &socketpoll, int const &connfd)
 void handle_events(struct epoll_event *events, struct sockaddr_in &addr, socklen_t &addrlen, int &socketpoll, int sockfd, RequestPool &pool, Router &router)
 {
 	StaticBackend static_backend;
-	Response	  response(-1);
+	// Response      response();
 
 	while (true)
 	{
@@ -103,12 +103,11 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr, socklen
 					t_request_state s = pool.getRequest(events[i].data.fd).readRequest();
 					if (s == _read)
 					{
-						response.set(events[i].data.fd);
-						router.resolve(pool.getRequest(events[i].data.fd), response);
+						router.resolve(pool.getRequest(events[i].data.fd).request, pool.getRequest(events[i].data.fd).response);
 						// static_backend.generateResponse(
 						// 	pool.getRequest(events[i].data.fd), response);
 						// pool.getRequest(events[i].data.fd).prepareResponse();
-						if (response.ready())
+						if (pool.getRequest(events[i].data.fd).response.ready())
 							wait_to_send(socketpoll, events[i].data.fd);
 					}
 					if (s == _close)
@@ -120,7 +119,7 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr, socklen
 				}
 				else if (events[i].events & EPOLLOUT)
 				{
-					if (response.sendResponse())
+					if (pool.getRequest(events[i].data.fd).sendResponse())
 					{
 						// if
 						// (pool.getRequest(events[i].data.fd).sendResponse())

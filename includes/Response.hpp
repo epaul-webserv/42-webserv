@@ -31,11 +31,11 @@ typedef enum
 class Response
 {
 public:
-	Response(int fd);
+	Response(void);
 	~Response(void);
 
-	void			   set(int fd);
-	bool			   sendResponse(void);
+	void			   clear();
+	bool			   sendResponse(int fd);
 	bool			   ready(void);
 	void			   headAppend(std::string const &resp);
 	void			   bodyAppend(std::string const &resp);
@@ -51,15 +51,13 @@ public:
 	void			   setStatus(t_fetch_status status);
 
 private:
-	Response(void);
 	Response(Response const &Response);
 	void addBase(void);
-	void sendHead(void);
-	bool sendBody(void);
+	void sendHead(int fd);
+	bool sendBody(int fd);
 
 	t_send_status  _send_status;
 	t_fetch_status _fetch_status;
-	int			   _conn_fd;
 	int			   _file_fd;
 	std::string	   _head;
 	std::string	   _body;

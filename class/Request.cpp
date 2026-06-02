@@ -4,13 +4,11 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-Request::Request(void) : _fd(-1), _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
-
-Request::Request(int fd) : _fd(fd), _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
+Request::Request(void) : _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
 
 Request::Request(Request const &Request) :
-	_fd(Request._fd), _first_line_read(Request._first_line_read), _headers_read(Request._headers_read), _read_index(0), _write_index(0), _method(Request._method),
-	_URI(Request._URI), _http_version(Request._http_version), _headers(Request._headers)
+	_first_line_read(Request._first_line_read), _headers_read(Request._headers_read), _read_index(0), _write_index(0), _method(Request._method), _URI(Request._URI),
+	_http_version(Request._http_version), _headers(Request._headers)
 {
 }
 
@@ -21,7 +19,6 @@ Request const &Request::operator=(Request const &Request)
 	this->_method		   = Request._method;
 	this->_URI			   = Request._URI;
 	this->_http_version	   = Request._http_version;
-	this->_fd			   = Request._fd;
 	this->_first_line_read = Request._first_line_read;
 	this->_headers_read	   = Request._headers_read;
 	this->_headers		   = Request._headers;
@@ -30,12 +27,11 @@ Request const &Request::operator=(Request const &Request)
 	return (*this);
 }
 
-void Request::clear(int fd)
+void Request::clear()
 {
 	this->_method.clear();
 	this->_URI.clear();
 	this->_http_version.clear();
-	this->_fd			   = fd;
 	this->_first_line_read = false;
 	this->_headers_read	   = false;
 	this->_headers.clear();
@@ -54,15 +50,15 @@ void Request::prepareNextRead(void)
 	this->_headers.clear();
 }
 
-t_request_state Request::readRequest(void)
+t_request_state Request::readRequest(int fd)
 {
-	size_t read_bytes = read(this->_fd, this->_buffer + this->_write_index, MAX_REQUEST_SIZE - this->_write_index);
+	size_t read_bytes = read(fd, this->_buffer + this->_write_index, MAX_REQUEST_SIZE - this->_write_index);
 
 	if (!read_bytes)
 		return (_close);
 	this->_buffer[read_bytes + this->_write_index] = '\0';
 	this->_write_index += read_bytes;
-	if (!_first_line_read)
+	if (!this->_first_line_read)
 		return (readFirstLine());
 	return (readHeaders());
 }

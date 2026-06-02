@@ -37,17 +37,15 @@ public:
 	~Request(void);
 
 	Request const  &operator=(const Request &Request);
-	void			clear(int fd);
+	void			clear();
 	void			prepareNextRead(void);
-	t_request_state readRequest(void);
-	bool			sendResponse(void);
+	t_request_state readRequest(int fd);
 	std::string		peekHeader(std::string const key = "") const;
 	std::string		getHeader(std::string const key = "");
 	std::string		getMethod(void) const;
 	std::string		getURI(void) const;
 	std::string		getQueryString(void) const;
 	std::string		getHTTPVersion(void) const;
-	void			prepareResponse();
 
 	class InvalidReadException : public std::exception
 	{
@@ -57,14 +55,7 @@ public:
 private:
 	t_request_state readFirstLine(void);
 	t_request_state readHeaders(void);
-	std::string		getFirstLine(void) const;
-	void			response_0_9(void);
-	void			response_1_0(void);
-	void			response_1_1(void);
-	bool			sendFile(void);
-	void			createErrorResponse(std::string const &errorCode, std::string const &errorMessage);
 
-	int								   _fd;
 	bool							   _first_line_read;
 	bool							   _headers_read;
 	char							   _buffer[MAX_REQUEST_SIZE + 1];

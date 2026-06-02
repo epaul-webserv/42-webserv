@@ -18,6 +18,7 @@ CLASS = ABackend.cpp \
 		CGIBackend.cpp \
 		Date.cpp \
 		FdStream.cpp \
+		HTTPStream.cpp \
 		Response.cpp \
 		Request.cpp \
 		Router.cpp \
