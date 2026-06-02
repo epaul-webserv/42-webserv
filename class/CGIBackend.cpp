@@ -1,6 +1,8 @@
 #include "CGIBackend.hpp"
 #include <iostream>
 #include <string>
+#include "url_utils.hpp"
+#include "webserv.h"
 
 
 // int WriteBody(const std::string &body, int write_fd)
@@ -37,7 +39,7 @@ int ReadBody(Response &response, int read_fd)
 
 CGIBackend::CGIBackend(void) {}
 
-CGIBackend::CGIBackend(std::string const &path) : _path(path) {}
+CGIBackend::CGIBackend(std::vector<std::string> const &args) : _args(args) {}
 
 CGIBackend::~CGIBackend(void) {}
 
@@ -47,51 +49,60 @@ void CGIBackend::generateResponse(Request const &request, Response &response)
 {
 	(void)request;
 	(void)response;
-	char *const env_var[] = {
-		const_cast<char *>("AUTH_TYPE="), // NULL ?
-		const_cast<char *>("CONTENT_TYPE="), // If there is a body
-		const_cast<char *>("CONTENT_LENGTH="), // If there is a body
-		const_cast<char *>("GATEWAY_INTERFACE=CGI/1.1"), // default to 1.1
+	std::string query_string   = "QUERY_STRING=" + request.getQueryString();
+	std::string request_method = "REQUEST_METHOD=" + request.getMethod();
 
-		//	SCHEME			AUTHORITY			SCRIPT_NAME PATH_INFO
-		// QUERY_STRING
-		// 	http	://		example.com:80412 	/cgi-bin/search.cgi
-		// /archive/docs	?year=2026&name=toto
-		const_cast<char *>("PATH_INFO=/archive/docs"),
+	// The name of the file being executed
+	std::string script_name = get_file_name(request.getURI());
+	std::string script_full_path = std::string(DEFAULT_ROOT) + "/" + script_name;
 
-		// http://somehost.com/cgi-bin/somescript/this%2eis%2epath%3binfo
-		/// usr/local/www/htdocs/this.is.the.path;info < this is translated, an
-		/// internal decoded URI
-		const_cast<char *>(
-			"PATH_TRANSLATED=/home/bl4st/github/webserv/index.php"), //
+	// This is supposed to be whats after the script filename, and before the query string,
+	// but Logan Martin told me to trust him, "tkt" was his explanation, it convinced me
+	std::string path_info = "PATH_INFO=" + script_full_path;
+	// Internal decoded URI
+	std::string path_translated = "PATH_TRANSLATED=" + script_full_path;
+	// Tells the cgi EXACTLY what file to run
+	std::string script_filename = "SCRIPT_FILENAME=" + script_full_path;
 
-		const_cast<char *>(
-			"QUERY_STRING=year=2026&name=toto"), // the content after ? in the
-												 // url
+	std::string server_port = "SERVER_PORT=" + DEFAULT_PORT;
 
-		const_cast<char *>("REMOTE_ADDR=localhost"), // ip address of the client
-													 // making the request
-		const_cast<char *>(
-			"REMOTE_HOST="), // fully qualified domain name of, the client
-							 // sending the request left blank i guess
-		const_cast<char *>("REMOTE_IDENT="), // Idk
+	// name of teh server on the network ?
+	std::string server_name = "SERVER_NAME=" + std::string(PROGNAME);
+	// name of the program
+	std::string server_software = "SERVER_SOFTWARE=" + std::string(PROGNAME);
+	// protocol
+	std::string server_protocol = "SERVER_PROTOCOL=" + request.getHTTPVersion();
 
-		const_cast<char *>("REQUEST_METHOD=GET"), // Get from request
-		const_cast<char *>(
-			"REDIRECT_STATUS=1"), // Bypasses the "Security Alert!"
-		const_cast<char *>("SCRIPT_FILENAME=/home/bl4st/github/webserv/"
-						   "index.php"), // Tells PHP exactly what
-										 // file to run
-		const_cast<char *>(
-			"SCRIPT_NAME=index.php"), // Path to the script to execute
-		const_cast<char *>("SERVER_NAME=webserv_name"), //
-		const_cast<char *>("SERVER_PORT=8080"), //
-		const_cast<char *>("SERVER_PROTOCOL=HTTP/1.1"), //
-		const_cast<char *>("SERVER_SOFTWARE=webserv"), //
-		NULL}; //
+	char *const env_var[] = {const_cast<char *>("AUTH_TYPE="), // NULL ?
+							 const_cast<char *>("CONTENT_TYPE="), // If there is a body
+							 const_cast<char *>("CONTENT_LENGTH="), // If there is a body
+							 const_cast<char *>("GATEWAY_INTERFACE=CGI/1.1"), // default to 1.1
 
-	int pipe_in[2];
-	int pipe_out[2];
+							 const_cast<char *>(path_info.c_str()),
+
+							 const_cast<char *>(path_translated.c_str()),
+
+							 const_cast<char *>(query_string.c_str()), // the content after ? in the
+																	   // url
+
+							 const_cast<char *>("REMOTE_ADDR=localhost"), // ip address of the client
+																		  // making the request
+							 const_cast<char *>("REMOTE_HOST="), // fully qualified domain name of, the client
+																 // sending the request left blank i guess
+							 const_cast<char *>("REMOTE_IDENT="), // Idk
+
+							 const_cast<char *>(request_method.c_str()), // Get from request
+
+							 const_cast<char *>("REDIRECT_STATUS=1"), // Bypasses the "Security Alert!"
+							 const_cast<char *>(script_filename.c_str()),
+							 const_cast<char *>(script_name.c_str()), // Path to the script to execute
+							 const_cast<char *>(server_name.c_str()), //
+							 const_cast<char *>(server_port.c_str()), //
+							 const_cast<char *>(server_protocol.c_str()), //
+							 const_cast<char *>(server_software.c_str()), //
+							 NULL}; //
+	int			pipe_in[2];
+	int			pipe_out[2];
 
 	int cgi_pid = 0;
 
@@ -130,12 +141,16 @@ void CGIBackend::generateResponse(Request const &request, Response &response)
 		close(pipe_out[0]);
 		close(pipe_out[1]);
 
-		char *const argv[] = {const_cast<char *>("/bin/php-cgi"),
-							  const_cast<char *>("-f"),
-							  const_cast<char *>("index.php"), NULL};
 
-		execve(argv[0], argv, env_var);
-		std::cerr << "CGI Error: execve failed for " << argv[0] << std::endl;
+		std::vector<char *> argv;
+		argv.reserve(_args.size() + 2);
+		for (size_t i = 0; i < _args.size(); i++)
+			argv.push_back(const_cast<char *>(_args[i].c_str()));
+		argv.push_back(const_cast<char *>(script_full_path.c_str()));
+		argv.push_back(NULL);
+
+		execve(argv[0], &argv[0], env_var);
+		std::cerr << "CGI Error: execve failed for " << argv[0] << ", " << argv[1] << ", " << argv[2] << std::endl;
 		std::exit(1);
 	}
 	close(pipe_in[0]);

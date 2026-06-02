@@ -11,6 +11,7 @@
 #include "Response.hpp"
 #include "StaticBackend.hpp"
 #include "url_utils.hpp"
+#include <list>
 
 struct backend_rule
 {
@@ -31,17 +32,17 @@ public:
 	Router();
 	~Router();
 
-	void addBackend(t_backend_type const &type, std::string const &path = "");
-	void addRule(t_backend_type const &type, std::string const &path,
+	void addBackend(t_backend_type const &type, std::vector<std::string> const &args);
+	void addRule(t_backend_type const &type, std::vector<std::string> const &args,
 				 std::string const &domain, std::string file_extension);
 	void resolve(Request const &request, Response &response) const;
 
 private:
 	ABackend *getBackend(t_backend_type const &type,
-						 std::string const	  &path) const;
+						  std::vector<std::string> const &args) const;
 
-	std::vector<BackendHolder> _backends;
-	std::vector<backend_rule>  _rules;
+	std::list<BackendHolder> _backends;
+	std::list<backend_rule>  _rules;
 };
 
 #endif

@@ -6,13 +6,13 @@
 
 struct BackendHolder
 {
-	BackendHolder(t_backend_type backend_type, std::string const &cgi_path);
+	BackendHolder(t_backend_type backend_type, std::vector<std::string> const &cgi_args);
 	BackendHolder(BackendHolder const &BackendHolder);
 	~BackendHolder(void);
 
-	t_backend_type backend_type;
-	std::string	   cgi_path;
-	ABackend	  *addr;
+	t_backend_type			 backend_type;
+	std::vector<std::string> cgi_args;
+	ABackend				*addr;
 
 private:
 	BackendHolder(void) {}
