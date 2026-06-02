@@ -1,5 +1,5 @@
-CC = c++
-CFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
+CXX = c++
+CXXFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
 
 SRCS_DIR = srcs
 SRCS = main.cpp \
@@ -15,6 +15,7 @@ CLASS_DIR = class
 CLASS = ABackend.cpp \
 		BackendHolder.cpp \
 		RequestPool.cpp \
+		CGIBackend.cpp \
 		Date.cpp \
 		FdStream.cpp \
 		Response.cpp \
@@ -33,35 +34,34 @@ INCLUDES = includes
 
 NAME = webserv
 
-LIBASYNC_DIR = libasync
-LIBASYNC = $(LIBASYNC_DIR)/libasync.a
-LIBASYNC_INC = $(LIBASYNC_DIR)/include
-
-.PHONY = $(NAME) all clean fclean re $(LIBASYNC)
-
 all : $(NAME)
 
-$(LIBASYNC):
-	$(MAKE) -C $(LIBASYNC_DIR)
+LIBASYNC_PREFIX = libasync
+
+LIBCONTAINER_PREFIX = $(LIBASYNC_PREFIX)/libcontainer
+
+-include $(LIBCONTAINER_PREFIX)/module.mk
+
+-include $(LIBASYNC_PREFIX)/module.mk
+
+.PHONY = $(NAME) all clean fclean re
 
 $(OBJS_DIR)/%.o : $(SRCS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INC) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -c $< -o $@
 
 $(OBJS_DIR)/%.o : $(CLASS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INC) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -c $< -o $@
 
-$(NAME) : $(OBJS) $(LIBASYNC)
-	$(CC) $(CFLAGS) $(OBJS) -I$(INCLUDES) -I$(LIBASYNC_INC) -o $(NAME)
+$(NAME) : $(OBJS) $(LIBASYNC_DEST)
+	$(CXX) $(CXXFLAGS) $^ -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -o $@
 
-clean :
+clean : libasync_clean libcontainer_clean
 	$(RM) -r $(OBJS) $(DEPS) $(OBJS_DIR)
-	$(MAKE) -C $(LIBASYNC_DIR) clean
 
 fclean : clean
 	$(RM) $(NAME)
-	$(MAKE) -C $(LIBASYNC_DIR) fclean
 
 re : fclean all
 
