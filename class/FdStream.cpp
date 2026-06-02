@@ -1,9 +1,6 @@
 #include "../includes/FdStream.hpp"
 
-FdStream::FdStream(int fd) :
-	_end(false), _fd(fd), _read_index(0), _write_index(0)
-{
-}
+FdStream::FdStream(int fd) : _end(false), _fd(fd), _read_index(0), _write_index(0) {}
 
 FdStream::~FdStream(void) {}
 
@@ -57,8 +54,7 @@ std::string FdStream::get_str_until(char c)
 		if (!char_pos)
 			to_write = this->_write_index - this->_read_index;
 		else
-			to_write = std::min(char_pos - this->_buffer - this->_read_index,
-								this->_write_index - this->_read_index);
+			to_write = std::min(char_pos - this->_buffer - this->_read_index, this->_write_index - this->_read_index);
 		ret.append(this->_buffer + this->_read_index, to_write);
 		this->_read_index += to_write + (char_pos ? 1 : 0);
 	}
@@ -75,8 +71,7 @@ void FdStream::clear(int fd)
 
 void FdStream::fillBuffer(void)
 {
-	int read_bytes =
-		read(this->_fd, this->_buffer, FDSTREAM_BUFF_SIZE - this->_write_index);
+	int read_bytes = read(this->_fd, this->_buffer, FDSTREAM_BUFF_SIZE - this->_write_index);
 
 	if (read_bytes == -1 && errno & EBADF)
 		throw(InvalidFdException());
@@ -89,12 +84,6 @@ void FdStream::fillBuffer(void)
 	this->_read_index		  = 0;
 }
 
-const char *FdStream::InvalidFdException::what(void) const throw()
-{
-	return ("Invalid fd ?");
-}
+const char *FdStream::InvalidFdException::what(void) const throw() { return ("Invalid fd ?"); }
 
-const char *FdStream::InvalidReadException::what(void) const throw()
-{
-	return ("Error while reading");
-}
+const char *FdStream::InvalidReadException::what(void) const throw() { return ("Error while reading"); }

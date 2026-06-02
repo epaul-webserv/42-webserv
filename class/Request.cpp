@@ -4,23 +4,13 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-Request::Request(void) :
-	_fd(-1), _first_line_read(false), _headers_read(false), _read_index(0),
-	_write_index(0)
-{
-}
+Request::Request(void) : _fd(-1), _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
 
-Request::Request(int fd) :
-	_fd(fd), _first_line_read(false), _headers_read(false), _read_index(0),
-	_write_index(0)
-{
-}
+Request::Request(int fd) : _fd(fd), _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
 
 Request::Request(Request const &Request) :
-	_fd(Request._fd), _first_line_read(Request._first_line_read),
-	_headers_read(Request._headers_read), _read_index(0), _write_index(0),
-	_method(Request._method), _URI(Request._URI),
-	_http_version(Request._http_version), _headers(Request._headers)
+	_fd(Request._fd), _first_line_read(Request._first_line_read), _headers_read(Request._headers_read), _read_index(0), _write_index(0), _method(Request._method),
+	_URI(Request._URI), _http_version(Request._http_version), _headers(Request._headers)
 {
 }
 
@@ -66,8 +56,7 @@ void Request::prepareNextRead(void)
 
 t_request_state Request::readRequest(void)
 {
-	size_t read_bytes = read(this->_fd, this->_buffer + this->_write_index,
-							 MAX_REQUEST_SIZE - this->_write_index);
+	size_t read_bytes = read(this->_fd, this->_buffer + this->_write_index, MAX_REQUEST_SIZE - this->_write_index);
 
 	if (!read_bytes)
 		return (_close);
@@ -95,12 +84,9 @@ t_request_state Request::readFirstLine(void)
 {
 	if (std::strchr(this->_buffer + this->_read_index, '\n'))
 	{
-		this->_read_index +=
-			get_word(this->_buffer + this->_read_index, this->_method);
-		this->_read_index +=
-			get_word(this->_buffer + this->_read_index, this->_URI);
-		this->_read_index +=
-			get_word(this->_buffer + this->_read_index, this->_http_version);
+		this->_read_index += get_word(this->_buffer + this->_read_index, this->_method);
+		this->_read_index += get_word(this->_buffer + this->_read_index, this->_URI);
+		this->_read_index += get_word(this->_buffer + this->_read_index, this->_http_version);
 		this->_first_line_read = true;
 		decodeURL(this->_URI);
 		if (this->_URI.find('?') != std::string::npos)
@@ -113,8 +99,7 @@ t_request_state Request::readFirstLine(void)
 	return (_reading);
 }
 
-static size_t readHeadersCore(char								 *buffer,
-							  std::map<std::string, std::string> &headers)
+static size_t readHeadersCore(char *buffer, std::map<std::string, std::string> &headers)
 {
 	size_t								whole_len = 0;
 	size_t								len		  = 0;
@@ -156,14 +141,10 @@ static size_t readHeadersCore(char								 *buffer,
 
 t_request_state Request::readHeaders(void)
 {
-	while (this->_buffer[this->_read_index] &&
-		   std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") &&
-		   std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") &&
-		   std::strstr(this->_buffer, "\n"))
-		this->_read_index +=
-			readHeadersCore(this->_buffer + this->_read_index, this->_headers);
-	if (std::strstr(this->_buffer, "\r\n\r\n") ||
-		std::strstr(this->_buffer, "\n\n"))
+	while (this->_buffer[this->_read_index] && std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") &&
+		   std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") && std::strstr(this->_buffer, "\n"))
+		this->_read_index += readHeadersCore(this->_buffer + this->_read_index, this->_headers);
+	if (std::strstr(this->_buffer, "\r\n\r\n") || std::strstr(this->_buffer, "\n\n"))
 		return (_read);
 	return (_reading);
 }
@@ -209,12 +190,6 @@ std::string Request::getURI(void) const { return (this->_URI); }
 
 std::string Request::getQueryString(void) const { return (this->_query_string); }
 
-std::string Request::getHTTPVersion(void) const
-{
-	return (this->_http_version);
-}
+std::string Request::getHTTPVersion(void) const { return (this->_http_version); }
 
-const char *Request::InvalidReadException::what() const throw()
-{
-	return ("Error while reading");
-}
+const char *Request::InvalidReadException::what() const throw() { return ("Error while reading"); }

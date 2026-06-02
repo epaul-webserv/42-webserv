@@ -15,8 +15,7 @@
 #include "Date.hpp"
 #include "FdStream.hpp"
 
-std::string get_html_error(std::string const &status,
-						   std::string const &message);
+std::string get_html_error(std::string const &status, std::string const &message);
 std::string get_html_dir(std::string const &path, std::string const &root);
 
 #endif

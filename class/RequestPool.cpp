@@ -3,16 +3,12 @@
 #include <cstring>
 #include <iostream>
 
-RequestPool::RequestPool(void) :
-	_pool_size(10), _request_pool(new Request[10]), _fds(new int[_pool_size]),
-	_active_connections(0)
+RequestPool::RequestPool(void) : _pool_size(10), _request_pool(new Request[10]), _fds(new int[_pool_size]), _active_connections(0)
 {
 	std::fill(this->_fds, this->_fds + this->_pool_size, -1);
 }
 
-RequestPool::RequestPool(RequestPool const &ConnectionPool) :
-	_pool_size(ConnectionPool._pool_size),
-	_request_pool(new Request[this->_pool_size])
+RequestPool::RequestPool(RequestPool const &ConnectionPool) : _pool_size(ConnectionPool._pool_size), _request_pool(new Request[this->_pool_size])
 {
 	for (size_t i; i < this->_pool_size; ++i)
 		this->_request_pool[i] = ConnectionPool._request_pool[i];

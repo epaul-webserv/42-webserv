@@ -62,8 +62,7 @@ private:
 	void			response_1_0(void);
 	void			response_1_1(void);
 	bool			sendFile(void);
-	void			createErrorResponse(std::string const &errorCode,
-										std::string const &errorMessage);
+	void			createErrorResponse(std::string const &errorCode, std::string const &errorMessage);
 
 	int								   _fd;
 	bool							   _first_line_read;

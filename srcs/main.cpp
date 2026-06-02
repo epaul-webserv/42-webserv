@@ -42,12 +42,11 @@ int get_conn_id(int connexion)
 	return (-1);
 }
 
-void new_conn(int sockfd, struct sockaddr_in &addr, socklen_t &addrlen,
-			  int &socketpoll, RequestPool &pool)
+void new_conn(int sockfd, struct sockaddr_in &addr, socklen_t &addrlen, int &socketpoll, RequestPool &pool)
 {
 	// std::cout << "[DEBUG] Creating new connexion " << std::endl;
 	struct epoll_event event;
-	int connexion = accept(sockfd, (struct sockaddr *)&addr, &addrlen);
+	int				   connexion = accept(sockfd, (struct sockaddr *)&addr, &addrlen);
 	if (connexion < 0)
 	{
 		close(sockfd);
@@ -79,9 +78,7 @@ static void wait_to_send(int const &socketpoll, int const &connfd)
 //     epoll_ctl(socketpoll, EPOLL_CTL_MOD, connfd, &event);
 // }
 
-void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
-				   socklen_t &addrlen, int &socketpoll, int sockfd,
-				   RequestPool &pool, Router &router)
+void handle_events(struct epoll_event *events, struct sockaddr_in &addr, socklen_t &addrlen, int &socketpoll, int sockfd, RequestPool &pool, Router &router)
 {
 	StaticBackend static_backend;
 	Response	  response(-1);
@@ -96,23 +93,18 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 			for (int i = 0; i < nbev; ++i)
 			{
 				socklen_t test_len;
-				getsockname(events[i].data.fd, (struct sockaddr *)&addr,
-							&test_len);
+				getsockname(events[i].data.fd, (struct sockaddr *)&addr, &test_len);
 				std::cerr << inet_ntoa(addr.sin_addr) << std::endl;
 				;
 				if (events[i].data.fd == sockfd && events[i].events & EPOLLIN)
-					new_conn(events[i].data.fd, addr, addrlen, socketpoll,
-							 pool);
-				else if (events[i].data.fd != sockfd &&
-						 events[i].events & EPOLLIN)
+					new_conn(events[i].data.fd, addr, addrlen, socketpoll, pool);
+				else if (events[i].data.fd != sockfd && events[i].events & EPOLLIN)
 				{
-					t_request_state s =
-						pool.getRequest(events[i].data.fd).readRequest();
+					t_request_state s = pool.getRequest(events[i].data.fd).readRequest();
 					if (s == _read)
 					{
 						response.set(events[i].data.fd);
-						router.resolve(pool.getRequest(events[i].data.fd),
-									   response);
+						router.resolve(pool.getRequest(events[i].data.fd), response);
 						// static_backend.generateResponse(
 						// 	pool.getRequest(events[i].data.fd), response);
 						// pool.getRequest(events[i].data.fd).prepareResponse();
@@ -121,8 +113,7 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 					}
 					if (s == _close)
 					{
-						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd,
-								  NULL);
+						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd, NULL);
 						close(events[i].data.fd);
 						pool.delRequest(events[i].data.fd);
 					}
@@ -134,8 +125,7 @@ void handle_events(struct epoll_event *events, struct sockaddr_in &addr,
 						// if
 						// (pool.getRequest(events[i].data.fd).sendResponse())
 						// {
-						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd,
-								  NULL);
+						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd, NULL);
 						close(events[i].data.fd);
 						pool.delRequest(events[i].data.fd);
 					}

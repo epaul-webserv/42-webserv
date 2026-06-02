@@ -53,7 +53,7 @@ void CGIBackend::generateResponse(Request const &request, Response &response)
 	std::string request_method = "REQUEST_METHOD=" + request.getMethod();
 
 	// The name of the file being executed
-	std::string script_name = get_file_name(request.getURI());
+	std::string script_name		 = get_file_name(request.getURI());
 	std::string script_full_path = std::string(DEFAULT_ROOT) + "/" + script_name;
 
 	// This is supposed to be whats after the script filename, and before the query string,

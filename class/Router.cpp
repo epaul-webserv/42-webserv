@@ -44,11 +44,11 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 
 void Router::resolve(Request const &request, Response &response) const
 {
-	std::string								  domain		 = to_lower(request.peekHeader("host"));
-	std::string								  file_extension = get_file_ext(request.getURI());
+	std::string								domain		   = to_lower(request.peekHeader("host"));
+	std::string								file_extension = get_file_ext(request.getURI());
 	std::list<backend_rule>::const_iterator it;
-	std::list<backend_rule>::const_iterator ite	  = this->_rules.end();
-	ABackend								 *backend = NULL;
+	std::list<backend_rule>::const_iterator ite		= this->_rules.end();
+	ABackend							   *backend = NULL;
 
 	for (it = this->_rules.begin(); it != ite; ++it)
 	{

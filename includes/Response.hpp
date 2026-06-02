@@ -34,21 +34,21 @@ public:
 	Response(int fd);
 	~Response(void);
 
-	void set(int fd);
-	bool sendResponse(void);
-	bool ready(void);
-	void headAppend(std::string const &resp);
-	void bodyAppend(std::string const &resp);
-	void addHeader(std::string const &key, std::string const &value);
+	void			   set(int fd);
+	bool			   sendResponse(void);
+	bool			   ready(void);
+	void			   headAppend(std::string const &resp);
+	void			   bodyAppend(std::string const &resp);
+	void			   addHeader(std::string const &key, std::string const &value);
 	std::string const &getHTTPVersion(void);
 	t_fetch_status	   getStatus(void);
 	std::string const &getHTTPStatus(void);
 	void			   setHTTPVersion(std::string const &http_version);
-	void setHTTPStatus(std::string const &status, std::string const &message);
-	void setHTTPStatus(std::string const &completeStatus);
-	t_file_status openFile(std::string const &path);
-	void		  setHttpVersion(std::string const &http_version);
-	void		  setStatus(t_fetch_status status);
+	void			   setHTTPStatus(std::string const &status, std::string const &message);
+	void			   setHTTPStatus(std::string const &completeStatus);
+	t_file_status	   openFile(std::string const &path);
+	void			   setHttpVersion(std::string const &http_version);
+	void			   setStatus(t_fetch_status status);
 
 private:
 	Response(void);

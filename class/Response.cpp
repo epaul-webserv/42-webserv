@@ -8,8 +8,7 @@
 #include "webserv.h"
 
 Response::Response(int fd) :
-	_send_status(_first_step), _fetch_status(_init), _conn_fd(fd), _file_fd(-1),
-	_header_read_index(0), _header_write_index(0), _body_read_index(0),
+	_send_status(_first_step), _fetch_status(_init), _conn_fd(fd), _file_fd(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0),
 	_body_write_index(0), _content_length(0), _sent_bytes(0), _map(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
@@ -60,31 +59,15 @@ void Response::headAppend(std::string const &content)
 		this->_head.push_back('\n');
 }
 
-void Response::addHeader(std::string const &key, std::string const &value)
-{
-	this->_head.append(key + ": " + value + "\r\n");
-}
+void Response::addHeader(std::string const &key, std::string const &value) { this->_head.append(key + ": " + value + "\r\n"); }
 
-std::string const &Response::getHTTPVersion(void)
-{
-	return (this->_http_version);
-}
+std::string const &Response::getHTTPVersion(void) { return (this->_http_version); }
 
-void Response::setHTTPVersion(std::string const &http_version)
-{
-	this->_http_version = http_version;
-}
+void Response::setHTTPVersion(std::string const &http_version) { this->_http_version = http_version; }
 
-void Response::setHTTPStatus(std::string const &status,
-							 std::string const &message)
-{
-	this->_http_status = status + " " + message;
-}
+void Response::setHTTPStatus(std::string const &status, std::string const &message) { this->_http_status = status + " " + message; }
 
-void Response::setHTTPStatus(std::string const &completeStatus)
-{
-	this->_http_status = completeStatus;
-}
+void Response::setHTTPStatus(std::string const &completeStatus) { this->_http_status = completeStatus; }
 
 void Response::bodyAppend(std::string const &content)
 {
@@ -107,8 +90,7 @@ t_file_status Response::openFile(std::string const &path)
 	}
 	// if (!this->_sb.st_size)
 	//     return (_open);
-	this->_map = mmap(NULL, this->_sb.st_size, PROT_READ, MAP_PRIVATE,
-					  this->_file_fd, 0);
+	this->_map = mmap(NULL, this->_sb.st_size, PROT_READ, MAP_PRIVATE, this->_file_fd, 0);
 	if (this->_map == MAP_FAILED)
 	{
 		close(this->_file_fd);
@@ -130,15 +112,9 @@ void Response::setHttpVersion(std::string const &http_version)
 
 t_fetch_status Response::getStatus(void) { return (this->_fetch_status); }
 
-std::string const &Response::getHTTPStatus(void)
-{
-	return (this->_http_status);
-}
+std::string const &Response::getHTTPStatus(void) { return (this->_http_status); }
 
-void Response::setStatus(t_fetch_status status)
-{
-	this->_fetch_status = status;
-}
+void Response::setStatus(t_fetch_status status) { this->_fetch_status = status; }
 
 void Response::addBase()
 {
@@ -150,18 +126,14 @@ void Response::addBase()
 	head << "Server: " << PROGNAME << "\r\n";
 	head << "Date: " << Date().str() << "\r\n";
 	if (this->_map || this->_content_length)
-		head << "Content-Length: "
-			 << (this->_map ? this->_sb.st_size : this->_content_length)
-			 << "\r\n";
+		head << "Content-Length: " << (this->_map ? this->_sb.st_size : this->_content_length) << "\r\n";
 	this->_head.insert(0, head.str());
 	this->_head.append("\r\n");
 }
 
 void Response::sendHead(void)
 {
-	int sent_bytes =
-		send(this->_conn_fd, this->_head.c_str() + this->_header_read_index,
-			 this->_head.size() - this->_header_read_index, 0);
+	int sent_bytes = send(this->_conn_fd, this->_head.c_str() + this->_header_read_index, this->_head.size() - this->_header_read_index, 0);
 
 	if (sent_bytes == -1)
 		return;
@@ -187,8 +159,7 @@ bool Response::sendBody(void)
 	}
 	else
 		return (this->_send_status = _body_sent);
-	int sent_bytes = send(this->_conn_fd, buffer + this->_sent_bytes,
-						  to_read - this->_sent_bytes, MSG_NOSIGNAL);
+	int sent_bytes = send(this->_conn_fd, buffer + this->_sent_bytes, to_read - this->_sent_bytes, MSG_NOSIGNAL);
 
 	if (sent_bytes == -1)
 		return (true);

@@ -1,7 +1,6 @@
 #include "BackendHolder.hpp"
 
-BackendHolder::BackendHolder(t_backend_type backend_type, std::vector<std::string> const &cgi_args) :
-	backend_type(backend_type), cgi_args(cgi_args)
+BackendHolder::BackendHolder(t_backend_type backend_type, std::vector<std::string> const &cgi_args) : backend_type(backend_type), cgi_args(cgi_args)
 {
 	s_staticbackend_conf test;
 
@@ -13,8 +12,7 @@ BackendHolder::BackendHolder(t_backend_type backend_type, std::vector<std::strin
 		this->addr = (new StaticBackend(test));
 }
 
-BackendHolder::BackendHolder(BackendHolder const &BackendHolder) :
-	backend_type(BackendHolder.backend_type), cgi_args(BackendHolder.cgi_args)
+BackendHolder::BackendHolder(BackendHolder const &BackendHolder) : backend_type(BackendHolder.backend_type), cgi_args(BackendHolder.cgi_args)
 {
 	s_staticbackend_conf test;
 

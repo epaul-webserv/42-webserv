@@ -6,11 +6,7 @@
 #include <sstream>
 #include <string>
 
-static std::string istostr(std::istream &is)
-{
-	return std::string(std::istreambuf_iterator<char>(is),
-					   std::istreambuf_iterator<char>());
-}
+static std::string istostr(std::istream &is) { return std::string(std::istreambuf_iterator<char>(is), std::istreambuf_iterator<char>()); }
 
 Date::Date(void)
 {
@@ -159,10 +155,7 @@ bool Date::setANSI(std::istream &is_date)
 	return (true);
 }
 
-const char *Date::InvalidFormatException::what(void) const throw()
-{
-	return ("Date format is invalid");
-}
+const char *Date::InvalidFormatException::what(void) const throw() { return ("Date format is invalid"); }
 
 struct std::tm Date::getDatetime(void) const { return (this->_datetime); }
 
@@ -180,32 +173,19 @@ bool Date::isPast(void) const
 	return (timegm(&cpy) < time(0));
 }
 
-bool Date::operator<(Date const &rhs)
-{
-	return (this->timestamp() < rhs.timestamp());
-}
+bool Date::operator<(Date const &rhs) { return (this->timestamp() < rhs.timestamp()); }
 
-bool Date::operator<=(Date const &rhs)
-{
-	return (this->timestamp() <= rhs.timestamp());
-}
+bool Date::operator<=(Date const &rhs) { return (this->timestamp() <= rhs.timestamp()); }
 
-bool Date::operator>(Date const &rhs)
-{
-	return (this->timestamp() > rhs.timestamp());
-}
+bool Date::operator>(Date const &rhs) { return (this->timestamp() > rhs.timestamp()); }
 
-bool Date::operator>=(Date const &rhs)
-{
-	return (this->timestamp() >= rhs.timestamp());
-}
+bool Date::operator>=(Date const &rhs) { return (this->timestamp() >= rhs.timestamp()); }
 
 std::string Date::str(void) const
 {
 	char buffer[80];
 
-	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT",
-				  &this->_datetime);
+	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", &this->_datetime);
 	return (buffer);
 }
 

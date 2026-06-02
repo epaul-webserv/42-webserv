@@ -1,7 +1,6 @@
 #include "html_generator.hpp"
 
-std::string get_html_error(std::string const &status,
-						   std::string const &message)
+std::string get_html_error(std::string const &status, std::string const &message)
 {
 	int fd = open("srcs/html_generator/error_sample.html", O_RDONLY);
 	if (fd < 0)

@@ -6,16 +6,9 @@
 #include <unistd.h>
 #include "webserv.h"
 
-StaticBackend::StaticBackend(void) : _map(NULL)
-{
-	bzero(&this->_sb, sizeof(this->_sb));
-}
+StaticBackend::StaticBackend(void) : _map(NULL) { bzero(&this->_sb, sizeof(this->_sb)); }
 
-StaticBackend::StaticBackend(s_staticbackend_conf const &conf) :
-	_map(NULL), _mime_type(conf.mime_type)
-{
-	bzero(&this->_sb, sizeof(this->_sb));
-}
+StaticBackend::StaticBackend(s_staticbackend_conf const &conf) : _map(NULL), _mime_type(conf.mime_type) { bzero(&this->_sb, sizeof(this->_sb)); }
 
 StaticBackend::~StaticBackend(void)
 {
@@ -46,8 +39,7 @@ static t_file_type fileType(std::string const &path, std::string const &root)
 	}
 }
 
-void StaticBackend::setContentType(std::string const &file_ext,
-								   Response			 &response)
+void StaticBackend::setContentType(std::string const &file_ext, Response &response)
 {
 	std::string mime_type = this->_mime_type[file_ext];
 
@@ -82,9 +74,7 @@ void StaticBackend::generateResponse(Request const &request, Response &response)
 			this->setError("400", "Bad Request", response);
 		}
 	}
-	std::cerr << request.getMethod() << " " << request.getURI() << " "
-			  << response.getHTTPVersion() << " - " << response.getHTTPStatus()
-			  << std::endl;
+	std::cerr << request.getMethod() << " " << request.getURI() << " " << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
 	response.setStatus(_ready);
 }
 
@@ -96,15 +86,13 @@ void StaticBackend::response_0_9(Request const &request, Response &response)
 		switch (fileType(request.getURI(), DEFAULT_ROOT))
 		{
 		case _dir:
-			return response.bodyAppend(
-				get_html_dir(request.getURI(), DEFAULT_ROOT));
+			return response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
 		case _no_access:
 			return response.bodyAppend(get_html_error("405", "Forbidden"));
 		case _none:
 			return response.bodyAppend(get_html_error("404", "Not found"));
 		case _err:
-			return response.bodyAppend(
-				get_html_error("500", "Internal Server Error"));
+			return response.bodyAppend(get_html_error("500", "Internal Server Error"));
 		case _file:
 			break;
 		}
@@ -209,8 +197,7 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 	//     return (this->CONNECT());
 	else
 	{
-		response.headAppend(request.getHTTPVersion() +
-							" 405 Method Not Allowed\r\n");
+		response.headAppend(request.getHTTPVersion() + " 405 Method Not Allowed\r\n");
 		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
 }
