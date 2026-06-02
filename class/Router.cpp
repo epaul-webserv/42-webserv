@@ -12,13 +12,12 @@ Router::~Router() {}
 
 void Router::addBackend(t_backend_type const &type, std::string const &path)
 {
-	// if (type == _cgi)
-	// 	this->_backends.push_back(BackendHolder(type, path));
-	// else
+	if (type == _cgi)
+		this->_backends.push_back(BackendHolder(type, path));
+	else
+		std::cerr << "Backend type not implemented yet" << std::endl;
 	(void)type;
 	(void)path;
-	// This function is waiting for the CGIBackend implementation
-	std::cerr << "Backend type not implemented yet" << std::endl;
 }
 
 void Router::addRule(t_backend_type const &type, std::string const &path,

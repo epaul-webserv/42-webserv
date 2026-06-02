@@ -162,7 +162,7 @@ int main(int ac, char *av[])
 	RequestPool pool;
 	Router		router;
 
-	// router.addRule(_cgi, "/testpath/", "lomartin.42.fr:33000", "php");
+	router.addRule(_cgi, "/bin/php-cgi/", "localhost:33000", "php");
 	if (ac > 2)
 	{
 		std::cerr << "Usage: " << av[0] << " [configuration file]" << std::endl;

@@ -21,7 +21,8 @@ CLASS = ABackend.cpp \
 		Response.cpp \
 		Request.cpp \
 		Router.cpp \
-		StaticBackend.cpp
+		StaticBackend.cpp \
+		CGIBackend.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
