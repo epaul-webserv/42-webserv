@@ -10,4 +10,5 @@ void ABackend::setError(std::string const &status, std::string const &message,
 {
 	response.setHTTPStatus(status, message);
 	response.bodyAppend(get_html_error(status, message));
+	response.addHeader("Content-Type", "text/html");
 }

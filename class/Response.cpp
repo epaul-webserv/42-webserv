@@ -149,7 +149,6 @@ void Response::addBase()
 	head << this->_http_version + " " + this->_http_status << "\r\n";
 	head << "Server: " << PROGNAME << "\r\n";
 	head << "Date: " << Date().str() << "\r\n";
-	head << "Content-Type: text/html\r\n";
 	if (this->_map || this->_content_length)
 		head << "Content-Length: "
 			 << (this->_map ? this->_sb.st_size : this->_content_length)

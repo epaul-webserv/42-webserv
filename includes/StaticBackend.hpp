@@ -4,11 +4,18 @@
 #include <string>
 #include <sys/stat.h>
 #include "ABackend.hpp"
+#include "url_utils.hpp"
+
+struct s_staticbackend_conf
+{
+	std::map<std::string, std::string> mime_type;
+};
 
 class StaticBackend : public ABackend
 {
 public:
 	StaticBackend(void);
+	StaticBackend(s_staticbackend_conf const &conf);
 	~StaticBackend(void);
 
 	t_file_status openFile(std::string path);
@@ -18,12 +25,14 @@ private:
 	void setHeaders();
 	void sendHead(void);
 	bool sendBody(void);
+	void setContentType(std::string const &file_ext, Response &response);
 	void response_0_9(Request const &request, Response &response);
 	void response_1_0(Request const &request, Response &response);
 	void response_1_1(Request const &request, Response &response);
 
-	void	   *_map;
-	struct stat _sb;
+	void							  *_map;
+	struct stat						   _sb;
+	std::map<std::string, std::string> _mime_type;
 };
 
 #endif

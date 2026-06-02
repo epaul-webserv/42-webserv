@@ -11,6 +11,12 @@ StaticBackend::StaticBackend(void) : _map(NULL)
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
+StaticBackend::StaticBackend(s_staticbackend_conf const &conf) :
+	_map(NULL), _mime_type(conf.mime_type)
+{
+	bzero(&this->_sb, sizeof(this->_sb));
+}
+
 StaticBackend::~StaticBackend(void)
 {
 	if (this->_map)
@@ -38,6 +44,16 @@ static t_file_type fileType(std::string const &path, std::string const &root)
 	default:
 		return (_none);
 	}
+}
+
+void StaticBackend::setContentType(std::string const &file_ext,
+								   Response			 &response)
+{
+	std::string mime_type = this->_mime_type[file_ext];
+
+	if (this->_mime_type.empty())
+		mime_type = "application/octet-stream";
+	response.addHeader("Content-Type", mime_type);
 }
 
 void StaticBackend::generateResponse(Request const &request, Response &response)
@@ -114,6 +130,7 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 		case _dir:
 			response.setHTTPStatus("200", "Continue");
 			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
+			response.addHeader("Content-Type", "text/html");
 			return;
 		case _no_access:
 			return this->setError("403", "Forbidden", response);
@@ -130,6 +147,7 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 			return this->setError("403", "Forbidden", response);
 		default:
 			response.setHTTPStatus("200", "Continue");
+			this->setContentType(get_file_ext(request.getURI()), response);
 			return;
 		}
 	}
@@ -154,6 +172,7 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 		case _dir:
 			response.setHTTPStatus("200", "Ok");
 			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
+			response.addHeader("Content-Type", "text/html");
 			return;
 		case _no_access:
 			return this->setError("403", "Forbidden", response);
@@ -170,6 +189,7 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 			return this->setError("403", "Forbidden", response);
 		default:
 			response.setHTTPStatus("200", "Ok");
+			this->setContentType(get_file_ext(request.getURI()), response);
 			return;
 		}
 	}
