@@ -14,6 +14,14 @@ Response::Response(void) :
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
+Response::Response(Response const &Response) :
+	_send_status(Response._send_status), _fetch_status(Response._fetch_status), _file_fd(Response._file_fd), _head(Response._head), _body(Response._body),
+	_header_read_index(Response._header_read_index), _header_write_index(Response._header_write_index), _body_read_index(Response._body_read_index),
+	_body_write_index(Response._body_write_index), _content_length(Response._content_length), _sent_bytes(Response._sent_bytes), _http_version(Response._http_version),
+	_http_status(Response._http_status), _sb(Response._sb), _map(Response._map)
+{
+}
+
 Response::~Response(void)
 {
 	if (this->_map)
@@ -28,17 +36,17 @@ void Response::clear()
 		close(this->_file_fd);
 	if (this->_map)
 		munmap(this->_map, this->_sb.st_size);
-	this->_send_status	= _first_step;
+	this->_send_status  = _first_step;
 	this->_fetch_status = _init;
-	this->_map			= NULL;
+	this->_map          = NULL;
 	this->_head.clear();
 	this->_body.clear();
 	this->_header_read_index  = 0;
 	this->_header_write_index = 0;
-	this->_body_read_index	  = 0;
-	this->_body_write_index	  = 0;
-	this->_sent_bytes		  = 0;
-	this->_content_length	  = 0;
+	this->_body_read_index    = 0;
+	this->_body_write_index   = 0;
+	this->_sent_bytes         = 0;
+	this->_content_length     = 0;
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
@@ -94,7 +102,7 @@ t_file_status Response::openFile(std::string const &path)
 	{
 		close(this->_file_fd);
 		this->_file_fd = -1;
-		this->_map	   = NULL;
+		this->_map     = NULL;
 		return (_not_found);
 	}
 	return (_open);
@@ -144,16 +152,16 @@ void Response::sendHead(int fd)
 bool Response::sendBody(int fd)
 {
 	char const *buffer;
-	size_t		to_read;
+	size_t      to_read;
 
 	if (this->_map)
 	{
-		buffer	= (char *)this->_map;
+		buffer  = (char *)this->_map;
 		to_read = this->_sb.st_size;
 	}
 	else if (!this->_body.empty())
 	{
-		buffer	= this->_body.c_str();
+		buffer  = this->_body.c_str();
 		to_read = this->_body.size();
 	}
 	else
@@ -190,5 +198,83 @@ bool Response::sendResponse(int fd)
 		return (this->sendHead(fd), false);
 	if (this->_send_status == _sending_body)
 		return (this->sendBody(fd));
+	return (true);
+}
+
+void Response::sendHead(container::Slice<uint8_t> &slice)
+{
+	container::Slice<uint8_t> new_slice(&this->_send_buf[this->_header_read_index], this->_head.size() - this->_header_read_index);
+
+	slice = new_slice;
+}
+
+void Response::sendBody(container::Slice<uint8_t> &slice)
+{
+	uint8_t *buffer  = 0;
+	size_t   to_read = 0;
+
+	if (this->_map)
+	{
+		buffer  = (uint8_t *)this->_map;
+		to_read = this->_sb.st_size;
+	}
+	else if (!this->_body.empty())
+	{
+		buffer  = &this->_send_buf[this->_header_write_index + this->_body_write_index];
+		to_read = this->_body.size();
+	}
+	slice = container::Slice<uint8_t>(buffer, to_read);
+}
+
+void Response::sendResponse(container::Slice<uint8_t> &slice)
+{
+	if (this->_send_status == _first_step)
+	{
+		this->addBase();
+		this->_send_buf = std::vector<uint8_t>(this->_head.c_str(), this->_head.c_str() + this->_head.size());
+		this->_send_buf.insert(this->_send_buf.end(), this->_body.begin(), this->_body.end());
+		this->_send_buf.push_back('\0');
+		this->_send_status = _sending_head;
+	}
+	if (this->_send_status == _sending_head)
+		return (this->sendHead(slice));
+	if (this->_send_status == _sending_body)
+		return (this->sendBody(slice));
+}
+
+bool Response::read(size_t const &size)
+{
+	if (this->_send_status == _sending_head)
+	{
+		this->_header_read_index += size;
+		if (this->_header_read_index >= this->_head.size())
+		{
+			this->_header_read_index = this->_head.size();
+			this->_send_status       = _sending_body;
+		}
+	}
+	else if (this->_send_status == _sending_body)
+	{
+		size_t to_read = 0;
+
+		this->_sent_bytes += size;
+		if (this->_map)
+			to_read = this->_sb.st_size;
+		else if (!this->_body.empty())
+			to_read = this->_body.size();
+		if (this->_sent_bytes >= to_read)
+		{
+			if (this->_map)
+			{
+				munmap(this->_map, this->_sb.st_size);
+				this->_map = NULL;
+				close(this->_file_fd);
+				this->_file_fd = -1;
+			}
+			this->_send_status = _body_sent;
+			return (true);
+		}
+		return (false);
+	}
 	return (true);
 }

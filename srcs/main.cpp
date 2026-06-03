@@ -1,201 +1,146 @@
-#include "Request.hpp"
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <vector>
+
+#include <async>
+#include "HTTPStream.hpp"
 #include "Router.hpp"
-#include "StaticBackend.hpp"
-#include "webserv.h"
 
-int g_sig = 0;
-
-int get_conn_id(int connexion)
+class Acceptor : public async::Future
 {
-	static int	ids[MAX_CONN] = {};
-	static bool init		  = false;
+	async::Io               accept;
+	async::Reactor &        reactor;
+	std::vector<HTTPStream> clients;
+	Router &                router;
 
-	if (!init)
+public:
+	Acceptor(async::Reactor &reactor, int fd, Router &router) :
+		accept(reactor, fd), reactor(reactor), router(router)
 	{
-		memset(ids, -1, sizeof(ids));
-		init = true;
 	}
-	if (connexion < 0)
+
+	Future::Poll poll() throw(async::OsError)
 	{
-		for (int i = 0; i < MAX_CONN; ++i)
+		int                     fd;
+		struct sockaddr_storage addr;
+		socklen_t               addr_len = sizeof(addr);
+		char                    host[1024];
+		char                    port[32];
+
+
+		while (accept.poll_accept((struct sockaddr *)&addr, &addr_len, fd) == Future::Ready)
 		{
-			if (connexion == -ids[i])
+			int s = getnameinfo((struct sockaddr *)&addr, addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+			if (s != 0)
 			{
-				ids[i] = -1;
-				return (-1);
+				std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+				exit(EXIT_FAILURE);
+			}
+			std::cout << host << ":" << port << " is connected\n";
+			clients.push_back(HTTPStream(reactor, fd, addr, addr_len, &router));
+		}
+		for (size_t i = 0; i < clients.size(); i++)
+		{
+			if (clients[i].poll() == Future::Ready)
+			{
+				int s = getnameinfo((struct sockaddr *)&clients[i].addr, clients[i].addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+				if (s != 0)
+				{
+					std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+					exit(EXIT_FAILURE);
+				}
+				std::cout << host << ":" << port << " left\n";
+				clients.erase(clients.begin() + i);
 			}
 		}
+		return Future::Pending;
 	}
-	for (int i = 0; i < MAX_CONN; ++i)
-	{
-		if (connexion == ids[i])
-			return (i);
-	}
-	for (int i = 0; i < MAX_CONN; ++i)
-	{
-		if (ids[i] == -1)
-		{
-			ids[i] = connexion;
-			return (i);
-		}
-	}
-	return (-1);
-}
+};
 
-void new_conn(int sockfd, struct sockaddr_in &addr, socklen_t &addrlen, int &socketpoll, RequestPool &pool)
+int main(int ac, char **av)
 {
-	// std::cout << "[DEBUG] Creating new connexion " << std::endl;
-	struct epoll_event event;
-	int				   connexion = accept(sockfd, (struct sockaddr *)&addr, &addrlen);
-	if (connexion < 0)
+	int    sfd, s;
+	Router router;
+	// socklen_t peer_addrlen;
+	struct addrinfo  hints;
+	struct addrinfo *result, *rp;
+	// struct sockaddr_storage peer_addr;
+
+	if (ac != 3)
 	{
-		close(sockfd);
-		std::cerr << "Error on accept : " << std::strerror(errno) << std::endl;
+		std::cerr << "Usage: " << av[0] << "ip port\n";
 		exit(EXIT_FAILURE);
 	}
-	event.events  = EPOLLIN | EPOLLHUP;
-	event.data.fd = connexion;
-	epoll_ctl(socketpoll, EPOLL_CTL_ADD, connexion, &event);
-	pool.getRequest(connexion);
-	// std::cout << "[DEBUG] Connexion successfully created" << std::endl;
-}
 
-static void wait_to_send(int const &socketpoll, int const &connfd)
-{
-	struct epoll_event event;
+	router.addRule(_cgi, std::vector<std::string>(1, "/bin/php"), "localhost:33000", "php");
 
-	event.events  = EPOLLOUT | EPOLLHUP;
-	event.data.fd = connfd;
-	epoll_ctl(socketpoll, EPOLL_CTL_MOD, connfd, &event);
-}
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family    = AF_UNSPEC;
+	hints.ai_socktype  = SOCK_STREAM;
+	hints.ai_flags     = 0;
+	hints.ai_protocol  = 0;
+	hints.ai_canonname = NULL;
+	hints.ai_addr      = NULL;
+	hints.ai_next      = NULL;
 
-// static void wait_to_read(int const &socketpoll, int const &connfd)
-// {
-//     struct epoll_event  event;
-//
-//     event.events = EPOLLIN | EPOLLHUP;
-//     event.data.fd = connfd;
-//     epoll_ctl(socketpoll, EPOLL_CTL_MOD, connfd, &event);
-// }
-
-void handle_events(struct epoll_event *events, struct sockaddr_in &addr, socklen_t &addrlen, int &socketpoll, int sockfd, RequestPool &pool, Router &router)
-{
-	StaticBackend static_backend;
-	// Response      response();
-
-	while (true)
+	s = getaddrinfo(av[1], av[2], &hints, &result);
+	if (s != 0)
 	{
-		if (int nbev = epoll_wait(socketpoll, events, MAX_CONN, -1))
-		{
-			// std::cout << "nv events : " << nbev << std::endl;
-			if (g_sig == SIGINT)
-				break;
-			for (int i = 0; i < nbev; ++i)
-			{
-				socklen_t test_len;
-				getsockname(events[i].data.fd, (struct sockaddr *)&addr, &test_len);
-				std::cerr << inet_ntoa(addr.sin_addr) << std::endl;
-				;
-				if (events[i].data.fd == sockfd && events[i].events & EPOLLIN)
-					new_conn(events[i].data.fd, addr, addrlen, socketpoll, pool);
-				else if (events[i].data.fd != sockfd && events[i].events & EPOLLIN)
-				{
-					t_request_state s = pool.getRequest(events[i].data.fd).readRequest();
-					if (s == _read)
-					{
-						router.resolve(pool.getRequest(events[i].data.fd).request, pool.getRequest(events[i].data.fd).response);
-						// static_backend.generateResponse(
-						// 	pool.getRequest(events[i].data.fd), response);
-						// pool.getRequest(events[i].data.fd).prepareResponse();
-						if (pool.getRequest(events[i].data.fd).response.ready())
-							wait_to_send(socketpoll, events[i].data.fd);
-					}
-					if (s == _close)
-					{
-						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd, NULL);
-						close(events[i].data.fd);
-						pool.delRequest(events[i].data.fd);
-					}
-				}
-				else if (events[i].events & EPOLLOUT)
-				{
-					if (pool.getRequest(events[i].data.fd).sendResponse())
-					{
-						// if
-						// (pool.getRequest(events[i].data.fd).sendResponse())
-						// {
-						epoll_ctl(socketpoll, EPOLL_CTL_DEL, events[i].data.fd, NULL);
-						close(events[i].data.fd);
-						pool.delRequest(events[i].data.fd);
-					}
-				}
-				else if (events[i].events & EPOLLHUP)
-				{
-					std::cout << "COMMENT CA ?" << std::endl;
-					close(events[i].data.fd);
-					pool.delRequest(events[i].data.fd);
-				}
-			}
-		}
+		std::cerr << "getaddrinfo: " << gai_strerror(s) << "\n";
+		exit(EXIT_FAILURE);
 	}
-}
 
-void sigint_handler(int sig)
-{
-	(void)sig;
-	g_sig = sig;
-}
-
-int main(int ac, char *av[])
-{
-	RequestPool pool;
-	Router		router;
-
-	router.addRule(_cgi, std::vector<std::string>(1, "/bin/python3"), "localhost:33000", "py");
-
-	std::vector<std::string> php_args;
-	php_args.push_back("/bin/php-cgi");
-	php_args.push_back("-f");
-	router.addRule(_cgi, php_args, "localhost:33000", "php");
-
-	if (ac > 2)
+	for (rp = result; rp != NULL; rp = rp->ai_next)
 	{
-		std::cerr << "Usage: " << av[0] << " [configuration file]" << std::endl;
-		return (1);
+		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sfd == -1)
+			continue;
+		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+			break;
+		close(sfd);
 	}
-	if (ac == 1)
+
+	if (rp == NULL)
 	{
+		std::cerr << "Could not bind\n";
+		freeaddrinfo(result);
+		exit(EXIT_FAILURE);
 	}
-	else if (ac == 2)
+	char host[1024];
+	char port[32];
+	s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+	freeaddrinfo(result);
+
+	if (s != 0)
 	{
+		std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+		exit(EXIT_FAILURE);
 	}
-	signal(SIGINT, sigint_handler);
-	struct sockaddr_in addr = {};
-	addr.sin_family			= AF_INET;
-	addr.sin_addr.s_addr	= INADDR_ANY;
-	addr.sin_port			= htons(DEFAULT_PORT);
-	socklen_t addrlen		= sizeof(addr);
-	int		  sockfd		= init_listener(addr, addrlen);
-	if (sockfd < 0)
+
+	int opt = 1;
+	if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 	{
-		std::cerr << std::strerror(errno) << std::endl;
-		return (EXIT_FAILURE);
+		std::cerr << "setsockopt: " << strerror(errno) << "\n";
+		exit(EXIT_FAILURE);
 	}
-	int				   socketpoll = epoll_create1(EPOLL_CLOEXEC);
-	struct epoll_event sockevent, events[MAX_CONN];
-	sockevent.events  = EPOLLIN | EPOLLHUP;
-	sockevent.data.fd = sockfd;
-	epoll_ctl(socketpoll, EPOLL_CTL_ADD, sockfd, &sockevent);
-	// chdir("/var/www/html");
-	handle_events(events, addr, addrlen, socketpoll, sockfd, pool, router);
-	if (sockfd > 0)
+
+	if (listen(sfd, 100) < 0)
 	{
-		shutdown(sockfd, SHUT_RDWR);
-		close(sockfd);
-	};
-	if (socketpoll > 0)
-	{
-		close(socketpoll);
-	};
-	std::cout << "\nBONSOIR PARIIIIIS!" << std::endl;
+		std::cerr << "listen: " << strerror(errno) << "\n";
+		exit(EXIT_FAILURE);
+	}
+
+	std::cout << "Listening on " << host << ":" << port << "\n";
+	async::Reactor reactor;
+	Acceptor       acceptor(reactor, sfd, router);
+	reactor.run(acceptor);
 }

@@ -14,7 +14,6 @@ SRCS = main.cpp \
 CLASS_DIR = class
 CLASS = ABackend.cpp \
 		BackendHolder.cpp \
-		RequestPool.cpp \
 		CGIBackend.cpp \
 		Date.cpp \
 		FdStream.cpp \

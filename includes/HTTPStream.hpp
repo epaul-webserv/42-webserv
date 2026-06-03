@@ -3,23 +3,35 @@
 
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Router.hpp"
+#include <async>
+#include <sys/socket.h>
 
-class HTTPStream
+enum stream_status { _request, _response_pending, _response_sending };
+
+class HTTPStream : public async::Future
 {
 public:
-	HTTPStream(void);
-	HTTPStream(int fd);
+	HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len, Router *router);
+	HTTPStream(HTTPStream const &HTTPStream);
 	~HTTPStream();
 
-	void			clear(int fd);
-	t_request_state readRequest(void);
-	bool			sendResponse(void);
+	t_request_state readRequest(char *buffer, size_t len);
+	bool            sendResponse(void);
+	Future::Poll    poll() throw(async::OsError);
 
-	Response response;
-	Request	 request;
+	Response                response;
+	Request                 request;
+	Router *                router;
+	struct sockaddr_storage addr;
+	socklen_t               addr_len;
 
 private:
-	int _fd;
+	HTTPStream(void);
+
+	container::RingBuf<uint8_t, 4096> buf;
+	async::Io                         io;
+	stream_status                     _status;
 };
 
 #endif
