@@ -49,7 +49,7 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 	return (NULL);
 }
 
-void Router::resolve(Request const &request, Response &response) const
+void Router::resolve(Request const &request, Response &response, async::Reactor &reactor, async::Io &io) const
 {
 	std::string								domain		   = to_lower(request.peekHeader("host"));
 	std::string								file_extension = get_file_ext(request.getURI());
@@ -67,5 +67,5 @@ void Router::resolve(Request const &request, Response &response) const
 	}
 	if (!backend)
 		backend = (this->_backends.front().addr);
-	backend->generateResponse(request, response);
+	backend->generateResponse(request, response, reactor, io);
 }

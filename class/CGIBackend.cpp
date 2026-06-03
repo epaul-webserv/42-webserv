@@ -45,10 +45,12 @@ CGIBackend::~CGIBackend(void) {}
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
-void CGIBackend::generateResponse(Request const &request, Response &response)
+void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io)
 {
 	(void)request;
 	(void)response;
+	(void)reactor;
+	(void)io;
 	std::string query_string   = "QUERY_STRING=" + request.getQueryString();
 	std::string request_method = "REQUEST_METHOD=" + request.getMethod();
 

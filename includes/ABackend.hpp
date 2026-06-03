@@ -1,6 +1,7 @@
 #ifndef ABACKEND_HPP
 #define ABACKEND_HPP
 
+#include <async>
 #include "Request.hpp"
 #include "Response.hpp"
 
@@ -17,7 +18,7 @@ public:
 	ABackend(void);
 	virtual ~ABackend(void);
 
-	virtual void generateResponse(Request const &request, Response &response) = 0;
+	virtual void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io) = 0;
 	void		 setError(std::string const &status, std::string const &message, Response &response);
 };
 

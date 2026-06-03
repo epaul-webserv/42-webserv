@@ -48,8 +48,10 @@ void StaticBackend::setContentType(std::string const &file_ext, Response &respon
 	response.addHeader("Content-Type", mime_type);
 }
 
-void StaticBackend::generateResponse(Request const &request, Response &response)
+void StaticBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io)
 {
+	(void)reactor;
+	(void)io;
 	if (request.getURI().empty())
 	{
 		response.setHTTPVersion("HTTP/1.1");

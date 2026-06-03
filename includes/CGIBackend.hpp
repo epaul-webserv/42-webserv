@@ -1,5 +1,6 @@
 #pragma once
 
+#include <async>
 #include <vector>
 #include "ABackend.hpp"
 
@@ -10,7 +11,7 @@ public:
 	CGIBackend(std::vector<std::string> const &args);
 	~CGIBackend(void);
 
-	void generateResponse(Request const &request, Response &response);
+	void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io);
 
 private:
 	std::vector<std::string> _args;

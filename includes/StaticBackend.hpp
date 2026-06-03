@@ -1,10 +1,10 @@
 #ifndef STATIC_BACKEND_HPP
 #define STATIC_BACKEND_HPP
 
+#include <async>
 #include <string>
 #include <sys/stat.h>
 #include "ABackend.hpp"
-#include "url_utils.hpp"
 
 struct s_staticbackend_conf
 {
@@ -19,7 +19,7 @@ public:
 	~StaticBackend(void);
 
 	t_file_status openFile(std::string path);
-	void		  generateResponse(Request const &request, Response &response);
+	void		  generateResponse(Request const &request, Response &response, async::Reactor &Reactor, async::Io &io);
 
 private:
 	void setHeaders();
