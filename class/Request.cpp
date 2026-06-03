@@ -138,12 +138,7 @@ t_request_state Request::readHeaders(void)
 		   std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") && std::strstr(this->_buffer, "\n"))
 		this->_read_index += readHeadersCore(this->_buffer + this->_read_index, this->_headers);
 	if (std::strstr(this->_buffer, "\r\n\r\n") || std::strstr(this->_buffer, "\n\n"))
-	{
-		std::cout << this->_method << std::endl;
-		std::cout << this->_URI << std::endl;
-		std::cout << this->_http_version << std::endl;
 		return (_read);
-	}
 	return (_reading);
 }
 

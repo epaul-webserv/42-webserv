@@ -203,9 +203,8 @@ bool Response::sendResponse(int fd)
 
 void Response::sendHead(container::Slice<uint8_t> &slice)
 {
-	container::Slice<uint8_t> new_slice(&this->_send_buf[this->_header_read_index], this->_head.size() - this->_header_read_index);
-
-	slice = new_slice;
+	if (this->_send_buf.size() - this->_header_read_index > 0)
+		slice = container::Slice<uint8_t>(&this->_send_buf[this->_header_read_index], this->_head.size() - this->_header_read_index);
 }
 
 void Response::sendBody(container::Slice<uint8_t> &slice)
@@ -218,7 +217,7 @@ void Response::sendBody(container::Slice<uint8_t> &slice)
 		buffer	= (uint8_t *)this->_map;
 		to_read = this->_sb.st_size - this->_body_read_index;
 	}
-	else if (!this->_body.empty())
+	else if (this->_send_buf.size() > this->_header_read_index + this->_body_read_index)
 	{
 		buffer	= &this->_send_buf[this->_header_read_index + this->_body_read_index];
 		to_read = this->_body.size() - this->_body_read_index;
