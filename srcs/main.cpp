@@ -17,24 +17,21 @@
 
 class Acceptor : public async::Future
 {
-	async::Io               accept;
-	async::Reactor &        reactor;
+	async::Io				accept;
+	async::Reactor		   &reactor;
 	std::vector<HTTPStream> clients;
-	Router &                router;
+	Router				   &router;
 
 public:
-	Acceptor(async::Reactor &reactor, int fd, Router &router) :
-		accept(reactor, fd), reactor(reactor), router(router)
-	{
-	}
+	Acceptor(async::Reactor &reactor, int fd, Router &router) : accept(reactor, fd), reactor(reactor), router(router) {}
 
 	Future::Poll poll() throw(async::OsError)
 	{
-		int                     fd;
+		int						fd;
 		struct sockaddr_storage addr;
-		socklen_t               addr_len = sizeof(addr);
-		char                    host[1024];
-		char                    port[32];
+		socklen_t				addr_len = sizeof(addr);
+		char					host[1024];
+		char					port[32];
 
 
 		while (accept.poll_accept((struct sockaddr *)&addr, &addr_len, fd) == Future::Ready)
@@ -68,10 +65,10 @@ public:
 
 int main(int ac, char **av)
 {
-	int    sfd, s;
+	int	   sfd, s;
 	Router router;
 	// socklen_t peer_addrlen;
-	struct addrinfo  hints;
+	struct addrinfo	 hints;
 	struct addrinfo *result, *rp;
 	// struct sockaddr_storage peer_addr;
 
@@ -84,13 +81,13 @@ int main(int ac, char **av)
 	router.addRule(_cgi, std::vector<std::string>(1, "/bin/php"), "localhost:33000", "php");
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family    = AF_UNSPEC;
+	hints.ai_family	   = AF_UNSPEC;
 	hints.ai_socktype  = SOCK_STREAM;
-	hints.ai_flags     = 0;
+	hints.ai_flags	   = 0;
 	hints.ai_protocol  = 0;
 	hints.ai_canonname = NULL;
-	hints.ai_addr      = NULL;
-	hints.ai_next      = NULL;
+	hints.ai_addr	   = NULL;
+	hints.ai_next	   = NULL;
 
 	s = getaddrinfo(av[1], av[2], &hints, &result);
 	if (s != 0)
@@ -141,6 +138,6 @@ int main(int ac, char **av)
 
 	std::cout << "Listening on " << host << ":" << port << "\n";
 	async::Reactor reactor;
-	Acceptor       acceptor(reactor, sfd, router);
+	Acceptor	   acceptor(reactor, sfd, router);
 	reactor.run(acceptor);
 }

@@ -11,17 +11,11 @@ HTTPStream::HTTPStream(HTTPStream const &HTTPStream) :
 	response(HTTPStream.response), request(HTTPStream.request), router(HTTPStream.router), addr(HTTPStream.addr), addr_len(HTTPStream.addr_len), buf(HTTPStream.buf),
 	io(HTTPStream.io), _status(HTTPStream._status)
 {
-
 }
 
-HTTPStream::~HTTPStream()
-{
-}
+HTTPStream::~HTTPStream() {}
 
-t_request_state HTTPStream::readRequest(char *buffer, size_t len)
-{
-	return (this->request.readRequest(buffer, len));
-}
+t_request_state HTTPStream::readRequest(char *buffer, size_t len) { return (this->request.readRequest(buffer, len)); }
 
 // bool HTTPStream::sendResponse(void) { return (this->response.sendResponse(this->_fd)); }
 
@@ -30,22 +24,21 @@ t_request_state HTTPStream::readRequest(char *buffer, size_t len)
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
 	struct iovec parts[2];
-	size_t       s;
+	size_t		 s;
 
 	buf.unfilled(parts);
 	container::Slice<uint8_t> buf_slice((uint8_t *)parts[0].iov_base, parts[0].iov_len);
 	if (this->_status == _request)
 	{
-		if (io.poll_read(buf_slice, s) == Future::Ready)
+		while (io.poll_read(buf_slice, s) == Future::Ready)
 		{
 			buf.fill(s);
 			if (this->readRequest(static_cast<char *>(parts[0].iov_base), s) == _read)
 			{
 				this->_status = _response_pending;
+				break;
 			}
 		}
-		else
-			return (Future::Pending);
 	}
 	if (this->_status == _response_pending)
 	{
@@ -58,7 +51,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 		container::Slice<uint8_t> slice(NULL, 0);
 
 		this->response.sendResponse(slice);
-		if (io.poll_write(slice, s) == Future::Ready)
+		while (io.poll_write(slice, s) == Future::Ready)
 		{
 			if (this->response.read(s))
 				return (Future::Ready);

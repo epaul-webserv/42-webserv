@@ -36,17 +36,17 @@ void Response::clear()
 		close(this->_file_fd);
 	if (this->_map)
 		munmap(this->_map, this->_sb.st_size);
-	this->_send_status  = _first_step;
+	this->_send_status	= _first_step;
 	this->_fetch_status = _init;
-	this->_map          = NULL;
+	this->_map			= NULL;
 	this->_head.clear();
 	this->_body.clear();
 	this->_header_read_index  = 0;
 	this->_header_write_index = 0;
-	this->_body_read_index    = 0;
-	this->_body_write_index   = 0;
-	this->_sent_bytes         = 0;
-	this->_content_length     = 0;
+	this->_body_read_index	  = 0;
+	this->_body_write_index	  = 0;
+	this->_sent_bytes		  = 0;
+	this->_content_length	  = 0;
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
@@ -102,7 +102,7 @@ t_file_status Response::openFile(std::string const &path)
 	{
 		close(this->_file_fd);
 		this->_file_fd = -1;
-		this->_map     = NULL;
+		this->_map	   = NULL;
 		return (_not_found);
 	}
 	return (_open);
@@ -152,16 +152,16 @@ void Response::sendHead(int fd)
 bool Response::sendBody(int fd)
 {
 	char const *buffer;
-	size_t      to_read;
+	size_t		to_read;
 
 	if (this->_map)
 	{
-		buffer  = (char *)this->_map;
+		buffer	= (char *)this->_map;
 		to_read = this->_sb.st_size;
 	}
 	else if (!this->_body.empty())
 	{
-		buffer  = this->_body.c_str();
+		buffer	= this->_body.c_str();
 		to_read = this->_body.size();
 	}
 	else
@@ -210,18 +210,18 @@ void Response::sendHead(container::Slice<uint8_t> &slice)
 
 void Response::sendBody(container::Slice<uint8_t> &slice)
 {
-	uint8_t *buffer  = 0;
-	size_t   to_read = 0;
+	uint8_t *buffer	 = 0;
+	size_t	 to_read = 0;
 
 	if (this->_map)
 	{
-		buffer  = (uint8_t *)this->_map;
-		to_read = this->_sb.st_size;
+		buffer	= (uint8_t *)this->_map;
+		to_read = this->_sb.st_size - this->_body_read_index;
 	}
 	else if (!this->_body.empty())
 	{
-		buffer  = &this->_send_buf[this->_header_write_index + this->_body_write_index];
-		to_read = this->_body.size();
+		buffer	= &this->_send_buf[this->_header_read_index + this->_body_read_index];
+		to_read = this->_body.size() - this->_body_read_index;
 	}
 	slice = container::Slice<uint8_t>(buffer, to_read);
 }
@@ -250,19 +250,19 @@ bool Response::read(size_t const &size)
 		if (this->_header_read_index >= this->_head.size())
 		{
 			this->_header_read_index = this->_head.size();
-			this->_send_status       = _sending_body;
+			this->_send_status		 = _sending_body;
 		}
 	}
 	else if (this->_send_status == _sending_body)
 	{
 		size_t to_read = 0;
 
-		this->_sent_bytes += size;
+		this->_body_read_index += size;
 		if (this->_map)
 			to_read = this->_sb.st_size;
 		else if (!this->_body.empty())
 			to_read = this->_body.size();
-		if (this->_sent_bytes >= to_read)
+		if (this->_body_read_index >= to_read)
 		{
 			if (this->_map)
 			{
@@ -276,5 +276,5 @@ bool Response::read(size_t const &size)
 		}
 		return (false);
 	}
-	return (true);
+	return (false);
 }
