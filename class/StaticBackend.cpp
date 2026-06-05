@@ -141,10 +141,31 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 			return;
 		}
 	}
-	// if (request.getMethod() == "HEAD")
-	//     return (this->HEAD());
-	// if (request.getMethod() == "POST")
-	//     return (this->POST());
+	if (request.getMethod() == "HEAD")
+	{
+		switch (fileType(request.getURI(), DEFAULT_ROOT))
+		{
+		case _dir:
+			response.setHTTPStatus("200", "Ok");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _no_access:
+			response.setHTTPStatus("403", "Forbidden");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _none:
+			response.setHTTPStatus("404", "Not found");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _err:
+			response.setHTTPStatus("500", "Internal server error");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _file:
+			response.setHTTPStatus("200", "Ok");
+			this->setContentType(get_file_ext(request.getURI()), response);
+		}
+	}
 	else
 	{
 		this->setError("405", "Method not allowed", response);
@@ -155,6 +176,8 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 void StaticBackend::response_1_1(Request const &request, Response &response)
 {
 	response.setHTTPVersion("HTTP/1.1");
+	if (request.peekHeader("connection") != "close")
+		response.addHeader("Connection", "keep-alive");
 	if (request.getMethod() == "GET")
 	{
 		switch (fileType(request.getURI(), DEFAULT_ROOT))
@@ -183,20 +206,31 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 			return;
 		}
 	}
-	// if (request.getMethod() == "HEAD")
-	//     return (this->HEAD());
-	// if (request.getMethod() == "POST")
-	//     return (this->POST());
-	// if (request.getMethod() == "OPTIONS")
-	//     return (this->OPTIONS());
-	// if (request.getMethod() == "PUT")
-	//     return (this->PUT());
-	// if (request.getMethod() == "DELETE")
-	//     return (this->DELETE());
-	// if (request.getMethod() == "TRACE")
-	//     return (this->TRACE());
-	// if (request.getMethod() == "CONNECT")
-	//     return (this->CONNECT());
+	if (request.getMethod() == "HEAD")
+	{
+		switch (fileType(request.getURI(), DEFAULT_ROOT))
+		{
+		case _dir:
+			response.setHTTPStatus("200", "Ok");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _no_access:
+			response.setHTTPStatus("403", "Forbidden");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _none:
+			response.setHTTPStatus("404", "Not found");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _err:
+			response.setHTTPStatus("500", "Internal server error");
+			response.addHeader("Content-Type", "text/html");
+			return;
+		case _file:
+			response.setHTTPStatus("200", "Ok");
+			this->setContentType(get_file_ext(request.getURI()), response);
+		}
+	}
 	else
 	{
 		response.headAppend(request.getHTTPVersion() + " 405 Method Not Allowed\r\n");

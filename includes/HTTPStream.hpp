@@ -24,6 +24,7 @@ public:
 	t_request_state readRequest(char *buffer, size_t len);
 	bool			sendResponse(void);
 	Future::Poll	poll() throw(async::OsError);
+	Future::Poll	keepAlive(void);
 
 	Response				response;
 	Request					request;

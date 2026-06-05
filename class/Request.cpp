@@ -78,6 +78,8 @@ t_request_state Request::readFirstLine(void)
 	if (std::strchr(this->_buffer + this->_read_index, '\n'))
 	{
 		this->_read_index += get_word(this->_buffer + this->_read_index, this->_method);
+		if (this->_method.empty())
+			return (_read);
 		this->_read_index += get_word(this->_buffer + this->_read_index, this->_URI);
 		this->_read_index += get_word(this->_buffer + this->_read_index, this->_http_version);
 		this->_first_line_read = true;

@@ -10,7 +10,10 @@ std::string get_html_error(std::string const &status, std::string const &message
 	std::string html;
 
 	if (status == "[STATUS]" || message == "[MESSAGE]")
+	{
+		close(fd);
 		return ("Error " + status + " : " + message);
+	}
 	while (!fdstream.end())
 	{
 		html.append(fdstream.get_str_until('['));
@@ -22,5 +25,6 @@ std::string get_html_error(std::string const &status, std::string const &message
 		if (temp == "MESSAGE")
 			html.append(message);
 	}
+	close(fd);
 	return (html);
 }
