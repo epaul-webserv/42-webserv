@@ -11,7 +11,7 @@
 
 Response::Response(void) :
 	_send_status(_first_step), _fetch_status(_init), _file_fd(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0), _body_write_index(0),
-	_content_length(0), _sent_bytes(0), _map(NULL)
+	_content_length(0), _sent_bytes(0), _map(NULL), _response_generator(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -130,7 +130,7 @@ std::string const &Response::getHTTPStatus(void) { return (this->_http_status); 
 
 void Response::setStatus(t_fetch_status status) { this->_fetch_status = status; }
 
-void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::Io bodyIo, int cgi_in_fd, int cgi_out_fd)
+void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo, int cgi_in_fd, int cgi_out_fd)
 {
 	_response_generator = new CGIResponseGenerator(request, response, reactor, bodyIo, cgi_in_fd, cgi_out_fd);
 }

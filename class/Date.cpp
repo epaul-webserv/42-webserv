@@ -14,7 +14,7 @@ Date::Date(void)
 	time_t	   t	= time(0);
 	struct tm *tm	= gmtime(&t);
 	this->_datetime = *tm;
-	free(tm);
+	// free(tm);
 }
 
 Date::Date(Date const &Date) : _datetime(Date._datetime) {}

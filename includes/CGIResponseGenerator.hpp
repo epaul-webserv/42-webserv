@@ -11,6 +11,20 @@ private:
 	Request const &_request;
 	Response	  &_response;
 	async::Io	  &_bodyIo;
-	async::Io	  *_cgi_in;
-	async::Io	  *_cgi_out;
+	async::Io	   _cgi_in;
+	async::Io	   _cgi_out;
+
+	bool _request_body_read_done;
+	bool _body_write_done;
+	bool _response_body_read_done;
+
+	uint8_t _request_body_buf[4096];
+	size_t	_request_body_read_len;
+	size_t	_request_body_read_index;
+
+	uint8_t _response_body_buf[4096];
+	size_t	_response_body_read_len;
+	size_t	_response_body_read_index;
+
+	std::string cgi_body;
 };
