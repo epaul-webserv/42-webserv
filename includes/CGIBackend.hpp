@@ -13,6 +13,8 @@ public:
 
 	void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io);
 
+
 private:
+	void					 initResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io);
 	std::vector<std::string> _args;
 };

@@ -43,14 +43,16 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args) : _args(args) {}
 
 CGIBackend::~CGIBackend(void) {}
 
-// The request has been routed towards the cgi, we start the program and setup
-// the io to process it
-void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io)
+void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo)
 {
-	(void)request;
-	(void)response;
-	(void)reactor;
-	(void)io;
+	if (response.getStatus() == _init)
+		initResponse(request, response, reactor, bodyIo);
+	if (response.getStatus() == _pending)
+		response.pollGenerator();
+}
+
+void CGIBackend::initResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo)
+{
 	std::string query_string   = "QUERY_STRING=" + request.getQueryString();
 	std::string request_method = "REQUEST_METHOD=" + request.getMethod();
 
@@ -158,21 +160,6 @@ void CGIBackend::generateResponse(Request const &request, Response &response, as
 	close(pipe_in[0]);
 	close(pipe_out[1]);
 
-	int cgi_in_fd  = pipe_in[1];
-	int cgi_out_fd = pipe_out[0];
-
-	/*if (WriteBody("body", cgi_in_fd) < 0)
-	{
-		close(cgi_in_fd);
-		close(cgi_out_fd);
-		return;
-	}*/
-	close(cgi_in_fd);
-	if (ReadBody(response, cgi_out_fd) < 0)
-	{
-		close(cgi_out_fd);
-		return;
-	}
-	close(cgi_out_fd);
-	return;
+	response.setGenerator(request, response, reactor, bodyIo, pipe_in[1], pipe_out[0]);
+	response.setStatus(_pending);
 }
