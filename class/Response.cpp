@@ -232,7 +232,7 @@ void Response::sendBody(container::Slice<uint8_t> &slice)
 
 	if (this->_map)
 	{
-		buffer	= (uint8_t *)this->_map;
+		buffer	= (uint8_t *)this->_map + this->_body_read_index;
 		to_read = this->_sb.st_size - this->_body_read_index;
 	}
 	else if (this->_send_buf.size() > this->_header_read_index + this->_body_read_index)

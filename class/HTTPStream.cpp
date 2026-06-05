@@ -17,10 +17,6 @@ HTTPStream::~HTTPStream() {}
 
 t_request_state HTTPStream::readRequest(char *buffer, size_t len) { return (this->request.readRequest(buffer, len)); }
 
-// bool HTTPStream::sendResponse(void) { return (this->response.sendResponse(this->_fd)); }
-
-#include <iostream>
-
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
 	struct iovec parts[2];
@@ -32,6 +28,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	{
 		while (io.poll_read(buf_slice, s) == Future::Ready)
 		{
+			if (!s)
+				return (Future::Ready);
 			buf.fill(s);
 			if (this->readRequest(static_cast<char *>(parts[0].iov_base), s) == _read)
 			{
@@ -54,8 +52,20 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 		while (io.poll_write(slice, s) == Future::Ready)
 		{
 			if (this->response.read(s))
+			{
+				if (this->request.peekHeader("connection") != "close")
+					return (this->keepAlive(), Future::Pending);
 				return (Future::Ready);
+			}
 		}
 	}
 	return (Future::Pending);
+}
+
+async::Future::Poll HTTPStream::keepAlive(void)
+{
+	this->request.clear();
+	this->response.clear();
+	this->_status = _request;
+	return (this->poll());
 }
