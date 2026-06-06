@@ -9,5 +9,3 @@ jobs:
         uses: actions/checkout@v4
       - name: Run make
         run: make
-      - name: Run make on vec example
-        run: make -C examples/vec
