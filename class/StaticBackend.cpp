@@ -4,6 +4,7 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "url_utils.hpp"
 #include "webserv.h"
 
 StaticBackend::StaticBackend(void) : _map(NULL) { bzero(&this->_sb, sizeof(this->_sb)); }

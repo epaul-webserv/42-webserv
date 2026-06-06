@@ -8,7 +8,6 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include "FdStream.hpp"
 #include "default_conf.hpp"
 #include "string_overload.hpp"
 
