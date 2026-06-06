@@ -14,7 +14,6 @@
 #include <async>
 #include "HTTPStream.hpp"
 #include "Router.hpp"
-#include "signal.hpp"
 
 class Acceptor : public async::Future
 {
@@ -137,12 +136,10 @@ int main(int ac, char **av)
 	}
 
 	std::cout << "Listening on " << host << ":" << port << "\n";
-	set_signal_handler();
 	async::Reactor reactor;
 	Acceptor	   acceptor(reactor, sfd, router);
 	reactor.run(acceptor);
 	shutdown(sfd, SHUT_RDWR);
 	close(sfd);
 	// close(socketpoll); We would like to close the epoll_create1 fd
-	std::cout << "\nBONSOIR PARIIIIIS!" << std::endl;
 }
