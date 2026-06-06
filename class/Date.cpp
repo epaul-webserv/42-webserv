@@ -14,12 +14,10 @@ Date::Date(void)
 	time_t	   t	= time(0);
 	struct tm *tm	= gmtime(&t);
 	this->_datetime = *tm;
-	// free(tm);
 }
 
 Date::Date(Date const &Date) : _datetime(Date._datetime) {}
-
-Date::Date(std::string const &str_date)
+s Date::Date(std::string const &str_date)
 {
 	this->_datetime.tm_isdst = 1;
 	if (!setDate(str_date))
