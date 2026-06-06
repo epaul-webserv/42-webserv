@@ -101,6 +101,12 @@ int main(int ac, char **av)
 		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (sfd == -1)
 			continue;
+		int opt = 1;
+		if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		{
+			std::cerr << "setsockopt: " << strerror(errno) << "\n";
+			exit(EXIT_FAILURE);
+		}
 		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
 			break;
 		close(sfd);
