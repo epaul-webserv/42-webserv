@@ -11,10 +11,10 @@ public:
 	CGIBackend(std::vector<std::string> const &args);
 	~CGIBackend(void);
 
-	void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io);
+	void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io);
 
 
 private:
-	void					 initResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io);
+	void					 initResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io);
 	std::vector<std::string> _args;
 };

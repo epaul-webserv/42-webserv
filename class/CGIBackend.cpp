@@ -43,7 +43,7 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args) : _args(args) {}
 
 CGIBackend::~CGIBackend(void) {}
 
-void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo)
+void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo)
 {
 	if (response.getStatus() == _init)
 		initResponse(request, response, reactor, bodyIo);
@@ -51,7 +51,9 @@ void CGIBackend::generateResponse(Request const &request, Response &response, as
 		response.pollGenerator();
 }
 
-void CGIBackend::initResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo)
+// The request has been routed towards the cgi, we start the program and setup
+// the io to process it
+void CGIBackend::initResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io)
 {
 	std::string query_string   = "QUERY_STRING=" + request.getQueryString();
 	std::string request_method = "REQUEST_METHOD=" + request.getMethod();

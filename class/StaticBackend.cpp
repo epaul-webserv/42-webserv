@@ -49,10 +49,36 @@ void StaticBackend::setContentType(std::string const &file_ext, Response &respon
 	response.addHeader("Content-Type", mime_type);
 }
 
-void StaticBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io)
+static bool consume_body(Request &request, async::BufIo<> &client_io)
+{
+	char  *end;
+	size_t to_read = std::strtoul(request.peekHeader("Content-Length").c_str(), &end, 10);
+
+	if (request._body_read_index < to_read)
+	{
+		uint8_t					 *buf = new uint8_t[to_read - request._body_read_index + 1];
+		container::Slice<uint8_t> sl(buf, to_read - request._body_read_index);
+		size_t					  s = 0;
+		while (client_io.poll_read(sl, s) == async::Future::Ready)
+		{
+			request._body_read_index += s;
+			if (request._body_read_index >= to_read)
+			{
+				delete[] (buf);
+				return (true);
+			}
+		}
+		delete[] (buf);
+		return (false);
+	}
+	return (true);
+}
+
+void StaticBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &client_io)
 {
 	(void)reactor;
-	(void)io;
+	if (!consume_body(const_cast<Request &>(request), client_io))
+		return;
 	if (request.getURI().empty())
 	{
 		response.setHTTPVersion("HTTP/1.1");
@@ -234,7 +260,7 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 	}
 	else
 	{
-		response.headAppend(request.getHTTPVersion() + " 405 Method Not Allowed\r\n");
+		response.setHTTPStatus("405", "Method Not Allowed");
 		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
 }

@@ -4,11 +4,11 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-Request::Request(void) : _first_line_read(false), _headers_read(false), _read_index(0), _write_index(0) {}
+Request::Request(void) : _body_read_index(0), _first_line_read(false) {}
 
 Request::Request(Request const &Request) :
-	_first_line_read(Request._first_line_read), _headers_read(Request._headers_read), _read_index(0), _write_index(0), _method(Request._method), _URI(Request._URI),
-	_http_version(Request._http_version), _headers(Request._headers)
+	_body_read_index(0), _first_line_read(Request._first_line_read), _method(Request._method), _URI(Request._URI), _http_version(Request._http_version),
+	_headers(Request._headers)
 {
 }
 
@@ -20,10 +20,8 @@ Request const &Request::operator=(Request const &Request)
 	this->_URI			   = Request._URI;
 	this->_http_version	   = Request._http_version;
 	this->_first_line_read = Request._first_line_read;
-	this->_headers_read	   = Request._headers_read;
 	this->_headers		   = Request._headers;
-	this->_read_index	   = Request._read_index;
-	this->_write_index	   = Request._write_index;
+	this->_body_read_index = Request._body_read_index;
 	return (*this);
 }
 
@@ -33,11 +31,9 @@ void Request::clear()
 	this->_URI.clear();
 	this->_http_version.clear();
 	this->_first_line_read = false;
-	this->_headers_read	   = false;
 	this->_headers.clear();
-	*this->_buffer	   = '\0';
-	this->_read_index  = 0;
-	this->_write_index = 0;
+	*this->_buffer		   = '\0';
+	this->_body_read_index = 0;
 }
 
 void Request::prepareNextRead(void)
@@ -46,42 +42,58 @@ void Request::prepareNextRead(void)
 	this->_URI.clear();
 	this->_http_version.clear();
 	this->_first_line_read = false;
-	this->_headers_read	   = false;
 	this->_headers.clear();
 }
 
-t_request_state Request::readRequest(char *buffer, size_t read_bytes)
+t_request_state Request::readRequest(async::BufIo<> &client_io)
 {
-	std::memcpy(this->_buffer + this->_write_index, buffer, std::min(read_bytes, MAX_REQUEST_SIZE - this->_write_index));
-	this->_buffer[read_bytes + this->_write_index] = '\0';
-	this->_write_index += read_bytes;
 	if (!this->_first_line_read)
-		return (readFirstLine());
-	return (readHeaders());
+		return (readFirstLine(client_io));
+	return (readHeaders(client_io));
 }
 
-static size_t get_word(char *buffer, std::string &dest)
+// static size_t get_word(char *buffer, std::string &dest)
+// {
+// 	size_t len	   = 0;
+// 	size_t skipped = 0;
+//
+// 	while (buffer[len] && std::isspace(buffer[len]))
+// 		++buffer, ++skipped;
+// 	while (buffer[len] && !std::isspace(buffer[len]))
+// 		++len;
+// 	dest.assign(buffer, len);
+// 	return (len + skipped);
+// }
+
+static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
 {
 	size_t len	   = 0;
 	size_t skipped = 0;
 
-	while (buffer[len] && std::isspace(buffer[len]))
-		++buffer, ++skipped;
-	while (buffer[len] && !std::isspace(buffer[len]))
+	if (line.empty())
+		return (0);
+	while (line[len] && std::isspace(line[len]))
+		line.erase(line.begin()), ++skipped;
+	while (line[len] && !std::isspace(line[len]))
 		++len;
-	dest.assign(buffer, len);
+	dest = std::string(&line[0], &line[len]);
+	line.erase(line.begin(), line.begin() + len);
 	return (len + skipped);
 }
 
-t_request_state Request::readFirstLine(void)
+t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 {
-	if (std::strchr(this->_buffer + this->_read_index, '\n'))
+	std::vector<uint8_t> line;
+
+	if (client_io.poll_read_line(line) == async::Future::Ready)
 	{
-		this->_read_index += get_word(this->_buffer + this->_read_index, this->_method);
+		if (line.size() == 0)
+			return (_close);
+		get_next_word(line, this->_method);
 		if (this->_method.empty())
 			return (_read);
-		this->_read_index += get_word(this->_buffer + this->_read_index, this->_URI);
-		this->_read_index += get_word(this->_buffer + this->_read_index, this->_http_version);
+		get_next_word(line, this->_URI);
+		get_next_word(line, this->_http_version);
 		this->_first_line_read = true;
 		decodeURL(this->_URI);
 		if (this->_URI.find('?') != std::string::npos)
@@ -89,60 +101,72 @@ t_request_state Request::readFirstLine(void)
 			this->_query_string = this->_URI.substr(this->_URI.find('?'));
 			this->_URI			= this->_URI.substr(0, this->_URI.find('?'));
 		}
-		return (this->readHeaders());
+		return (this->readHeaders(client_io));
 	}
 	return (_reading);
 }
 
-static size_t readHeadersCore(char *buffer, std::map<std::string, std::string> &headers)
+t_request_state Request::readHeaders(async::BufIo<> &client_io)
 {
-	size_t								whole_len = 0;
-	size_t								len		  = 0;
-	std::pair<std::string, std::string> new_pair;
+	std::vector<uint8_t>		   line;
+	std::vector<uint8_t>::iterator it;
+	std::vector<uint8_t>::iterator ite;
 
-	while (*buffer && std::isspace(buffer[len]))
+	while (client_io.poll_read_line(line) == async::Future::Ready)
 	{
-		++buffer;
-		++whole_len;
+		if (line.size() == 0)
+			return (_close);
+		ite = line.end();
+		if (line.size() == 2 && line[0] == '\r')
+			return (_read);
+		to_lower(line);
+		it = std::find(line.begin(), line.end(), ':');
+		if (it != ite)
+			this->_headers.insert((std::pair<std::string, std::string>(std::string(line.begin(), it), std::string(it + 1, ite - 1))));
+		line.clear();
 	}
-	while (buffer[len] && !std::isspace(buffer[len++]))
-	{
-		if (buffer[len] == ':')
-		{
-			new_pair.first.assign(buffer, len++);
-			break;
-		}
-	}
-	if (new_pair.first.empty())
-	{
-		return (whole_len);
-	}
-	buffer += len;
-	whole_len += len;
-	len = 0;
-	while (buffer[len] && std::isspace(buffer[len]))
-	{
-		++buffer;
-		++whole_len;
-	}
-	while (buffer[len] && buffer[len] != '\r' && buffer[len] != '\n')
-		++len;
-	new_pair.second.assign(buffer, len);
-	to_lower(new_pair.first);
-	to_lower(new_pair.second);
-	headers.insert(new_pair);
-	return (whole_len + len);
-}
-
-t_request_state Request::readHeaders(void)
-{
-	while (this->_buffer[this->_read_index] && std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") &&
-		   std::strcmp(this->_buffer + this->_read_index, "\r\n\r\n") && std::strstr(this->_buffer, "\n"))
-		this->_read_index += readHeadersCore(this->_buffer + this->_read_index, this->_headers);
-	if (std::strstr(this->_buffer, "\r\n\r\n") || std::strstr(this->_buffer, "\n\n"))
-		return (_read);
 	return (_reading);
 }
+
+// static size_t readHeadersCore(char *buffer, std::map<std::string, std::string> &headers)
+// {
+// 	size_t								whole_len = 0;
+// 	size_t								len		  = 0;
+// 	std::pair<std::string, std::string> new_pair;
+//
+// 	while (*buffer && std::isspace(buffer[len]))
+// 	{
+// 		++buffer;
+// 		++whole_len;
+// 	}
+// 	while (buffer[len] && !std::isspace(buffer[len++]))
+// 	{
+// 		if (buffer[len] == ':')
+// 		{
+// 			new_pair.first.assign(buffer, len++);
+// 			break;
+// 		}
+// 	}
+// 	if (new_pair.first.empty())
+// 	{
+// 		return (whole_len);
+// 	}
+// 	buffer += len;
+// 	whole_len += len;
+// 	len = 0;
+// 	while (buffer[len] && std::isspace(buffer[len]))
+// 	{
+// 		++buffer;
+// 		++whole_len;
+// 	}
+// 	while (buffer[len] && buffer[len] != '\r' && buffer[len] != '\n')
+// 		++len;
+// 	new_pair.second.assign(buffer, len);
+// 	to_lower(new_pair.first);
+// 	to_lower(new_pair.second);
+// 	headers.insert(new_pair);
+// 	return (whole_len + len);
+// }
 
 /// @brief returns the next header available.
 /// This function does not delete the returned header
