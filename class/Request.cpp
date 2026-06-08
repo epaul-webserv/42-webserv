@@ -81,6 +81,23 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
 	return (len + skipped);
 }
 
+static std::string get_next_word(std::vector<uint8_t> &line)
+{
+	size_t		len		= 0;
+	size_t		skipped = 0;
+	std::string dest;
+
+	if (line.empty())
+		return (dest);
+	while (line[len] && std::isspace(line[len]))
+		line.erase(line.begin()), ++skipped;
+	while (line[len] && !std::isspace(line[len]))
+		++len;
+	dest = std::string(&line[0], &line[len]);
+	line.erase(line.begin(), line.begin() + len);
+	return (dest);
+}
+
 t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 {
 	std::vector<uint8_t> line;
@@ -120,9 +137,17 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 		if (line.size() == 2 && line[0] == '\r')
 			return (_read);
 		to_lower(line);
-		it = std::find(line.begin(), line.end(), ':');
+		it					   = std::find(line.begin(), line.end(), ':');
+		std::string header_key = get_next_word(line);
+		if (header_key.find(':') == std::string::npos)
+		{
+			this->_headers.insert((std::pair<std::string, std::string>(header_key, "")));
+			line.clear();
+			break;
+		}
+		header_key = header_key.substr(0, header_key.find(':'));
 		if (it != ite)
-			this->_headers.insert((std::pair<std::string, std::string>(std::string(line.begin(), it), std::string(it + 1, ite - 1))));
+			this->_headers.insert((std::pair<std::string, std::string>(header_key, get_next_word(line))));
 		line.clear();
 	}
 	return (_reading);
