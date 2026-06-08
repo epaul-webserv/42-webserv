@@ -37,6 +37,7 @@ private:
 
 	container::RingBuf<uint8_t, 4096> buf;
 	async::Io						  io;
+	async::BufIo<>					  buf_io;
 	stream_status					  _status;
 	async::Reactor					 *_reactor;
 };

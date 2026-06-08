@@ -45,7 +45,7 @@ CGIBackend::~CGIBackend(void) {}
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
-void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io)
+void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io)
 {
 	(void)request;
 	(void)response;

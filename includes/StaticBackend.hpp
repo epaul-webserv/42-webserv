@@ -19,7 +19,7 @@ public:
 	~StaticBackend(void);
 
 	t_file_status openFile(std::string path);
-	void		  generateResponse(Request const &request, Response &response, async::Reactor &Reactor, async::Io &io);
+	void		  generateResponse(Request const &request, Response &response, async::Reactor &Reactor, async::BufIo<> &io);
 
 private:
 	void setHeaders();

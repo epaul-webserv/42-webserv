@@ -47,6 +47,8 @@ public:
 	std::string const &getHTTPVersion(void);
 	t_fetch_status	   getStatus(void);
 	std::string const &getHTTPStatus(void);
+	size_t			   getBodySize(void);
+	std::string		   getIp(void);
 	void			   setHTTPVersion(std::string const &http_version);
 	void			   setHTTPStatus(std::string const &status, std::string const &message);
 	void			   setHTTPStatus(std::string const &completeStatus);

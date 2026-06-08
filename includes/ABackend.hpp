@@ -18,7 +18,7 @@ public:
 	ABackend(void);
 	virtual ~ABackend(void);
 
-	virtual void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::Io &io) = 0;
+	virtual void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io) = 0;
 	void		 setError(std::string const &status, std::string const &message, Response &response);
 };
 
