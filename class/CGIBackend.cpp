@@ -1,6 +1,7 @@
 #include "CGIBackend.hpp"
 #include <iostream>
 #include <string>
+#include <vector>
 #include "url_utils.hpp"
 #include "webserv.h"
 
@@ -55,8 +56,11 @@ void CGIBackend::generateResponse(Request const &request, Response &response, as
 // the io to process it
 void CGIBackend::initResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo)
 {
-	std::string query_string   = "QUERY_STRING=" + request.getQueryString();
-	std::string request_method = "REQUEST_METHOD=" + request.getMethod();
+	std::string				 encoding = request.peekHeader("transfer-encoding");
+	std::vector<std::string> env_vector;
+
+	env_vector.push_back("QUERY_STRING=" + request.getQueryString());
+	env_vector.push_back("REQUEST_METHOD=" + request.getMethod());
 
 	// The name of the file being executed
 	std::string script_name		 = get_file_name(request.getURI());
@@ -64,54 +68,41 @@ void CGIBackend::initResponse(Request const &request, Response &response, async:
 
 	// This is supposed to be whats after the script filename, and before the query string,
 	// but Logan Martin told me to trust him, "tkt" was his explanation, it convinced me
-	std::string path_info = "PATH_INFO=" + script_full_path;
+	env_vector.push_back("PATH_INFO=" + script_full_path);
 	// Internal decoded URI
-	std::string path_translated = "PATH_TRANSLATED=" + script_full_path;
+	env_vector.push_back("PATH_TRANSLATED=" + script_full_path);
 	// Tells the cgi EXACTLY what file to run
-	std::string script_filename = "SCRIPT_FILENAME=" + script_full_path;
+	env_vector.push_back("SCRIPT_FILENAME=" + script_full_path);
 
-	std::string server_port = "SERVER_PORT=" + DEFAULT_PORT;
+	env_vector.push_back("SERVER_PORT=" + DEFAULT_PORT);
 
 	// name of teh server on the network ?
-	std::string server_name = "SERVER_NAME=" + std::string(PROGNAME);
+	env_vector.push_back("SERVER_NAME=" + std::string(PROGNAME));
 	// name of the program
-	std::string server_software = "SERVER_SOFTWARE=" + std::string(PROGNAME);
+	env_vector.push_back("SERVER_SOFTWARE=" + std::string(PROGNAME));
 	// protocol
-	std::string server_protocol = "SERVER_PROTOCOL=" + request.getHTTPVersion();
-	std::string content_length	= "CONTENT_LENGTH=" + request.peekHeader("content-length");
+	env_vector.push_back("SERVER_PROTOCOL=" + request.getHTTPVersion());
 
-	std::string content_type = "CONTENT_TYPE=" + request.peekHeader("content-type");
+	// std::string encoding = request.peekHeader("transfer-encoding");
 
-	char *const env_var[] = {const_cast<char *>("AUTH_TYPE="), // NULL ?
-							 const_cast<char *>(content_type.c_str()), // If there is a body
-							 const_cast<char *>(content_length.c_str()), // If there is a body
-							 const_cast<char *>("GATEWAY_INTERFACE=CGI/1.1"), // default to 1.1
+	env_vector.push_back("CONTENT_LENGTH=" + request.peekHeader("content-length"));
 
-							 const_cast<char *>(path_info.c_str()),
+	env_vector.push_back("CONTENT_TYPE=" + request.peekHeader("content-type"));
 
-							 const_cast<char *>(path_translated.c_str()),
+	env_vector.push_back("AUTH_TYPE=");
+	env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	env_vector.push_back("REMOTE_ADDR=localhost");
+	env_vector.push_back("REMOTE_HOST=");
+	env_vector.push_back("REMOTE_IDENT=");
+	env_vector.push_back("REDIRECT_STATUS=1");
 
-							 const_cast<char *>(query_string.c_str()), // the content after ? in the
-																	   // url
+	std::vector<char *> env_char;
+	for (size_t i = 0; i < env_vector.size(); i++)
+		env_char.push_back(const_cast<char *>(env_vector[i].c_str()));
+	env_char.push_back(NULL);
 
-							 const_cast<char *>("REMOTE_ADDR=localhost"), // ip address of the client
-																		  // making the request
-							 const_cast<char *>("REMOTE_HOST="), // fully qualified domain name of, the client
-																 // sending the request left blank i guess
-							 const_cast<char *>("REMOTE_IDENT="), // Idk
-
-							 const_cast<char *>(request_method.c_str()), // Get from request
-
-							 const_cast<char *>("REDIRECT_STATUS=1"), // Bypasses the "Security Alert!"
-							 const_cast<char *>(script_filename.c_str()),
-							 const_cast<char *>(script_name.c_str()), // Path to the script to execute
-							 const_cast<char *>(server_name.c_str()), //
-							 const_cast<char *>(server_port.c_str()), //
-							 const_cast<char *>(server_protocol.c_str()), //
-							 const_cast<char *>(server_software.c_str()), //
-							 NULL}; //
-	int			pipe_in[2];
-	int			pipe_out[2];
+	int pipe_in[2];
+	int pipe_out[2];
 
 	int cgi_pid = 0;
 
@@ -158,7 +149,7 @@ void CGIBackend::initResponse(Request const &request, Response &response, async:
 		argv.push_back(const_cast<char *>(script_full_path.c_str()));
 		argv.push_back(NULL);
 
-		execve(argv[0], &argv[0], env_var);
+		execve(argv[0], &argv[0], env_char.data());
 		std::cerr << "CGI Error: execve failed for " << argv[0] << ", " << argv[1] << ", " << argv[2] << std::endl;
 		std::exit(1);
 	}

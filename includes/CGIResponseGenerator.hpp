@@ -11,12 +11,15 @@ public:
 	~CGIResponseGenerator();
 
 private:
-	Request const  &_request;
-	Response	   &_response;
-	async::BufIo<> &_bodyIo;
-	async::Io		_cgi_in;
-	async::Io		_cgi_out;
-	size_t			_body_len;
+	CGIResponseGenerator(const CGIResponseGenerator &other);
+	CGIResponseGenerator &operator=(const CGIResponseGenerator &other);
+	Request const		 &_request;
+	Response			 &_response;
+	async::BufIo<>		 &_bodyIo;
+	async::Io			  _cgi_in;
+	async::Io			  _cgi_out;
+	size_t				  _body_len;
+
 
 	bool _request_body_read_done;
 	bool _body_write_done;
