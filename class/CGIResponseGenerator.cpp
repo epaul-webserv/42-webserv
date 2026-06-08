@@ -38,7 +38,7 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 	{
 		container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
 		size_t					  written;
-		if (_cgi_out.poll_write(slice, written) == Ready)
+		if (_cgi_in.poll_write(slice, written) == Ready)
 		{
 			_request_body_read_index += written;
 			if (_request_body_read_done && _request_body_read_index == _request_body_read_len)

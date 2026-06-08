@@ -80,8 +80,10 @@ void CGIBackend::initResponse(Request const &request, Response &response, async:
 	std::string server_protocol = "SERVER_PROTOCOL=" + request.getHTTPVersion();
 	std::string content_length	= "CONTENT_LENGTH=" + request.peekHeader("content-length");
 
+	std::string content_type = "CONTENT_TYPE=" + request.peekHeader("content-type");
+
 	char *const env_var[] = {const_cast<char *>("AUTH_TYPE="), // NULL ?
-							 const_cast<char *>("CONTENT_TYPE="), // If there is a body
+							 const_cast<char *>(content_type.c_str()), // If there is a body
 							 const_cast<char *>(content_length.c_str()), // If there is a body
 							 const_cast<char *>("GATEWAY_INTERFACE=CGI/1.1"), // default to 1.1
 
