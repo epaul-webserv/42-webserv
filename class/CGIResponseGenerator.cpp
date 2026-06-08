@@ -28,7 +28,7 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 		if (_bodyIo.poll_read(slice, _request_body_read_len) == Ready)
 		{
 			_body_len -= _request_body_read_len;
-			if (_request_body_read_len == 0 || _body_len == 0)
+			if (_request_body_read_len == 0 || _body_len <= 0)
 				_request_body_read_done = true;
 			else
 				_request_body_read_index = 0;
@@ -38,7 +38,7 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 	{
 		container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
 		size_t					  written;
-		if (_bodyIo.poll_write(slice, written) == Ready)
+		if (_cgi_out.poll_write(slice, written) == Ready)
 		{
 			_request_body_read_index += written;
 			if (_request_body_read_done && _request_body_read_index == _request_body_read_len)
