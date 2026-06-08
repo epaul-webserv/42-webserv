@@ -1,39 +1,50 @@
 #include "CGIResponseGenerator.hpp"
 
-CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo, int cgi_in_fd, int cgi_out_fd) :
+CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd,
+										   int cgi_out_fd) :
 	_request(request), _response(response), _bodyIo(bodyIo), _cgi_in(reactor, cgi_in_fd), _cgi_out(reactor, cgi_out_fd), _request_body_read_done(false),
 	_body_write_done(false), _response_body_read_done(false), _request_body_read_len(0), _request_body_read_index(0), _response_body_read_len(0),
 	_response_body_read_index(0)
 {
+	std::string content_len = _request.peekHeader("content-length");
+	if (content_len == "")
+	{
+		_body_len				= 0;
+		_request_body_read_done = true;
+		_body_write_done		= true;
+	}
+	else
+	{
+		char *ptr;
+		_body_len = std::strtoul(content_len.c_str(), &ptr, 10);
+	}
 }
 
 async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 {
-	_request_body_read_done = true;
-	_body_write_done		= true;
-	// if (!_request_body_read_done && _request_body_read_index == _request_body_read_len)
-	// {
-	// 	container::Slice<uint8_t> slice(_request_body_buf, 4096);
-	// 	if (_bodyIo.poll_read(slice, _request_body_read_len) == Ready)
-	// 	{
-
-	// 		if (_request_body_read_len == 0)
-	// 			_request_body_read_done = true;
-	// 		else
-	// 			_request_body_read_index = 0;
-	// 	}
-	// }
-	// if (!_body_write_done && _request_body_read_index < _request_body_read_len)
-	// {
-	// 	container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
-	// 	size_t					  written;
-	// 	if (_bodyIo.poll_write(slice, written) == Ready)
-	// 	{
-	// 		_request_body_read_index += written;
-	// 		if (_request_body_read_done && _request_body_read_index == _request_body_read_len)
-	// 			_body_write_done = true;
-	// 	}
-	// }
+	if (!_request_body_read_done && _request_body_read_index == _request_body_read_len)
+	{
+		container::Slice<uint8_t> slice(_request_body_buf, 4096);
+		if (_bodyIo.poll_read(slice, _request_body_read_len) == Ready)
+		{
+			_body_len -= _request_body_read_len;
+			if (_request_body_read_len == 0 || _body_len == 0)
+				_request_body_read_done = true;
+			else
+				_request_body_read_index = 0;
+		}
+	}
+	if (!_body_write_done && _request_body_read_index < _request_body_read_len)
+	{
+		container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
+		size_t					  written;
+		if (_bodyIo.poll_write(slice, written) == Ready)
+		{
+			_request_body_read_index += written;
+			if (_request_body_read_done && _request_body_read_index == _request_body_read_len)
+				_body_write_done = true;
+		}
+	}
 	// This should only read headers
 	if (!_response_body_read_done)
 	{

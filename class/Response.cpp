@@ -130,7 +130,7 @@ std::string const &Response::getHTTPStatus(void) { return (this->_http_status); 
 
 void Response::setStatus(t_fetch_status status) { this->_fetch_status = status; }
 
-void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo, int cgi_in_fd, int cgi_out_fd)
+void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd)
 {
 	_response_generator = new CGIResponseGenerator(request, response, reactor, bodyIo, cgi_in_fd, cgi_out_fd);
 }

@@ -1,18 +1,22 @@
+#include <async>
+#include "Request.hpp"
+#include "Response.hpp"
 #include "webserv.h"
 
 class CGIResponseGenerator : public async::Future
 {
 public:
-	CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::Io &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
 	Future::Poll poll() throw(async::OsError);
 	~CGIResponseGenerator();
 
 private:
-	Request const &_request;
-	Response	  &_response;
-	async::Io	  &_bodyIo;
-	async::Io	   _cgi_in;
-	async::Io	   _cgi_out;
+	Request const  &_request;
+	Response	   &_response;
+	async::BufIo<> &_bodyIo;
+	async::Io		_cgi_in;
+	async::Io		_cgi_out;
+	size_t			_body_len;
 
 	bool _request_body_read_done;
 	bool _body_write_done;
