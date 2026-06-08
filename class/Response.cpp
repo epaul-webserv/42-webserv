@@ -1,15 +1,17 @@
 #include "Response.hpp"
+#include <async>
 #include <cstring>
 #include <fcntl.h>
 #include <stdexcept>
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "CGIResponseGenerator.hpp"
 #include "webserv.h"
 
 Response::Response(void) :
 	_send_status(_first_step), _fetch_status(_init), _file_fd(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0), _body_write_index(0),
-	_content_length(0), _sent_bytes(0), _map(NULL)
+	_content_length(0), _sent_bytes(0), _map(NULL), _response_generator(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -18,7 +20,7 @@ Response::Response(Response const &Response) :
 	_send_status(Response._send_status), _fetch_status(Response._fetch_status), _file_fd(Response._file_fd), _head(Response._head), _body(Response._body),
 	_header_read_index(Response._header_read_index), _header_write_index(Response._header_write_index), _body_read_index(Response._body_read_index),
 	_body_write_index(Response._body_write_index), _content_length(Response._content_length), _sent_bytes(Response._sent_bytes), _http_version(Response._http_version),
-	_http_status(Response._http_status), _sb(Response._sb), _map(Response._map)
+	_http_status(Response._http_status), _sb(Response._sb), _map(Response._map), _response_generator(NULL)
 {
 }
 
@@ -28,6 +30,8 @@ Response::~Response(void)
 		munmap(this->_map, this->_sb.st_size);
 	if (this->_file_fd != -1)
 		close(this->_file_fd);
+	if (_response_generator)
+		delete _response_generator;
 }
 
 void Response::clear()
@@ -48,6 +52,9 @@ void Response::clear()
 	this->_sent_bytes		  = 0;
 	this->_content_length	  = 0;
 	bzero(&this->_sb, sizeof(this->_sb));
+	if (_response_generator)
+		delete _response_generator;
+	_response_generator = NULL;
 }
 
 bool Response::ready(void)
@@ -122,6 +129,17 @@ t_fetch_status Response::getStatus(void) { return (this->_fetch_status); }
 std::string const &Response::getHTTPStatus(void) { return (this->_http_status); }
 
 void Response::setStatus(t_fetch_status status) { this->_fetch_status = status; }
+
+void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd)
+{
+	_response_generator = new CGIResponseGenerator(request, response, reactor, bodyIo, cgi_in_fd, cgi_out_fd);
+}
+
+void Response::pollGenerator()
+{
+	if (_response_generator && _response_generator->poll() == async::Future::Ready)
+		setStatus(_ready);
+}
 
 void Response::addBase()
 {

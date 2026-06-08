@@ -17,7 +17,6 @@ Date::Date(void)
 }
 
 Date::Date(Date const &Date) : _datetime(Date._datetime) {}
-
 Date::Date(std::string const &str_date)
 {
 	this->_datetime.tm_isdst = 1;

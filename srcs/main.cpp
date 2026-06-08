@@ -78,7 +78,10 @@ int main(int ac, char **av)
 		exit(EXIT_FAILURE);
 	}
 
-	router.addRule(_cgi, std::vector<std::string>(1, "/bin/php-cgi"), "localhost:33000", "php");
+	std::vector<std::string> php_args;
+	php_args.push_back("/bin/php-cgi");
+	php_args.push_back("-f");
+	router.addRule(_cgi, php_args, "localhost:33000", "php");
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family	   = AF_UNSPEC;

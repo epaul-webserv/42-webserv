@@ -14,5 +14,6 @@ public:
 	void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io);
 
 private:
+	void					 initResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo);
 	std::vector<std::string> _args;
 };
