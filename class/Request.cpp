@@ -52,19 +52,6 @@ t_request_state Request::readRequest(async::BufIo<> &client_io)
 	return (readHeaders(client_io));
 }
 
-// static size_t get_word(char *buffer, std::string &dest)
-// {
-// 	size_t len	   = 0;
-// 	size_t skipped = 0;
-//
-// 	while (buffer[len] && std::isspace(buffer[len]))
-// 		++buffer, ++skipped;
-// 	while (buffer[len] && !std::isspace(buffer[len]))
-// 		++len;
-// 	dest.assign(buffer, len);
-// 	return (len + skipped);
-// }
-
 static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
 {
 	size_t len	   = 0;
@@ -92,6 +79,23 @@ static std::string get_next_word(std::vector<uint8_t> &line)
 	while (line[len] && std::isspace(line[len]))
 		line.erase(line.begin()), ++skipped;
 	while (line[len] && !std::isspace(line[len]))
+		++len;
+	dest = std::string(&line[0], &line[len]);
+	line.erase(line.begin(), line.begin() + len);
+	return (dest);
+}
+
+static std::string get_end_of_line(std::vector<uint8_t> &line)
+{
+	size_t		len		= 0;
+	size_t		skipped = 0;
+	std::string dest;
+
+	if (line.empty())
+		return (dest);
+	while (line[len] && std::isspace(line[len]))
+		line.erase(line.begin()), ++skipped;
+	while (line[len] && line[len] != '\r' && line[len] != '\n')
 		++len;
 	dest = std::string(&line[0], &line[len]);
 	line.erase(line.begin(), line.begin() + len);
@@ -136,7 +140,6 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 		ite = line.end();
 		if (line.size() == 2 && line[0] == '\r')
 			return (_read);
-		to_lower(line);
 		it					   = std::find(line.begin(), line.end(), ':');
 		std::string header_key = get_next_word(line);
 		if (header_key.find(':') == std::string::npos)
@@ -147,51 +150,11 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 		}
 		header_key = header_key.substr(0, header_key.find(':'));
 		if (it != ite)
-			this->_headers.insert((std::pair<std::string, std::string>(header_key, get_next_word(line))));
+			this->_headers.insert((std::pair<std::string, std::string>(to_lower(header_key), get_end_of_line(line))));
 		line.clear();
 	}
 	return (_reading);
 }
-
-// static size_t readHeadersCore(char *buffer, std::map<std::string, std::string> &headers)
-// {
-// 	size_t								whole_len = 0;
-// 	size_t								len		  = 0;
-// 	std::pair<std::string, std::string> new_pair;
-//
-// 	while (*buffer && std::isspace(buffer[len]))
-// 	{
-// 		++buffer;
-// 		++whole_len;
-// 	}
-// 	while (buffer[len] && !std::isspace(buffer[len++]))
-// 	{
-// 		if (buffer[len] == ':')
-// 		{
-// 			new_pair.first.assign(buffer, len++);
-// 			break;
-// 		}
-// 	}
-// 	if (new_pair.first.empty())
-// 	{
-// 		return (whole_len);
-// 	}
-// 	buffer += len;
-// 	whole_len += len;
-// 	len = 0;
-// 	while (buffer[len] && std::isspace(buffer[len]))
-// 	{
-// 		++buffer;
-// 		++whole_len;
-// 	}
-// 	while (buffer[len] && buffer[len] != '\r' && buffer[len] != '\n')
-// 		++len;
-// 	new_pair.second.assign(buffer, len);
-// 	to_lower(new_pair.first);
-// 	to_lower(new_pair.second);
-// 	headers.insert(new_pair);
-// 	return (whole_len + len);
-// }
 
 /// @brief returns the next header available.
 /// This function does not delete the returned header
