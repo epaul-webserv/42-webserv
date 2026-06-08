@@ -15,6 +15,21 @@ HTTPStream::HTTPStream(HTTPStream const &HTTPStream) :
 
 HTTPStream::~HTTPStream() {}
 
+HTTPStream &HTTPStream::operator=(HTTPStream const &other)
+{
+	response = other.response;
+	request	 = other.request;
+	router	 = other.router;
+	addr	 = other.addr;
+	addr_len = other.addr_len;
+	buf		 = other.buf;
+	io		 = other.io;
+	buf_io	 = other.buf_io;
+	_status	 = other._status;
+	_reactor = other._reactor;
+	return (*this);
+}
+
 // t_request_state HTTPStream::readRequest(char *buffer, size_t len) { return (this->request.readRequest(buffer, len)); }
 
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
@@ -47,8 +62,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 		{
 			if (this->response.read(s))
 			{
-				// if (this->request.peekHeader("connection") != "close")
-				// 	return (this->keepAlive(), Future::Pending);
+				if (this->request.peekHeader("connection") != "close")
+					return (this->keepAlive(), Future::Pending);
 				return (Future::Ready);
 			}
 		}

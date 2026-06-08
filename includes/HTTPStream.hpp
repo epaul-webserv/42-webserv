@@ -21,6 +21,7 @@ public:
 	HTTPStream(HTTPStream const &HTTPStream);
 	~HTTPStream();
 
+	HTTPStream	   &operator=(HTTPStream const &other);
 	t_request_state readRequest(char *buffer, size_t len);
 	bool			sendResponse(void);
 	Future::Poll	poll() throw(async::OsError);
