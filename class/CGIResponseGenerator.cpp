@@ -6,7 +6,6 @@ CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &res
 	_response_headers_read_done(false), _status_set(false), _request_body_read_len(0), _request_body_read_index(0), _response_body_read_len(0),
 	_response_body_read_index(0)
 {
-	_response.setHTTPVersion(_request.getHTTPVersion());
 	std::string content_len = _request.peekHeader("content-length");
 	if (content_len == "")
 	{
