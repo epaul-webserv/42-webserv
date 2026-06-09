@@ -27,7 +27,7 @@ private:
 	bool _request_body_read_done;
 	bool _body_write_done;
 	bool _response_headers_read_done;
-	bool _has_content_type_header;
+	bool _status_set;
 
 	uint8_t _request_body_buf[4096];
 	size_t	_request_body_read_len;

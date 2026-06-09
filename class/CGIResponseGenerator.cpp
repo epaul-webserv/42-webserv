@@ -3,7 +3,8 @@
 CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd,
 										   int cgi_out_fd) :
 	_request(request), _response(response), _bodyIo(bodyIo), _cgi_in(reactor, cgi_in_fd), _cgi_out(NULL), _request_body_read_done(false), _body_write_done(false),
-	_response_headers_read_done(false), _request_body_read_len(0), _request_body_read_index(0), _response_body_read_len(0), _response_body_read_index(0)
+	_response_headers_read_done(false), _status_set(false), _request_body_read_len(0), _request_body_read_index(0), _response_body_read_len(0),
+	_response_body_read_index(0)
 {
 	_response.setHTTPVersion(_request.getHTTPVersion());
 	std::string content_len = _request.peekHeader("content-length");
@@ -61,18 +62,23 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 				std::string key, value;
 				if (parse_cgi_header(line_buf, key, value))
 				{
-				}
-				else
-				{
+					if (key == "status" && !_status_set)
+					{
+						std::string status_value, status_code;
+						parse_cgi_status_value(value, status_value, status_code);
+						_response.setHTTPStatus(status_value, status_code);
+						_status_set = true;
+					}
+					else
+						_response.headAppend(std::string(line_buf.begin(), line_buf.end()));
 				}
 			}
-			_response.headAppend(std::string(line_buf.begin(), line_buf.end()));
-			// cgi_body.append(reinterpret_cast<const char *>(_response_body_buf), _response_body_read_len);
 		}
 	}
 	if (_request_body_read_done && _body_write_done && _response_headers_read_done)
 	{
-		_response.setHTTPStatus("200", "Ok");
+		if (!_status_set)
+			_response.setHTTPStatus("200", "Ok");
 		return Ready;
 	}
 
@@ -103,9 +109,7 @@ bool CGIResponseGenerator::parse_cgi_header(const std::vector<uint8_t> &raw_line
 	size_t key_end	 = colon_pos;
 
 	while (key_end > key_start && (line[key_end - 1] == ' ' || line[key_end - 1] == '\t'))
-	{
 		--key_end;
-	}
 
 	if (key_start == key_end)
 		return false;
