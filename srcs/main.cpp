@@ -47,7 +47,23 @@ public:
 		}
 		for (size_t i = 0; i < clients.size(); i++)
 		{
-			if (clients[i].poll() == Future::Ready)
+			Poll poll;
+			try
+			{
+				poll = clients[i].poll();
+			}
+			catch (async::OsError &e)
+			{
+				int s = getnameinfo((struct sockaddr *)&clients[i].addr, clients[i].addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+				if (s != 0)
+				{
+					std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+					exit(EXIT_FAILURE);
+				}
+				std::cout << host << ":" << port << " left\n";
+				std::cerr << "Error " << host << ":" << port << ": " << e.what() << " (os error " << e.errrno() << ")\n";
+			}
+			if (poll == Future::Ready)
 			{
 				int s = getnameinfo((struct sockaddr *)&clients[i].addr, clients[i].addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
 				if (s != 0)
