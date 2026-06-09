@@ -21,11 +21,9 @@ public:
 	HTTPStream(HTTPStream const &HTTPStream);
 	~HTTPStream();
 
-	HTTPStream	   &operator=(HTTPStream const &other);
-	t_request_state readRequest(char *buffer, size_t len);
-	bool			sendResponse(void);
-	Future::Poll	poll() throw(async::OsError);
-	Future::Poll	keepAlive(void);
+	HTTPStream	&operator=(HTTPStream const &other);
+	Future::Poll poll() throw(async::OsError);
+	Future::Poll keepAlive(void);
 
 	Response				response;
 	Request					request;
@@ -38,7 +36,7 @@ private:
 
 	container::RingBuf<uint8_t, 4096> buf;
 	async::Io						  io;
-	async::BufIo<>					  buf_io;
+	async::BufIo<4096>				  buf_io;
 	stream_status					  _status;
 	async::Reactor					 *_reactor;
 };

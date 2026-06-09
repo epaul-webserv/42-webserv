@@ -6,6 +6,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <vector>
+#include "FdStream.hpp"
 #include "Request.hpp"
 
 typedef enum
@@ -41,8 +42,7 @@ public:
 	~Response(void);
 
 	void			   clear();
-	bool			   sendResponse(int fd);
-	void			   sendResponse(container::Slice<uint8_t> &slice);
+	bool			   sendResponse(async::Io &client_io);
 	bool			   ready(void);
 	void			   headAppend(std::string const &resp);
 	void			   bodyAppend(std::string const &resp);
@@ -55,24 +55,23 @@ public:
 	void			   setHTTPVersion(std::string const &http_version);
 	void			   setHTTPStatus(std::string const &status, std::string const &message);
 	void			   setHTTPStatus(std::string const &completeStatus);
-	t_file_status	   openFile(std::string const &path);
-	void			   setHttpVersion(std::string const &http_version);
-	void			   setStatus(t_fetch_status status);
-	void			   setError(std::string const &status, std::string const &message);
-	void			   setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
-	void			   pollGenerator();
-	bool			   read(size_t const &size);
+	// t_file_status	   openFile(std::string const &path);
+	void setHttpVersion(std::string const &http_version);
+	void setStatus(t_fetch_status status);
+	void setError(std::string const &status, std::string const &message);
+	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	void setBodyFd(int const &fd);
+	void pollGenerator();
+	bool read(size_t const &size);
 
 private:
 	void addBase(void);
-	void sendHead(int fd);
-	bool sendBody(int fd);
-	void sendHead(container::Slice<uint8_t> &slice);
-	void sendBody(container::Slice<uint8_t> &slice);
+	bool sendHead(async::Io &client_io);
+	bool sendBody(async::Io &client_io);
 
 	t_send_status		 _send_status;
 	t_fetch_status		 _fetch_status;
-	int					 _file_fd;
+	FdStream			 _file_stream;
 	std::string			 _head;
 	std::string			 _body;
 	size_t				 _header_read_index;
@@ -85,8 +84,8 @@ private:
 	std::string			 _http_status;
 	std::vector<uint8_t> _send_buf;
 	struct stat			 _sb;
-	void				*_map;
 	async::Future		*_response_generator;
+	async::BufIo<>		*_io_body;
 };
 
 #endif

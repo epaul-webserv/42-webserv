@@ -2,13 +2,51 @@
 
 FdStream::FdStream(int fd) : _end(false), _fd(fd), _read_index(0), _write_index(0) {}
 
-FdStream::~FdStream(void) {}
+FdStream::~FdStream(void)
+{
+	if (this->_fd > 2)
+		close(this->_fd);
+}
+FdStream &FdStream::operator=(FdStream const &FdStream)
+{
+	this->_end = FdStream._end;
+	this->_fd  = FdStream._fd;
+	std::copy(FdStream._buffer, FdStream._buffer + FdStream._write_index, this->_buffer);
+	this->_read_index  = FdStream._read_index;
+	this->_write_index = FdStream._write_index;
+	return *this;
+}
 
 bool FdStream::end(void) const
 {
 	if (this->_end && this->_write_index - this->_read_index == 0)
 		return (true);
 	return (false);
+}
+
+void FdStream::consume(size_t n) { this->_read_index += n; }
+
+std::vector<uint8_t> FdStream::peek_str(size_t n)
+{
+	size_t sent_bytes = 0;
+
+	if (this->_read_index - this->_write_index >= n)
+	{
+		std::vector<uint8_t> ret(this->_buffer + this->_read_index, this->_buffer + this->_read_index + n);
+		return (ret);
+	}
+	std::vector<uint8_t> ret;
+	while (ret.size() < n)
+	{
+		if (this->_end && this->_read_index + sent_bytes == this->_write_index)
+			break;
+		if (this->_write_index == 0 || this->_read_index + sent_bytes == FDSTREAM_BUFF_SIZE)
+			fillBuffer();
+		size_t to_write = std::min(this->_write_index - this->_read_index - sent_bytes, n);
+		ret.insert(ret.end(), this->_buffer + this->_read_index, this->_buffer + this->_read_index + to_write);
+		sent_bytes += to_write;
+	}
+	return (ret);
 }
 
 std::string FdStream::get_str(size_t n)
@@ -61,6 +99,8 @@ std::string FdStream::get_str_until(char c)
 	return (ret);
 }
 
+bool FdStream::is_open(void) const { return (this->_fd != -1); }
+
 void FdStream::clear(int fd)
 {
 	this->_end		   = false;
@@ -71,13 +111,13 @@ void FdStream::clear(int fd)
 
 void FdStream::fillBuffer(void)
 {
-	int read_bytes = read(this->_fd, this->_buffer, FDSTREAM_BUFF_SIZE - this->_write_index);
+	long read_bytes = read(this->_fd, this->_buffer, FDSTREAM_BUFF_SIZE - this->_write_index);
 
 	if (read_bytes == -1 && errno & EBADF)
 		throw(InvalidFdException());
 	if (read_bytes == -1)
 		throw(InvalidReadException());
-	if (read_bytes == 0)
+	if (read_bytes == 0 || static_cast<unsigned int>(read_bytes) < FDSTREAM_BUFF_SIZE - this->_write_index)
 		this->_end = true;
 	this->_buffer[read_bytes] = '\0';
 	this->_write_index		  = read_bytes;

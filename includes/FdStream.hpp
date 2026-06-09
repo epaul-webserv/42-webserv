@@ -7,6 +7,8 @@
 #include <cstring>
 #include <string>
 #include <unistd.h>
+#include <vector>
+#include "stdint.h"
 
 #define FDSTREAM_BUFF_SIZE 8192
 
@@ -16,19 +18,18 @@ public:
 	FdStream(int fd);
 	~FdStream(void);
 
-	bool		end(void) const;
-	std::string get_str(size_t n);
-	std::string get_str_until(char c);
-	void		clear(int fd);
+
+	FdStream			&operator=(FdStream const &FdStream);
+	bool				 end(void) const;
+	std::string			 get_str(size_t n);
+	void				 consume(size_t n);
+	std::vector<uint8_t> peek_str(size_t n);
+	std::string			 get_str_until(char c);
+	bool				 is_open(void) const;
+	void				 clear(int fd);
 
 private:
 	FdStream(FdStream const &FdStream) { (void)FdStream; };
-
-	FdStream const &operator=(FdStream const &FdStream)
-	{
-		(void)FdStream;
-		return *this;
-	};
 	void fillBuffer(void);
 
 	bool   _end;

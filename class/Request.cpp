@@ -59,8 +59,10 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
 
 	if (line.empty())
 		return (0);
-	while (line[len] && std::isspace(line[len]))
+	while (!line.empty() && line[len] && std::isspace(line[len]))
 		line.erase(line.begin()), ++skipped;
+	if (line.empty())
+		return (skipped);
 	while (line[len] && !std::isspace(line[len]))
 		++len;
 	dest = std::string(&line[0], &line[len]);
@@ -74,10 +76,12 @@ static std::string get_next_word(std::vector<uint8_t> &line)
 	size_t		skipped = 0;
 	std::string dest;
 
+	if (line.empty() || line.size() == 0)
+		return (dest);
+	while (!line.empty() && line[len] && std::isspace(line[len]))
+		line.erase(line.begin()), ++skipped;
 	if (line.empty())
 		return (dest);
-	while (line[len] && std::isspace(line[len]))
-		line.erase(line.begin()), ++skipped;
 	while (line[len] && !std::isspace(line[len]))
 		++len;
 	dest = std::string(&line[0], &line[len]);
@@ -138,7 +142,7 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 		if (line.size() == 0)
 			return (_close);
 		ite = line.end();
-		if (line.size() == 2 && line[0] == '\r')
+		if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
 			return (_read);
 		it					   = std::find(line.begin(), line.end(), ':');
 		std::string header_key = get_next_word(line);

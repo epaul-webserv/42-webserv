@@ -6,6 +6,7 @@ BackendHolder::BackendHolder(t_backend_type backend_type, std::vector<std::strin
 
 	test.mime_type.insert(std::pair<std::string, std::string>("svg", "image/svg+xml"));
 	test.mime_type.insert(std::pair<std::string, std::string>("png", "image/png"));
+	test.mime_type.insert(std::pair<std::string, std::string>("html", "text/html"));
 	if (backend_type == _cgi)
 		this->addr = (new CGIBackend(cgi_args));
 	else
@@ -18,6 +19,7 @@ BackendHolder::BackendHolder(BackendHolder const &BackendHolder) : backend_type(
 
 	test.mime_type.insert(std::pair<std::string, std::string>("svg", "image/svg+xml"));
 	test.mime_type.insert(std::pair<std::string, std::string>("png", "image/png"));
+	test.mime_type.insert(std::pair<std::string, std::string>("html", "text/html"));
 	if (backend_type == _cgi)
 		this->addr = (new CGIBackend(cgi_args));
 	else
