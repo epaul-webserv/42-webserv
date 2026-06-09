@@ -152,3 +152,22 @@ t_file_status StaticBackend::openFile(std::string const &path, Response &respons
 	response.setBodyFd(fd);
 	return (_open);
 }
+
+t_file_status StaticBackend::openFile(std::string const &path, Response &response)
+{
+	int fd;
+	if (stat((path).c_str(), &this->_sb) == -1)
+		return (_not_found);
+	fd = open(path.c_str(), O_RDONLY);
+	if (fd < 0)
+	{
+		if (errno == EACCES)
+			return (_no_permission);
+		return (_no_permission);
+	}
+	std::ostringstream oss;
+	oss << this->_sb.st_size;
+	response.addHeader("Content-Length", oss.str());
+	response.setBodyFd(fd);
+	return (_open);
+}
