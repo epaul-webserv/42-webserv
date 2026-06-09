@@ -20,7 +20,7 @@ Response::Response(Response const &Response) :
 	_send_status(Response._send_status), _fetch_status(Response._fetch_status), _file_stream(-1), _head(Response._head), _body(Response._body),
 	_header_read_index(Response._header_read_index), _header_write_index(Response._header_write_index), _body_read_index(Response._body_read_index),
 	_body_write_index(Response._body_write_index), _content_length(Response._content_length), _sent_bytes(Response._sent_bytes), _http_version(Response._http_version),
-	_http_status(Response._http_status), _sb(Response._sb), _response_generator(NULL)
+	_http_status(Response._http_status), _sb(Response._sb), _response_generator(NULL), _io_body(NULL) // FIXME: copy of response generator and io body
 {
 	// if (Response._io_body)
 	// 	this->_io_body = new async::BufIo<>(*Response._io_body);

@@ -1,5 +1,5 @@
 CXX = c++
-CXXFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
+CXXFLAGS += -g3 -Ofast -Wall -Wextra -std=c++98
 
 SRCS_DIR = srcs
 SRCS = main.cpp \
