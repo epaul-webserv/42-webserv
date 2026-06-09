@@ -191,7 +191,10 @@ bool Response::sendResponse(async::Io &client_io)
 		this->_send_buf = std::vector<uint8_t>(this->_head.c_str(), this->_head.c_str() + this->_head.size());
 		this->_send_buf.insert(this->_send_buf.end(), this->_body.begin(), this->_body.end());
 		// this->_send_buf.push_back('\0');
-		this->_send_status = _sending_head;
+		if (this->_http_version.empty())
+			this->_send_status = _sending_body;
+		else
+			this->_send_status = _sending_head;
 	}
 	if (this->_send_status == _sending_head)
 		return (this->sendHead(client_io));
