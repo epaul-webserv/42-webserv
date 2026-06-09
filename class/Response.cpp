@@ -295,3 +295,10 @@ bool Response::read(size_t const &size)
 	}
 	return (false);
 }
+
+void Response::setError(std::string const &status, std::string const &message)
+{
+	this->setHTTPStatus(status, message);
+	this->bodyAppend(get_html_error(status, message));
+	this->addHeader("Content-Type", "text/html");
+}
