@@ -1,14 +1,10 @@
 [[mime_types]]
-type = "application/andrew-inset"
-extension = "N/A"
-
-[[mime_types]]
 type = "application/applixware"
 extension = ".aw"
 
 [[mime_types]]
 type = "application/atom+xml"
-extension = ".atom, .xml"
+extension = ".atom"
 
 [[mime_types]]
 type = "application/atomcat+xml"
@@ -292,7 +288,7 @@ extension = ".rsd"
 
 [[mime_types]]
 type = "application/rss+xml"
-extension = ".rss, .xml"
+extension = ".rss"
 
 [[mime_types]]
 type = "application/rtf"
