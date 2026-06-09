@@ -24,6 +24,8 @@ bool FdStream::end(void) const
 	return (false);
 }
 
+#include <iostream>
+
 void FdStream::consume(size_t n) { this->_read_index += n; }
 
 std::vector<uint8_t> FdStream::peek_str(size_t n)
@@ -32,7 +34,7 @@ std::vector<uint8_t> FdStream::peek_str(size_t n)
 
 	if (this->_read_index - this->_write_index >= n)
 	{
-		std::vector<uint8_t> ret(this->_buffer + this->_read_index, this->_buffer + this->_read_index + n);
+		std::vector<uint8_t> ret(this->_buffer + this->_read_index, this->_buffer + this->_read_index + std::min(this->_write_index - this->_read_index, n));
 		return (ret);
 	}
 	std::vector<uint8_t> ret;
@@ -111,6 +113,8 @@ void FdStream::clear(int fd)
 
 void FdStream::fillBuffer(void)
 {
+	if (this->_write_index == FDSTREAM_BUFF_SIZE)
+		this->_write_index = 0;
 	long read_bytes = read(this->_fd, this->_buffer, FDSTREAM_BUFF_SIZE - this->_write_index);
 
 	if (read_bytes == -1 && errno & EBADF)
