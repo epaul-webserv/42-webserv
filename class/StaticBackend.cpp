@@ -82,7 +82,7 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 	if (request.getURI().empty())
 	{
 		response.setHTTPVersion("HTTP/1.1");
-		this->setError("400", "Bad Request", response);
+		response.setError("400", "Bad Request");
 	}
 	else if (request.getHTTPVersion().empty())
 		this->response_0_9(request, response, reactor);
@@ -95,12 +95,12 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 		if (request.getHTTPVersion().find("HTTP/") == std::string::npos)
 		{
 			response.setHTTPVersion("HTTP/1.1");
-			this->setError("400", "Bad Request", response);
+			response.setError("400", "Bad Request");
 		}
 		else
 		{
 			response.setHTTPVersion("HTTP/1.1");
-			this->setError("400", "Bad Request", response);
+			response.setError("400", "Bad Request");
 		}
 	}
 	std::cerr << request.getMethod() << " " << request.getURI() << " " << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
@@ -152,18 +152,18 @@ void StaticBackend::response_1_0(Request const &request, Response &response, asy
 			response.addHeader("Content-Type", "text/html");
 			return;
 		case _no_access:
-			return this->setError("403", "Forbidden", response);
+			return response.setError("403", "Forbidden");
 		case _none:
-			return this->setError("405", "Not Found", response);
+			return response.setError("405", "Not Found");
 		case _err:
-			return this->setError("500", "Internal Server Error", response);
+			return response.setError("500", "Internal Server Error");
 		case _file:
 			break;
 		}
 		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
-			return this->setError("403", "Forbidden", response);
+			return response.setError("403", "Forbidden");
 		default:
 			response.setHTTPStatus("200", "Continue");
 			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
@@ -197,7 +197,7 @@ void StaticBackend::response_1_0(Request const &request, Response &response, asy
 	}
 	else
 	{
-		this->setError("405", "Method not allowed", response);
+		response.setError("405", "Method not allowed");
 		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
 }
@@ -218,18 +218,18 @@ void StaticBackend::response_1_1(Request const &request, Response &response, asy
 			response.addHeader("Content-Type", "text/html");
 			return;
 		case _no_access:
-			return this->setError("403", "Forbidden", response);
+			return response.setError("403", "Forbidden");
 		case _none:
-			return this->setError("404", "Not Found", response);
+			return response.setError("404", "Not Found");
 		case _err:
-			return this->setError("500", "Internal Server Error", response);
+			return response.setError("500", "Internal Server Error");
 		case _file:
 			break;
 		}
 		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
-			return this->setError("403", "Forbidden", response);
+			return response.setError("403", "Forbidden");
 		default:
 			response.setHTTPStatus("200", "Ok");
 			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);

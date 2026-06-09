@@ -202,3 +202,10 @@ bool Response::sendResponse(async::Io &client_io)
 		return (this->sendBody(client_io));
 	return (true);
 }
+
+void Response::setError(std::string const &status, std::string const &message)
+{
+	this->setHTTPStatus(status, message);
+	this->bodyAppend(get_html_error(status, message));
+	this->addHeader("Content-Type", "text/html");
+}

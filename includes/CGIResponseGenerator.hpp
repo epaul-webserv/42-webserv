@@ -13,17 +13,21 @@ public:
 private:
 	CGIResponseGenerator(const CGIResponseGenerator &other);
 	CGIResponseGenerator &operator=(const CGIResponseGenerator &other);
+	bool				  parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value);
+	void				  parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message);
 	Request const		 &_request;
 	Response			 &_response;
 	async::BufIo<>		 &_bodyIo;
 	async::Io			  _cgi_in;
-	async::Io			  _cgi_out;
+	async::BufIo<>		 *_cgi_out;
 	size_t				  _body_len;
+	std::string			  headers;
 
 
 	bool _request_body_read_done;
 	bool _body_write_done;
-	bool _response_body_read_done;
+	bool _response_headers_read_done;
+	bool _status_set;
 
 	uint8_t _request_body_buf[4096];
 	size_t	_request_body_read_len;

@@ -47,7 +47,15 @@ CGIBackend::~CGIBackend(void) {}
 void CGIBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo)
 {
 	if (response.getStatus() == _init)
-		initResponse(request, response, reactor, bodyIo);
+	{
+		if (request.getHTTPVersion() == "" || request.getHTTPVersion() == "HTTP/1.0" || request.getHTTPVersion() == "HTTP/1.1")
+			initResponse(request, response, reactor, bodyIo);
+		else
+		{
+			response.setError("400", "Bad Request");
+			response.setStatus(_ready);
+		}
+	}
 	if (response.getStatus() == _pending)
 		response.pollGenerator();
 }

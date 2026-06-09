@@ -58,6 +58,7 @@ public:
 	// t_file_status	   openFile(std::string const &path);
 	void setHttpVersion(std::string const &http_version);
 	void setStatus(t_fetch_status status);
+	void			   setError(std::string const &status, std::string const &message);
 	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
 	void setBodyFd(int const &fd);
 	void pollGenerator();
