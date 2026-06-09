@@ -105,7 +105,9 @@ bool FdStream::is_open(void) const { return (this->_fd != -1); }
 
 void FdStream::clear(int fd)
 {
-	this->_end		   = false;
+	this->_end = false;
+	if (this->_fd > 2)
+		close(this->_fd);
 	this->_fd		   = fd;
 	this->_read_index  = 0;
 	this->_write_index = 0;

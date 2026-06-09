@@ -171,6 +171,8 @@ bool Response::sendBody(async::Io &client_io)
 		std::vector<uint8_t> buf = this->_file_stream.peek_str(4096);
 		size_t				 s;
 
+		if (this->_file_stream.end())
+			return (true);
 		while (client_io.poll_write(container::Slice<uint8_t>(&buf[0], buf.size()), s) == async::Future::Ready)
 		{
 			this->_file_stream.consume(s);
@@ -188,13 +190,10 @@ bool Response::sendResponse(async::Io &client_io)
 	if (this->_send_status == _first_step)
 	{
 		this->addBase();
-		this->_send_buf = std::vector<uint8_t>(this->_head.c_str(), this->_head.c_str() + this->_head.size());
+		if (!this->_http_version.empty())
+			this->_send_buf = std::vector<uint8_t>(this->_head.c_str(), this->_head.c_str() + this->_head.size());
 		this->_send_buf.insert(this->_send_buf.end(), this->_body.begin(), this->_body.end());
-		// this->_send_buf.push_back('\0');
-		if (this->_http_version.empty())
-			this->_send_status = _sending_body;
-		else
-			this->_send_status = _sending_head;
+		this->_send_status = _sending_head;
 	}
 	if (this->_send_status == _sending_head)
 		return (this->sendHead(client_io));

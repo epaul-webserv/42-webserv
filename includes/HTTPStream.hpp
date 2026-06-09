@@ -2,6 +2,7 @@
 #define WEBSERV_HTTPSTREAM_HPP
 
 #include <async>
+#include <iostream>
 #include <sys/socket.h>
 #include "Request.hpp"
 #include "Response.hpp"

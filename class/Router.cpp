@@ -57,6 +57,27 @@ void Router::resolve(Request const &request, Response &response, async::Reactor 
 	std::list<backend_rule>::const_iterator ite		= this->_rules.end();
 	ABackend							   *backend = NULL;
 
+	if (request.getHTTPVersion().empty())
+	{
+	}
+	else if (request.getHTTPVersion() == "HTTP/1.0" || request.getHTTPVersion() == "HTTP/1.1")
+	{
+		if (request.getHTTPVersion() == "HTTP/1.1" && request.peekHeader("connection") != "close")
+			response.addHeader("Connection", "keep-alive");
+		response.setHTTPVersion(request.getHTTPVersion());
+	}
+	else
+	{
+		response.setHTTPVersion("HTTP/1.1");
+		response.setError("505", "HTTP Version Not Supported");
+		response.setStatus(_ready);
+		return;
+	}
+	if (request.getURI().empty())
+	{
+		response.setHTTPVersion("HTTP/1.1");
+		response.setError("400", "Bad Request");
+	}
 	for (it = this->_rules.begin(); it != ite; ++it)
 	{
 		if (it->domain == domain && it->file_extension == file_extension)

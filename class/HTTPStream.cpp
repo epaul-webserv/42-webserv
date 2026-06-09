@@ -50,14 +50,21 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	{
 		this->router->resolve(this->request, this->response, *this->_reactor, this->buf_io);
 		if (this->response.ready())
+		{
+			std::cerr << request.getMethod() << " " << request.getURI() << " " << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
 			this->_status = _response_sending;
+		}
 	}
 	if (this->_status == _response_sending)
 	{
 		container::Slice<uint8_t> slice(NULL, 0);
 
 		if (this->response.sendResponse(io))
+		{
+			if (this->request.getHTTPVersion() == "HTTP/1.1" && this->request.peekHeader("connection") != "close")
+				return (this->keepAlive(), Future::Pending);
 			return (Future::Ready);
+		}
 	}
 	return (Future::Pending);
 }
