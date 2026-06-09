@@ -35,7 +35,6 @@ HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
 	struct iovec parts[2];
-	size_t		 s;
 
 	buf.unfilled(parts);
 	container::Slice<uint8_t> buf_slice((uint8_t *)parts[0].iov_base, parts[0].iov_len);
@@ -57,16 +56,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	{
 		container::Slice<uint8_t> slice(NULL, 0);
 
-		this->response.sendResponse(slice);
-		while (io.poll_write(slice, s) == Future::Ready)
-		{
-			if (this->response.read(s))
-			{
-				if (this->request.peekHeader("connection") != "close")
-					return (this->keepAlive(), Future::Pending);
-				return (Future::Ready);
-			}
-		}
+		if (this->response.sendResponse(io))
+			return (Future::Ready);
 	}
 	return (Future::Pending);
 }

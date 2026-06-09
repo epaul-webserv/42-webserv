@@ -85,11 +85,11 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 		this->setError("400", "Bad Request", response);
 	}
 	else if (request.getHTTPVersion().empty())
-		this->response_0_9(request, response);
+		this->response_0_9(request, response, reactor);
 	else if (request.getHTTPVersion() == "HTTP/1.0")
-		this->response_1_0(request, response);
+		this->response_1_0(request, response, reactor);
 	else if (request.getHTTPVersion() == "HTTP/1.1")
-		this->response_1_1(request, response);
+		this->response_1_1(request, response, reactor);
 	else
 	{
 		if (request.getHTTPVersion().find("HTTP/") == std::string::npos)
@@ -107,8 +107,9 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 	response.setStatus(_ready);
 }
 
-void StaticBackend::response_0_9(Request const &request, Response &response)
+void StaticBackend::response_0_9(Request const &request, Response &response, async::Reactor &reactor)
 {
+	(void)reactor;
 	response.setHTTPVersion("HTTP/0.9");
 	if (request.getMethod() == "GET")
 	{
@@ -125,7 +126,7 @@ void StaticBackend::response_0_9(Request const &request, Response &response)
 		case _file:
 			break;
 		}
-		switch (response.openFile(DEFAULT_ROOT + request.getURI()))
+		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
 			return response.bodyAppend(get_html_error("405", "Forbidden"));
@@ -137,8 +138,9 @@ void StaticBackend::response_0_9(Request const &request, Response &response)
 		response.headAppend(get_html_error("405", "Method not allowed"));
 }
 
-void StaticBackend::response_1_0(Request const &request, Response &response)
+void StaticBackend::response_1_0(Request const &request, Response &response, async::Reactor &reactor)
 {
+	(void)reactor;
 	response.setHTTPVersion("HTTP/1.0");
 	if (request.getMethod() == "GET")
 	{
@@ -158,13 +160,13 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 		case _file:
 			break;
 		}
-		switch (response.openFile(DEFAULT_ROOT + request.getURI()))
+		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
 			return this->setError("403", "Forbidden", response);
 		default:
 			response.setHTTPStatus("200", "Continue");
-			this->setContentType(get_file_ext(request.getURI()), response);
+			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
 			return;
 		}
 	}
@@ -190,7 +192,7 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 			return;
 		case _file:
 			response.setHTTPStatus("200", "Ok");
-			this->setContentType(get_file_ext(request.getURI()), response);
+			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
 		}
 	}
 	else
@@ -200,8 +202,9 @@ void StaticBackend::response_1_0(Request const &request, Response &response)
 	}
 }
 
-void StaticBackend::response_1_1(Request const &request, Response &response)
+void StaticBackend::response_1_1(Request const &request, Response &response, async::Reactor &reactor)
 {
+	(void)reactor;
 	response.setHTTPVersion("HTTP/1.1");
 	if (request.peekHeader("connection") != "close")
 		response.addHeader("Connection", "keep-alive");
@@ -223,13 +226,13 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 		case _file:
 			break;
 		}
-		switch (response.openFile(DEFAULT_ROOT + request.getURI()))
+		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
 			return this->setError("403", "Forbidden", response);
 		default:
 			response.setHTTPStatus("200", "Ok");
-			this->setContentType(get_file_ext(request.getURI()), response);
+			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
 			return;
 		}
 	}
@@ -255,7 +258,7 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 			return;
 		case _file:
 			response.setHTTPStatus("200", "Ok");
-			this->setContentType(get_file_ext(request.getURI()), response);
+			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
 		}
 	}
 	else
@@ -263,4 +266,23 @@ void StaticBackend::response_1_1(Request const &request, Response &response)
 		response.setHTTPStatus("405", "Method Not Allowed");
 		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
 	}
+}
+
+t_file_status StaticBackend::openFile(std::string const &path, Response &response)
+{
+	int fd;
+	if (stat((path).c_str(), &this->_sb) == -1)
+		return (_not_found);
+	fd = open(path.c_str(), O_RDONLY);
+	if (fd < 0)
+	{
+		if (errno == EACCES)
+			return (_no_permission);
+		return (_no_permission);
+	}
+	std::ostringstream oss;
+	oss << this->_sb.st_size;
+	response.addHeader("Content-Length", oss.str());
+	response.setBodyFd(fd);
+	return (_open);
 }
