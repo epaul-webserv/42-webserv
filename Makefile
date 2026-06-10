@@ -23,7 +23,8 @@ CLASS = ABackend.cpp \
 		Router.cpp \
 		StaticBackend.cpp \
 		CGIBackend.cpp \
-		CGIResponseGenerator.cpp
+		CGIResponseGenerator.cpp \
+		MimeType.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))

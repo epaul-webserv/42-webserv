@@ -4,12 +4,11 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "MimeType.hpp"
 #include "url_utils.hpp"
 #include "webserv.h"
 
 StaticBackend::StaticBackend(void) : _map(NULL) { bzero(&this->_sb, sizeof(this->_sb)); }
-
-StaticBackend::StaticBackend(s_staticbackend_conf const &conf) : _map(NULL), _mime_type(conf.mime_type) { bzero(&this->_sb, sizeof(this->_sb)); }
 
 StaticBackend::~StaticBackend(void)
 {
@@ -42,9 +41,9 @@ static t_file_type fileType(std::string const &path, std::string const &root)
 
 void StaticBackend::setContentType(std::string const &file_ext, Response &response)
 {
-	std::string mime_type = this->_mime_type[file_ext];
+	std::string mime_type = MimeType::mime_type[file_ext];
 
-	if (this->_mime_type.empty())
+	if (MimeType::mime_type.empty())
 		mime_type = "application/octet-stream";
 	response.addHeader("Content-Type", mime_type);
 }
