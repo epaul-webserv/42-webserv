@@ -6,18 +6,10 @@
 #include <vector>
 #include "ABackend.hpp"
 #include "BackendHolder.hpp"
+#include "IBackendRule.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 #include "url_utils.hpp"
-
-struct backend_rule
-{
-	backend_rule(std::string domain, std::string file_extension, ABackend *addr) : domain(domain), file_extension(file_extension), addr(addr) {}
-
-	std::string domain;
-	std::string file_extension;
-	ABackend   *addr;
-};
 
 class Router
 {
@@ -25,16 +17,17 @@ public:
 	Router();
 	~Router();
 
-	Router &operator=(Router const &Router);
-	void	addBackend(t_backend_type const &type, std::vector<std::string> const &args);
-	void	addRule(t_backend_type const &type, std::vector<std::string> const &args, std::string const &domain, std::string file_extension);
-	void	resolve(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &client_io) const;
+	Router	 &operator=(Router const &Router);
+	void	  addBackend(t_backend_type const &type, std::vector<std::string> const &args);
+	void	  addRule(t_backend_type const &type, std::vector<std::string> const &args, IBackendRule &rule);
+	ABackend *resolve(Request const &request, Response &response) const;
 
 private:
 	ABackend *getBackend(t_backend_type const &type, std::vector<std::string> const &args) const;
 
-	std::list<BackendHolder> _backends;
-	std::list<backend_rule>	 _rules;
+	std::list<BackendHolder>														  _backends;
+	std::list<IBackendRule>															  _rules;
+	std::map<std::string, std::map<std::string, std::map<std::string, IBackendRule>>> _eigth_wonder_of_the_world;
 };
 
 #endif
