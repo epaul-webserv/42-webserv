@@ -48,13 +48,7 @@ void CGIBackend::generateResponse(Request const &request, Response &response, as
 {
 	if (response.getStatus() == _init)
 	{
-		if (request.getHTTPVersion() == "" || request.getHTTPVersion() == "HTTP/1.0" || request.getHTTPVersion() == "HTTP/1.1")
-			initResponse(request, response, reactor, bodyIo);
-		else
-		{
-			response.setError("400", "Bad Request");
-			response.setStatus(_ready);
-		}
+		initResponse(request, response, reactor, bodyIo);
 	}
 	if (response.getStatus() == _pending)
 		response.pollGenerator();
@@ -109,45 +103,33 @@ void CGIBackend::initResponse(Request const &request, Response &response, async:
 		env_char.push_back(const_cast<char *>(env_vector[i].c_str()));
 	env_char.push_back(NULL);
 
-	int pipe_in[2];
-	int pipe_out[2];
+
+	int sv[2]; // sv[0] is for parent, sv[1] is for child
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0)
+	{
+		std::cerr << "CGI Error: socketpair creation failed." << std::endl;
+		return;
+	}
 
 	int cgi_pid = 0;
-
-	if (pipe(pipe_in) < 0)
-	{
-		std::cerr << "CGI Error: pipe creation failed." << std::endl;
-		return;
-	}
-	if (pipe(pipe_out) < 0)
-	{
-		close(pipe_in[0]);
-		close(pipe_in[1]);
-		std::cerr << "CGI Error: pipe creation failed." << std::endl;
-		return;
-	}
 
 
 	cgi_pid = fork();
 	if (cgi_pid < 0)
 	{
 		std::cerr << "CGI Error: fork failed." << std::endl;
-		close(pipe_in[0]);
-		close(pipe_in[1]);
-		close(pipe_out[0]);
-		close(pipe_out[1]);
+		close(sv[0]);
+		close(sv[1]);
 		return;
 	}
 
 	if (cgi_pid == 0)
 	{
-		dup2(pipe_in[0], STDIN_FILENO);
-		dup2(pipe_out[1], STDOUT_FILENO);
+		dup2(sv[1], STDIN_FILENO);
+		dup2(sv[1], STDOUT_FILENO);
 
-		close(pipe_in[0]);
-		close(pipe_in[1]);
-		close(pipe_out[0]);
-		close(pipe_out[1]);
+		close(sv[0]);
+		close(sv[1]);
 
 
 		std::vector<char *> argv;
@@ -161,9 +143,8 @@ void CGIBackend::initResponse(Request const &request, Response &response, async:
 		std::cerr << "CGI Error: execve failed for " << argv[0] << ", " << argv[1] << ", " << argv[2] << std::endl;
 		std::exit(1);
 	}
-	close(pipe_in[0]);
-	close(pipe_out[1]);
+	close(sv[1]);
 
-	response.setGenerator(request, response, reactor, bodyIo, pipe_in[1], pipe_out[0]);
+	response.setGenerator(request, response, reactor, bodyIo, sv[0]);
 	response.setStatus(_pending);
 }

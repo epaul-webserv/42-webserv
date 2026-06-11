@@ -1,8 +1,7 @@
 #include "CGIResponseGenerator.hpp"
 
-CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd,
-										   int cgi_out_fd) :
-	_request(request), _response(response), _bodyIo(bodyIo), _cgi_in(reactor, cgi_in_fd), _cgi_out(NULL), _request_body_read_done(false), _body_write_done(false),
+CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_io_fd) :
+	_request(request), _response(response), _bodyIo(bodyIo), _cgi_io(NULL), _request_body_read_done(false), _body_write_done(false),
 	_response_headers_read_done(false), _status_set(false), _request_body_read_len(0), _request_body_read_index(0), _response_body_read_len(0),
 	_response_body_read_index(0)
 {
@@ -18,7 +17,7 @@ CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &res
 		char *ptr;
 		_body_len = std::strtoul(content_len.c_str(), &ptr, 10);
 	}
-	_cgi_out = new async::BufIo<>(reactor, cgi_out_fd);
+	_cgi_io = new async::BufIo<>(reactor, cgi_io_fd);
 }
 
 async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
@@ -39,7 +38,7 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 	{
 		container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
 		size_t					  written;
-		if (_cgi_in.poll_write(slice, written) == Ready)
+		if (_cgi_io->poll_write(slice, written) == Ready)
 		{
 			_request_body_read_index += written;
 			if (_request_body_read_done && _request_body_read_index == _request_body_read_len)
@@ -50,27 +49,24 @@ async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 	if (!_response_headers_read_done)
 	{
 		std::vector<uint8_t> line_buf;
-		if (_cgi_out->poll_read_line(line_buf) == Pending)
+		if (_cgi_io->poll_read_line(line_buf) == Pending)
 			return Pending;
 		if (line_buf.size() == 0 || (line_buf.size() == 2 && line_buf[0] == '\r'))
 			_response_headers_read_done = true;
 		else
 		{
-			if (_request.getHTTPVersion() != "")
+			std::string key, value;
+			if (parse_cgi_header(line_buf, key, value))
 			{
-				std::string key, value;
-				if (parse_cgi_header(line_buf, key, value))
+				if (key == "status" && !_status_set)
 				{
-					if (key == "status" && !_status_set)
-					{
-						std::string status_value, status_code;
-						parse_cgi_status_value(value, status_value, status_code);
-						_response.setHTTPStatus(status_value, status_code);
-						_status_set = true;
-					}
-					else
-						_response.headAppend(std::string(line_buf.begin(), line_buf.end()));
+					std::string status_value, status_code;
+					parse_cgi_status_value(value, status_value, status_code);
+					_response.setHTTPStatus(status_value, status_code);
+					_status_set = true;
 				}
+				else
+					_response.headAppend(std::string(line_buf.begin(), line_buf.end()));
 			}
 		}
 	}
