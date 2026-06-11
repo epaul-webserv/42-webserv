@@ -6,7 +6,6 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "CGIResponseGenerator.hpp"
 #include "webserv.h"
 
 Response::Response(void) :
@@ -28,20 +27,15 @@ Response::Response(Response const &Response) :
 
 Response::~Response(void)
 {
-	// if (this->_map)
-	// 	munmap(this->_map, this->_sb.st_size);
 	if (_io_body)
 		delete _io_body;
 }
 
 void Response::clear()
 {
-	// if (this->_map)
-	// 	munmap(this->_map, this->_sb.st_size);
 	this->_send_status = _first_step;
 	this->_file_stream.clear(-1);
 	this->_fetch_status = _init;
-	// this->_map			= NULL;
 	this->_head.clear();
 	this->_body.clear();
 	this->_header_read_index  = 0;
