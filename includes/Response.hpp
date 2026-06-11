@@ -59,7 +59,7 @@ public:
 	void setHttpVersion(std::string const &http_version);
 	void setStatus(t_fetch_status status);
 	void setError(std::string const &status, std::string const &message);
-	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_io_fd);
 	void setBodyFd(int const &fd);
 	void pollGenerator();
 	bool read(size_t const &size);

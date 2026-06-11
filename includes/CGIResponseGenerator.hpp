@@ -6,7 +6,7 @@
 class CGIResponseGenerator : public async::Future
 {
 public:
-	CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	CGIResponseGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_io_fd);
 	Future::Poll poll() throw(async::OsError);
 	~CGIResponseGenerator();
 
@@ -18,8 +18,7 @@ private:
 	Request const		 &_request;
 	Response			 &_response;
 	async::BufIo<>		 &_bodyIo;
-	async::Io			  _cgi_in;
-	async::BufIo<>		 *_cgi_out;
+	async::BufIo<>		 *_cgi_io;
 	size_t				  _body_len;
 	std::string			  headers;
 
