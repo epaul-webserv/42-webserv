@@ -85,26 +85,26 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 		switch (fileType(request.getURI(), DEFAULT_ROOT))
 		{
 		case _dir:
-			response.setHTTPStatus("200", "Ok");
 			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
 			response.addHeader("Content-Type", "text/html");
+			response.setHTTPStatus("200", "Ok", this->_status_pages);
 			return;
 		case _no_access:
-			return response.setError("403", "Forbidden");
+			return response.setHTTPStatus("403", "Forbidden", this->_status_pages);
 		case _none:
-			return response.setError("404", "Not Found");
+			return response.setHTTPStatus("404", "Not Found", this->_status_pages);
 		case _err:
-			return response.setError("500", "Internal Server Error");
+			return response.setHTTPStatus("500", "Internal Server Error", this->_status_pages);
 		case _file:
 			break;
 		}
 		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
 		{
 		case _no_permission:
-			return response.setError("403", "Forbidden");
+			return response.setHTTPStatus("403", "Forbidden", this->_status_pages);
 		default:
-			response.setHTTPStatus("200", "Ok");
 			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
+			response.setHTTPStatus("200", "Ok", this->_status_pages);
 			return;
 		}
 	}
@@ -113,31 +113,25 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 		switch (fileType(request.getURI(), DEFAULT_ROOT))
 		{
 		case _dir:
-			response.setHTTPStatus("200", "Ok");
 			response.addHeader("Content-Type", "text/html");
+			response.setHTTPStatus("200", "Ok", this->_status_pages);
 			return;
 		case _no_access:
-			response.setHTTPStatus("403", "Forbidden");
-			response.addHeader("Content-Type", "text/html");
+			response.setHTTPStatus("403", "Forbidden", this->_status_pages);
 			return;
 		case _none:
-			response.setHTTPStatus("404", "Not found");
-			response.addHeader("Content-Type", "text/html");
+			response.setHTTPStatus("404", "Not found", this->_status_pages);
 			return;
 		case _err:
-			response.setHTTPStatus("500", "Internal server error");
-			response.addHeader("Content-Type", "text/html");
+			response.setHTTPStatus("404", "Not found", this->_status_pages);
 			return;
 		case _file:
-			response.setHTTPStatus("200", "Ok");
 			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
+			response.setHTTPStatus("200", "Ok", this->_status_pages);
 		}
 	}
 	else
-	{
-		response.setHTTPStatus("405", "Method Not Allowed");
-		return response.bodyAppend(get_html_error("405", "Method Not Allowed"));
-	}
+		return response.setHTTPStatus("405", "Method Not Allowed", this->_status_pages);
 }
 
 t_file_status StaticBackend::openFile(std::string const &path, Response &response)

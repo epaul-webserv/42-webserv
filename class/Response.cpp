@@ -85,9 +85,24 @@ std::string const &Response::getHTTPVersion(void) { return (this->_http_version)
 
 void Response::setHTTPVersion(std::string const &http_version) { this->_http_version = http_version; }
 
-void Response::setHTTPStatus(std::string const &status, std::string const &message) { this->_http_status = status + " " + message; }
-
-void Response::setHTTPStatus(std::string const &completeStatus) { this->_http_status = completeStatus; }
+/// @brief Sets the response's status and sets the body if an associated file is set in the configuration or in case of error (3XX, 4XX, 5XX)
+void Response::setHTTPStatus(std::string const &status, std::string const &message, std::map<std::string, std::string> const &status_pages)
+{
+	this->_http_status = status + " " + message;
+	if (status.empty())
+		return;
+	if (status_pages.find(status) != status_pages.end())
+	{
+		this->addHeader("Content-Type", "text/html"); // FIXME: SET THE CORRECT MIME_TYPE
+		// FIXME: REPLACE BODY BY THE PAGE
+	}
+	else if (status[0] == '3' || status[0] == '4' || status[0] == '5')
+	{
+		this->bodyAppend(get_html_error(status, message));
+		this->addHeader("Content-Type", "text/html");
+		// FIXME: REPLACE BODY BY THE PAGE
+	}
+}
 
 void Response::bodyAppend(std::string const &content)
 {
@@ -200,11 +215,4 @@ bool Response::sendResponse(async::Io &client_io)
 	if (this->_send_status == _sending_body)
 		return (this->sendBody(client_io));
 	return (true);
-}
-
-void Response::setError(std::string const &status, std::string const &message)
-{
-	this->setHTTPStatus(status, message);
-	this->bodyAppend(get_html_error(status, message));
-	this->addHeader("Content-Type", "text/html");
 }

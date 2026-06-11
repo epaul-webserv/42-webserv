@@ -50,19 +50,14 @@ public:
 	std::string const &getHTTPVersion(void);
 	t_fetch_status	   getStatus(void);
 	std::string const &getHTTPStatus(void);
-	size_t			   getBodySize(void);
 	std::string		   getIp(void);
 	void			   setHTTPVersion(std::string const &http_version);
-	void			   setHTTPStatus(std::string const &status, std::string const &message);
-	void			   setHTTPStatus(std::string const &completeStatus);
-	// t_file_status	   openFile(std::string const &path);
-	void setHttpVersion(std::string const &http_version);
-	void setStatus(t_fetch_status status);
-	void setError(std::string const &status, std::string const &message);
-	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
-	void setBodyFd(int const &fd);
-	void pollGenerator();
-	bool read(size_t const &size);
+	void			   setHTTPStatus(std::string const &status, std::string const &message, std::map<std::string, std::string> const &status_pages);
+	void			   setHttpVersion(std::string const &http_version);
+	void			   setStatus(t_fetch_status status);
+	void			   setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	void			   setBodyFd(int const &fd);
+	void			   pollGenerator();
 
 private:
 	void addBase(void);
