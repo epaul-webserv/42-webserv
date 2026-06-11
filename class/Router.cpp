@@ -147,7 +147,7 @@ static std::vector<std::string>::const_iterator find(std::vector<std::string> co
 
 ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::BufIo<> &io) const
 {
-	std::map<std::string, std::pair<std::string, e_redirect_type>>::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
+	std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
 	if (find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
 	{
 		response.setHTTPStatus("405", "Method Not Allowed", ruleset.status_pages);
@@ -182,8 +182,8 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 	}
 	else
 	{
-		std::string																				   file_extension = get_file_ext(request.getURI());
-		std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>>::const_iterator it			  = ruleset.backend_rules.find(file_extension);
+		std::string																					 file_extension = get_file_ext(request.getURI());
+		std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >::const_iterator it				= ruleset.backend_rules.find(file_extension);
 		if (ruleset.backend_rules.find(file_extension) != ruleset.backend_rules.end())
 			return (getBackend(it->second.first, it->second.second, request, ruleset.root, response, reactor, io, ruleset.status_pages));
 		else

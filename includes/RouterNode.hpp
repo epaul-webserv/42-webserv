@@ -17,14 +17,14 @@ struct RouterNode
 	RouterNode(void) : list_directories(false), location("/") {}
 	RouterNode(std::string const &location) : list_directories(false), location(location) {}
 
-	bool														   list_directories;
-	std::string const											   location;
-	std::string													   root; // path to the root of the files to serve, inactive if empty
-	std::map<std::string, RouterNode>							   sub_nodes; // relative (to active node URI) URI of a sub path, leading to another rule subset
-	std::map<std::string, std::pair<std::string, e_redirect_type>> redirects; // URI to redirect, new location and type of redirection
-	std::map<std::string, std::string>							   status_pages; // status, relative (to applicable root) path of page to serve in case of this status;
-	std::string dir_file; // relative (to applicable root) path to the file to serve in case on a dir ressource, inactive if empty
-	std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>>
+	bool															list_directories;
+	std::string const												location;
+	std::string														root; // path to the root of the files to serve, inactive if empty
+	std::map<std::string, RouterNode>								sub_nodes; // relative (to active node URI) URI of a sub path, leading to another rule subset
+	std::map<std::string, std::pair<std::string, e_redirect_type> > redirects; // URI to redirect, new location and type of redirection
+	std::map<std::string, std::string> status_pages; // status, relative (to applicable root) path of page to serve in case of this status;
+	std::string						   dir_file; // relative (to applicable root) path to the file to serve in case on a dir ressource, inactive if empty
+	std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >
 		backend_rules; // List of accessible backends (file extension, backend type and backend arguments first one being the absolute path to the executable if
 	// applicable)
 	std::vector<std::string> accepted_methods;
