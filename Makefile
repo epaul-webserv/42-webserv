@@ -13,7 +13,6 @@ SRCS = main.cpp \
 
 CLASS_DIR = class
 CLASS = ABackend.cpp \
-		BackendHolder.cpp \
 		CGIBackend.cpp \
 		Date.cpp \
 		FdStream.cpp \

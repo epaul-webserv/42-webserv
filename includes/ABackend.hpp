@@ -22,7 +22,7 @@ protected:
 	async::BufIo<>					   &_io;
 	std::map<std::string, std::string> &_status_pages;
 	ABackend(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
-			 std::map<std::string, std::string> &status_pages);
+			 std::map<std::string, std::string> const &status_pages);
 
 public:
 	virtual ~ABackend(void);

@@ -4,6 +4,7 @@
 
 #include "Router.hpp"
 #include <iostream>
+#include "CGIBackend.hpp"
 
 static t_file_type fileType(std::string const &path, std::string const &root)
 {
@@ -45,11 +46,11 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 	switch (backend_type)
 	{
 	case _static:
-		backend = new (StaticBackend(request, root, response, reactor, io, status_pages));
+		backend = new StaticBackend(request, root, response, reactor, io, status_pages);
 	case _cgi:
-		backend = new (CGIBackend(args, request, root, response, reactor, io, status_pages));
+		backend = new CGIBackend(args, request, root, response, reactor, io, status_pages);
 	case _dir_index:
-		backend = new (DirectoryIndexBackend(request, root, response, reactor, io, status_pages));
+		backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
 	}
 	if (!backend)
 	{

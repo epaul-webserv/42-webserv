@@ -6,7 +6,7 @@
 #include "webserv.h"
 
 CGIBackend::CGIBackend(std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response, async::Reactor &reactor,
-					   async::BufIo<> &io, std::map<std::string, std::string> &status_pages) :
+					   async::BufIo<> &io, std::map<std::string, std::string> const &status_pages) :
 	ABackend(request, root, response, reactor, io, status_pages), _args(args), _cgi_io(NULL), _request_body_read_done(false), _body_write_done(false),
 	_response_headers_read_done(false), _status_set(false), _status(_init)
 {
@@ -174,7 +174,7 @@ async::Future::Poll CGIBackend::process_io() throw(async::OsError)
 					{
 						std::string status_value, status_code;
 						parse_cgi_status_value(value, status_value, status_code);
-						_response.setHTTPStatus(status_value, status_code);
+						_response.setHTTPStatus(status_value, status_code, _status_pages);
 						_status_set = true;
 					}
 					else
@@ -186,7 +186,7 @@ async::Future::Poll CGIBackend::process_io() throw(async::OsError)
 	if (_request_body_read_done && _body_write_done && _response_headers_read_done)
 	{
 		if (!_status_set)
-			_response.setHTTPStatus("200", "Ok");
+			_response.setHTTPStatus("200", "Ok", _status_pages);
 		return Ready;
 	}
 

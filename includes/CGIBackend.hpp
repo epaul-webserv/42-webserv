@@ -8,7 +8,7 @@ class CGIBackend : public ABackend
 {
 public:
 	CGIBackend(std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
-			   std::map<std::string, std::string> &status_pages);
+			   std::map<std::string, std::string> const &status_pages);
 	~CGIBackend(void);
 
 	// void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io);
