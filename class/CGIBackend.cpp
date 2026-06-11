@@ -6,7 +6,7 @@
 #include "webserv.h"
 
 CGIBackend::CGIBackend(std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response, async::Reactor &reactor,
-					   async::BufIo<> &io, std::map<std::string, std::string> const &status_pages) :
+					   async::BufIo<> &io, std::map<std::string, std::string> const status_pages) :
 	ABackend(request, root, response, reactor, io, status_pages), _args(args), _cgi_io(NULL), _request_body_read_done(false), _body_write_done(false),
 	_response_headers_read_done(false), _status_set(false), _status(_init)
 {
@@ -19,8 +19,11 @@ async::Future::Poll CGIBackend::poll() throw(async::OsError)
 {
 	if (_status == _init)
 		init();
-	if (_status == _pending)
-		return process_io();
+	if (_status == _processing)
+		process_io();
+	if (_status == _sending && _response.sendResponse(_io))
+		return Ready;
+	return Pending;
 }
 
 // The request has been routed towards the cgi, we start the program and setup
@@ -126,42 +129,23 @@ void CGIBackend::init()
 		char *ptr;
 		_body_len = std::strtoul(content_len.c_str(), &ptr, 10);
 	}
-	_cgi_io = new async::BufIo<>(_reactor, sv[0]);
-	_status = _processing;
+	_cgi_io			   = new async::BufIo<>(_reactor, sv[0]);
+	client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(_io, *_cgi_io, _body_len);
+	_status			   = _processing;
 }
 
 async::Future::Poll CGIBackend::process_io() throw(async::OsError)
 {
-	if (!_request_body_read_done && _request_body_read_index == _request_body_read_len)
-	{
-		container::Slice<uint8_t> slice(_request_body_buf, 4096);
-		if (_io.poll_read(slice, _request_body_read_len) == Ready)
-		{
-			_body_len -= _request_body_read_len;
-			if (_request_body_read_len == 0 || _body_len <= 0)
-				_request_body_read_done = true;
-			else
-				_request_body_read_index = 0;
-		}
-	}
-	if (!_body_write_done && _request_body_read_index < _request_body_read_len)
-	{
-		container::Slice<uint8_t> slice(_request_body_buf + _request_body_read_index, _request_body_read_len - _request_body_read_index);
-		size_t					  written;
-		if (_cgi_io->poll_write(slice, written) == Ready)
-		{
-			_request_body_read_index += written;
-			if (_request_body_read_done && _request_body_read_index == _request_body_read_len)
-				_body_write_done = true;
-		}
-	}
+	if (_body_len > 0 && client_body_to_cgi->poll() == async::Future::Pending)
+		// FIXME: DONT RETURN
+		return Pending;
 	// This should only read headers
 	if (!_response_headers_read_done)
 	{
 		std::vector<uint8_t> line_buf;
 		if (_cgi_io->poll_read_line(line_buf) == Pending)
 			return Pending;
-		if (line_buf.size() == 0 || (line_buf.size() == 2 && line_buf[0] == '\r'))
+		if (line_buf.size() == 2 && line_buf[0] == '\r' && line_buf[1] == '\n')
 			_response_headers_read_done = true;
 		else
 		{
@@ -187,10 +171,9 @@ async::Future::Poll CGIBackend::process_io() throw(async::OsError)
 	{
 		if (!_status_set)
 			_response.setHTTPStatus("200", "Ok", _status_pages);
+		_status = _sending;
 		return Ready;
 	}
-
-	return Pending;
 }
 
 bool CGIBackend::parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value)

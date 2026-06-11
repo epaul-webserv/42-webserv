@@ -10,9 +10,10 @@
 
 enum stream_status
 {
-	_request,
-	_response_pending,
-	_response_sending
+	_fetching_request,
+	_getting_backend,
+	_processing_response,
+	_sending_response
 };
 
 class HTTPStream : public async::Future
@@ -36,10 +37,10 @@ private:
 	HTTPStream(void);
 
 	container::RingBuf<uint8_t, 4096> buf;
-	async::Io						  io;
 	async::BufIo<4096>				  buf_io;
 	stream_status					  _status;
 	async::Reactor					 *_reactor;
+	ABackend						 *_backend;
 };
 
 #endif

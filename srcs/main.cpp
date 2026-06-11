@@ -47,7 +47,7 @@ public:
 		}
 		for (size_t i = 0; i < clients.size(); i++)
 		{
-			Poll poll;
+			Poll poll = async::Future::Pending;
 			try
 			{
 				poll = clients[i].poll();
@@ -97,7 +97,13 @@ int main(int ac, char **av)
 	std::vector<std::string> php_args;
 	php_args.push_back("/bin/php-cgi");
 	php_args.push_back("-f");
-	router.addRule(_cgi, php_args, "localhost:33000", "php");
+
+	RouterNode																	  test;
+	std::pair<t_backend_type, std::vector<std::string> >						  backend_pair(_cgi, php_args);
+	std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule("php", backend_pair);
+	test.backend_rules.insert(backend_rule);
+	test.accepted_methods.push_back("GET");
+	router.addServ("localhost:33000", test);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family	   = AF_UNSPEC;

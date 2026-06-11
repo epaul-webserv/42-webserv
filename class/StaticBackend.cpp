@@ -8,13 +8,13 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-StaticBackend::StaticBackend(void) : _map(NULL) { bzero(&this->_sb, sizeof(this->_sb)); }
-
-StaticBackend::~StaticBackend(void)
+StaticBackend::StaticBackend(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
+							 std::map<std::string, std::string> const &status_pages) : ABackend(request, root, response, reactor, io, status_pages)
 {
-	if (this->_map)
-		munmap(this->_map, this->_sb.st_size);
+	bzero(&this->_sb, sizeof(this->_sb));
 }
+
+StaticBackend::~StaticBackend(void) {}
 
 static t_file_type fileType(std::string const &path, std::string const &root)
 {
@@ -78,7 +78,6 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 	(void)reactor;
 	if (!consume_body(const_cast<Request &>(request), client_io))
 		return;
-	response.setStatus(_ready);
 	if (request.getMethod() == "GET")
 	{
 		switch (fileType(request.getURI(), DEFAULT_ROOT))
@@ -131,25 +130,6 @@ void StaticBackend::generateResponse(Request const &request, Response &response,
 	}
 	else
 		return response.setHTTPStatus("405", "Method Not Allowed", this->_status_pages);
-}
-
-t_file_status StaticBackend::openFile(std::string const &path, Response &response)
-{
-	int fd;
-	if (stat((path).c_str(), &this->_sb) == -1)
-		return (_not_found);
-	fd = open(path.c_str(), O_RDONLY);
-	if (fd < 0)
-	{
-		if (errno == EACCES)
-			return (_no_permission);
-		return (_no_permission);
-	}
-	std::ostringstream oss;
-	oss << this->_sb.st_size;
-	response.addHeader("Content-Length", oss.str());
-	response.setBodyFd(fd);
-	return (_open);
 }
 
 t_file_status StaticBackend::openFile(std::string const &path, Response &response)

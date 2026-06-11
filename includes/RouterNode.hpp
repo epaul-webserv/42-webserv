@@ -14,7 +14,7 @@ enum e_redirect_type
 
 struct RouterNode
 {
-	RouterNode(void) : list_directories(false), location("/") {}
+	RouterNode(void) : list_directories(false), location("/"), root(DEFAULT_ROOT) {}
 	RouterNode(std::string const &location) : list_directories(false), location(location) {}
 
 	bool															list_directories;

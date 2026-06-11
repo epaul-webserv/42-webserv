@@ -45,12 +45,15 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 	ABackend *backend = NULL;
 	switch (backend_type)
 	{
-	case _static:
-		backend = new StaticBackend(request, root, response, reactor, io, status_pages);
+	// case _static:
+	// 	backend = new StaticBackend(request, root, response, reactor, io, status_pages);
 	case _cgi:
 		backend = new CGIBackend(args, request, root, response, reactor, io, status_pages);
-	case _dir_index:
-		backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
+		break;
+		// case _dir_index:
+		// 	backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
+	default:
+		backend = new CGIBackend(args, request, root, response, reactor, io, status_pages);
 	}
 	if (!backend)
 	{
@@ -74,13 +77,11 @@ bool Router::validateRequest(Request const &request, Response &response, std::ma
 	{
 		response.setHTTPVersion("HTTP/1.1");
 		response.setHTTPStatus("505", "HTTP Version Not Supported", status_pages);
-		response.setStatus(_ready);
 		return (false);
 	}
 	if (request.getURI().empty())
 	{
 		response.setHTTPStatus("400", "Bad Request", status_pages);
-		response.setStatus(_ready);
 		return (false);
 	}
 	return (true);
@@ -126,11 +127,13 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 	ruleset.backend_rules.insert(serv.backend_rules.begin(), serv.backend_rules.end());
 	if (ruleset.redirects.find(URI) != ruleset.redirects.end())
 		return (ruleset);
-	matching_sub_node = matchSubPath(URI, serv.sub_nodes);
+	if (!serv.sub_nodes.empty())
+		matching_sub_node = matchSubPath(URI, serv.sub_nodes);
 	if (matching_sub_node)
 		return (defineRuleset(URI, *matching_sub_node, ruleset));
 	if (!serv.accepted_methods.empty())
-		return (ruleset);
+		ruleset.accepted_methods = serv.accepted_methods;
+	return (ruleset);
 }
 
 static std::vector<std::string>::const_iterator find(std::vector<std::string> const &vec, std::string const &to_find)
@@ -165,7 +168,6 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 			response.setHTTPStatus("301", "Moved Permanently", ruleset.status_pages);
 		}
 		response.addHeader("Location", matching_redirect->second.first);
-		response.setStatus(_ready);
 		return (NULL);
 	}
 	if (fileType(request.getURI(), ruleset.root) == _dir)

@@ -25,15 +25,6 @@ typedef enum
 	_body_sent
 } t_send_status;
 
-
-// Only used for CGIBackend
-typedef enum
-{
-	_init,
-	_pending,
-	_ready
-} t_fetch_status;
-
 class Response
 {
 public:
@@ -42,30 +33,28 @@ public:
 	~Response(void);
 
 	void			   clear();
-	bool			   sendResponse(async::Io &client_io);
+	bool			   sendResponse(async::BufIo<> &client_io);
 	bool			   ready(void);
 	void			   headAppend(std::string const &resp);
 	void			   bodyAppend(std::string const &resp);
 	void			   addHeader(std::string const &key, std::string const &value);
 	std::string const &getHTTPVersion(void);
-	t_fetch_status	   getStatus(void);
 	std::string const &getHTTPStatus(void);
 	std::string		   getIp(void);
 	void			   setHTTPVersion(std::string const &http_version);
 	void			   setHTTPStatus(std::string const &status, std::string const &message, std::map<std::string, std::string> const &status_pages);
 	void			   setHttpVersion(std::string const &http_version);
-	void			   setStatus(t_fetch_status status);
-	void			   setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
-	void			   setBodyFd(int const &fd);
-	void			   pollGenerator();
+	;
+	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
+	void setBodyFd(int const &fd);
+	void pollGenerator();
 
 private:
 	void addBase(void);
-	bool sendHead(async::Io &client_io);
-	bool sendBody(async::Io &client_io);
+	bool sendHead(async::BufIo<> &client_io);
+	bool sendBody(async::BufIo<> &client_io);
 
 	t_send_status		 _send_status;
-	t_fetch_status		 _fetch_status;
 	FdStream			 _file_stream;
 	std::string			 _head;
 	std::string			 _body;

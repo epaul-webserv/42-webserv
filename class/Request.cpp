@@ -106,23 +106,6 @@ static std::string get_end_of_line(std::vector<uint8_t> &line)
 	return (dest);
 }
 
-static std::string get_end_of_line(std::vector<uint8_t> &line)
-{
-	size_t		len		= 0;
-	size_t		skipped = 0;
-	std::string dest;
-
-	if (line.empty())
-		return (dest);
-	while (line[len] && std::isspace(line[len]))
-		line.erase(line.begin()), ++skipped;
-	while (line[len] && line[len] != '\r' && line[len] != '\n')
-		++len;
-	dest = std::string(&line[0], &line[len]);
-	line.erase(line.begin(), line.begin() + len);
-	return (dest);
-}
-
 t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 {
 	std::vector<uint8_t> line;
