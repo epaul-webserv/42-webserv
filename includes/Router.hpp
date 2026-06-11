@@ -20,6 +20,7 @@ struct RouterRuleset
 	std::map<std::string, std::string>										   status_pages;
 	std::string																   dir_file;
 	std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>> backend_rules;
+	std::vector<std::string>												   accepted_methods;
 };
 
 class Router

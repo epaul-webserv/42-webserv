@@ -27,6 +27,7 @@ struct RouterNode
 	std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>>
 		backend_rules; // List of accessible backends (file extension, backend type and backend arguments first one being the absolute path to the executable if
 	// applicable)
+	std::vector<std::string> accepted_methods;
 };
 
 #endif

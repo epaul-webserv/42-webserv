@@ -41,16 +41,22 @@ Router &Router::operator=(Router const &router)
 ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args, Request const &request, std::string const &root,
 							 Response &response, async::Reactor &reactor, async::BufIo<> &io) const
 {
+	ABackend *backend = NULL;
 	switch (backend_type)
 	{
 	case _static:
-		return (new (StaticBackend(request, root, response, reactor, io)));
+		backend = new (StaticBackend(request, root, response, reactor, io, status_pages));
 	case _cgi:
-		return (new (CGIBackend(args, request, root, response, reactor, io)));
+		backend = new (CGIBackend(args, request, root, response, reactor, io, status_pages));
 	case _dir_index:
-		return (new (DirectoryIndexBackend(request, root, response, reactor, io)));
+		backend = new (DirectoryIndexBackend(request, root, response, reactor, io, status_pages));
 	}
-	return (NULL);
+	if (!backend)
+	{
+		std::cerr << "[ERROR] Backend creation has failed : " << std::strerror(errno) << std::endl;
+		response.setError("500", "Internal Server Error");
+	}
+	return (backend);
 }
 
 bool Router::validateRequest(Request const &request, Response &response) const
@@ -122,12 +128,31 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 	matching_sub_node = matchSubPath(URI, serv.sub_nodes);
 	if (matching_sub_node)
 		return (defineRuleset(URI, *matching_sub_node, ruleset));
-	return (ruleset);
+	if (!serv.accepted_methods.empty())
+		return (ruleset);
+}
+
+static std::vector<std::string>::const_iterator find(std::vector<std::string> const &vec, std::string const &to_find)
+{
+	std::vector<std::string>::const_iterator it;
+	std::vector<std::string>::const_iterator ite = vec.end();
+
+	for (it = vec.begin(); it != ite; ++it)
+	{
+		if (to_find == *it)
+			return (it);
+	}
+	return (it);
 }
 
 ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::Io &io) const
 {
 	std::map<std::string, std::pair<std::string, e_redirect_type>>::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
+	if (find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
+	{
+		response.setError("405", "Method Not Allowed");
+		return (NULL);
+	}
 	if (matching_redirect != ruleset.redirects.end())
 	{
 		switch (matching_redirect->second.second)
