@@ -48,6 +48,4 @@ private:
 	size_t	_response_body_read_index;
 
 	status _status;
-
-	std::string cgi_body;
 };
