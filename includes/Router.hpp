@@ -39,6 +39,7 @@ private:
 	RouterNode const *matchSubPath(std::string URI, std::map<std::string, RouterNode> const &sub_nodes) const;
 	RouterRuleset	  defineRuleset(std::string const &URI, RouterNode const &serv, RouterRuleset &ruleset) const;
 	ABackend		 *defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::BufIo<> &io) const;
+	void			  addServ(std::string const &domain, RouterNode const &RouterNode);
 
 	std::map<std::string, RouterNode> _servers; // Servers identified by domain[:port(if other than 80)]
 };

@@ -208,3 +208,5 @@ ABackend *Router::resolve(Request &request, Response &response, async::Reactor &
 	ruleset = defineRuleset(request.getURI(), *serv, ruleset);
 	return (defineBackend(request, response, ruleset, reactor, io));
 }
+
+void Router::addServ(std::string const &domain, RouterNode const &node) { this->_servers.insert(std::pair<std::string, RouterNode>(domain, node)); }
