@@ -12,13 +12,21 @@ typedef enum
 	_dir_index
 } t_backend_type;
 
-class ABackend
+class ABackend : public async::Future
 {
-public:
-	ABackend(void);
-	virtual ~ABackend(void);
+protected:
+	Request const					   &_request;
+	std::string const				   &_root;
+	Response						   &_response;
+	async::Reactor					   &_reactor;
+	async::BufIo<>					   &_io;
+	std::map<std::string, std::string> &_status_pages;
+	ABackend(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
+			 std::map<std::string, std::string> &status_pages);
 
-	virtual void generateResponse(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io) = 0;
+public:
+	virtual ~ABackend(void);
+	virtual Poll poll() = 0;
 };
 
 #endif

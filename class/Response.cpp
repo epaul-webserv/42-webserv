@@ -11,7 +11,7 @@
 
 Response::Response(void) :
 	_send_status(_first_step), _fetch_status(_init), _file_stream(-1), _header_read_index(0), _header_write_index(0), _body_read_index(0), _body_write_index(0),
-	_content_length(0), _sent_bytes(0), _response_generator(NULL), _io_body(NULL)
+	_content_length(0), _sent_bytes(0), _io_body(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -20,7 +20,7 @@ Response::Response(Response const &Response) :
 	_send_status(Response._send_status), _fetch_status(Response._fetch_status), _file_stream(-1), _head(Response._head), _body(Response._body),
 	_header_read_index(Response._header_read_index), _header_write_index(Response._header_write_index), _body_read_index(Response._body_read_index),
 	_body_write_index(Response._body_write_index), _content_length(Response._content_length), _sent_bytes(Response._sent_bytes), _http_version(Response._http_version),
-	_http_status(Response._http_status), _sb(Response._sb), _response_generator(NULL), _io_body(NULL) // FIXME: copy of response generator and io body
+	_http_status(Response._http_status), _sb(Response._sb), _io_body(NULL) // FIXME: copy of response generator and io body
 {
 	// if (Response._io_body)
 	// 	this->_io_body = new async::BufIo<>(*Response._io_body);
@@ -30,8 +30,6 @@ Response::~Response(void)
 {
 	// if (this->_map)
 	// 	munmap(this->_map, this->_sb.st_size);
-	if (_response_generator)
-		delete _response_generator;
 	if (_io_body)
 		delete _io_body;
 }
@@ -53,9 +51,6 @@ void Response::clear()
 	this->_sent_bytes		  = 0;
 	this->_content_length	  = 0;
 	bzero(&this->_sb, sizeof(this->_sb));
-	if (_response_generator)
-		delete _response_generator;
-	_response_generator = NULL;
 	if (_io_body)
 	{
 		delete _io_body;
@@ -125,18 +120,8 @@ std::string const &Response::getHTTPStatus(void) { return (this->_http_status); 
 
 void Response::setStatus(t_fetch_status status) { this->_fetch_status = status; }
 
-void Response::setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_io_fd)
-{
-	_response_generator = new CGIResponseGenerator(request, response, reactor, bodyIo, cgi_io_fd);
-}
 
 void Response::setBodyFd(int const &fd) { this->_file_stream.clear(fd); }
-
-void Response::pollGenerator()
-{
-	if (_response_generator && _response_generator->poll() == async::Future::Ready)
-		setStatus(_ready);
-}
 
 void Response::addBase()
 {

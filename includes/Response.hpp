@@ -79,7 +79,7 @@ private:
 	std::string			 _http_status;
 	std::vector<uint8_t> _send_buf;
 	struct stat			 _sb;
-	async::Future		*_response_generator;
+	async::Future		*_backend;
 	async::BufIo<>		*_io_body;
 };
 
