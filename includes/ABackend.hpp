@@ -9,7 +9,7 @@ typedef enum
 {
 	_static,
 	_cgi,
-	_fast_cgi
+	_dir_index
 } t_backend_type;
 
 class ABackend

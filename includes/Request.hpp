@@ -46,6 +46,7 @@ public:
 	std::string		getHeader(std::string const key = "");
 	std::string		getMethod(void) const;
 	std::string		getURI(void) const;
+	void			setURI(std::string const &URI);
 	std::string		getQueryString(void) const;
 	std::string		getHTTPVersion(void) const;
 

@@ -6,10 +6,21 @@
 #include <vector>
 #include "ABackend.hpp"
 #include "BackendHolder.hpp"
-#include "IBackendRule.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "RouterNode.hpp"
 #include "url_utils.hpp"
+
+struct RouterRuleset
+{
+	RouterRuleset() : list_directories(true), root(DEFAULT_ROOT) {}
+	bool																	   list_directories;
+	std::string																   root;
+	std::map<std::string, std::pair<std::string, e_redirect_type>>			   redirects;
+	std::map<std::string, std::string>										   status_pages;
+	std::string																   dir_file;
+	std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>> backend_rules;
+};
 
 class Router
 {
@@ -18,16 +29,18 @@ public:
 	~Router();
 
 	Router	 &operator=(Router const &Router);
-	void	  addBackend(t_backend_type const &type, std::vector<std::string> const &args);
-	void	  addRule(t_backend_type const &type, std::vector<std::string> const &args, IBackendRule &rule);
-	ABackend *resolve(Request const &request, Response &response) const;
+	ABackend *resolve(Request &request, Response &response, async::Reactor &reactor, async::Io &io) const;
 
 private:
-	ABackend *getBackend(t_backend_type const &type, std::vector<std::string> const &args) const;
+	ABackend *getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response,
+						 async::Reactor &reactor, async::BufIo<> &io) const;
+	bool	  validateRequest(Request const &request, Response &response) const;
+	RouterNode const *getServerNode(std::string const &host, Response &response) const;
+	RouterNode const *matchSubPath(std::string URI, std::map<std::string, RouterNode> const &sub_nodes) const;
+	RouterRuleset	  defineRuleset(std::string const &URI, RouterNode const &serv, RouterRuleset &ruleset) const;
+	ABackend		 *defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::Io &io) const;
 
-	std::list<BackendHolder>														  _backends;
-	std::list<IBackendRule>															  _rules;
-	std::map<std::string, std::map<std::string, std::map<std::string, IBackendRule>>> _eigth_wonder_of_the_world;
+	std::map<std::string, RouterNode> _servers; // Servers identified by domain[:port(if other than 80)]
 };
 
 #endif

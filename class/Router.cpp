@@ -4,112 +4,180 @@
 
 #include "Router.hpp"
 #include <iostream>
-#include "StaticBackend.hpp"
 
-enum e_redirect_type
+static t_file_type fileType(std::string const &path, std::string const &root)
 {
-	_permanent,
-	_temporary
-};
+	struct stat s = {};
 
-struct RouterNode
-{
-	RouterNode(void) : list_directories(false), request_path("/") {}
-	RouterNode(std::string const &path) : list_directories(false), request_path(path) {}
+	if (stat((root + path).c_str(), &s) == -1)
+	{
+		if (errno == EACCES)
+			return (_no_access);
+		if (errno == ENOMEM)
+			return (_err);
+		return (_none);
+	}
+	switch (s.st_mode & S_IFMT)
+	{
+	case S_IFDIR:
+		return (_dir);
+	case S_IFREG:
+		return (_file);
+	default:
+		return (_none);
+	}
+}
 
-	bool														   list_directories;
-	std::string const											   request_path;
-	std::string													   root; // path to the root of the files to serve, inactive if empty
-	std::map<std::string, RouterNode>							   sub_nodes; // relative (to active node URI) URI of a sub path, leading to another rule subset
-	std::map<std::string, std::pair<std::string, e_redirect_type>> redirects; // URI to redirect, new location and type of redirection
-	std::map<std::string, std::string>							   status_pages; // status, relative (to applicable root) path of page to serve in case of this status;
-	std::string dir_file; // relative (to applicable root) path to the file to serve in case on a dir ressource, inactive if empty
-};
-
-Router::Router() { this->_backends.push_back(BackendHolder(_static, std::vector<std::string>(0))); }
+Router::Router() {}
 
 Router::~Router() {}
 
-Router &Router::operator=(Router const &Router)
+Router &Router::operator=(Router const &router)
 {
-	this->_backends = Router._backends;
-	this->_rules	= Router._rules;
+	this->_servers = router._servers;
 	return (*this);
 }
 
-void Router::addBackend(t_backend_type const &type, std::vector<std::string> const &args)
+ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args, Request const &request, std::string const &root,
+							 Response &response, async::Reactor &reactor, async::BufIo<> &io) const
 {
-	if (type == _cgi)
-		this->_backends.push_back(BackendHolder(type, args));
-	else
-		std::cerr << "Backend type not implemented yet" << std::endl;
-	(void)type;
-}
-
-void Router::addRule(t_backend_type const &type, std::vector<std::string> const &args, IBackendRule &rule)
-{
-	if (!getBackend(type, args))
-		addBackend(type, args);
-	rule.addr = getBackend(type, args);
-	this->_rules.push_back(rule);
-}
-
-ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args) const
-{
-	std::list<BackendHolder>::const_iterator it;
-	std::list<BackendHolder>::const_iterator ite = this->_backends.end();
-
-	for (it = this->_backends.begin(); it != ite; ++it)
+	switch (backend_type)
 	{
-		if (backend_type == _static && it->backend_type == backend_type)
-			return (it->addr);
-		if (it->backend_type == backend_type && it->cgi_args == args)
-			return (it->addr);
+	case _static:
+		return (new (StaticBackend(request, root, response, reactor, io)));
+	case _cgi:
+		return (new (CGIBackend(args, request, root, response, reactor, io)));
+	case _dir_index:
+		return (new (DirectoryIndexBackend(request, root, response, reactor, io)));
 	}
 	return (NULL);
 }
 
-/// return ABackend pointer OR NULL if response has been set.
-ABackend *Router::resolve(Request const &request, Response &response) const {}
+bool Router::validateRequest(Request const &request, Response &response) const
+{
+	std::string http_version = request.getHTTPVersion();
 
-// void Router::resolve(Request const &request, Response &response) const
-// {
-// 	std::string								domain		   = to_lower(request.peekHeader("host"));
-// 	std::string								file_extension = get_file_ext(request.getURI());
-// 	std::list<backend_rule>::const_iterator it;
-// 	std::list<backend_rule>::const_iterator ite		= this->_rules.end();
-// 	ABackend							   *backend = NULL;
-//
-// 	if (request.getHTTPVersion().empty())
-// 	{
-// 	}
-// 	else if (request.getHTTPVersion() == "HTTP/1.0" || request.getHTTPVersion() == "HTTP/1.1")
-// 	{
-// 		if (request.getHTTPVersion() == "HTTP/1.1" && request.peekHeader("connection") != "close")
-// 			response.addHeader("Connection", "keep-alive");
-// 		response.setHTTPVersion(request.getHTTPVersion());
-// 	}
-// 	else
-// 	{
-// 		response.setHTTPVersion("HTTP/1.1");
-// 		response.setError("505", "HTTP Version Not Supported");
-// 		response.setStatus(_ready);
-// 		return;
-// 	}
-// 	if (request.getURI().empty())
-// 	{
-// 		response.setHTTPVersion("HTTP/1.1");
-// 		response.setError("400", "Bad Request");
-// 	}
-// 	for (it = this->_rules.begin(); it != ite; ++it)
-// 	{
-// 		if (it->domain == domain && it->file_extension == file_extension)
-// 		{
-// 			backend = it->addr;
-// 			break;
-// 		}
-// 	}
-// 	if (!backend)
-// 		backend = (this->_backends.front().addr);
-// 	backend->generateResponse(request, response, reactor, client_io);
-// }
+	if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
+	{
+		if (http_version == "HTTP/1.1" && request.peekHeader("connection") != "close")
+			response.addHeader("Connection", "keep-alive");
+		response.setHTTPVersion(http_version);
+	}
+	else if (!http_version.empty()) // Empty is HTTP/0.9
+	{
+		response.setHTTPVersion("HTTP/1.1");
+		response.setError("505", "HTTP Version Not Supported");
+		response.setStatus(_ready);
+		return (false);
+	}
+	if (request.getURI().empty())
+	{
+		response.setError("400", "Bad Request");
+		response.setStatus(_ready);
+		return (false);
+	}
+	return (true);
+}
+
+RouterNode const *Router::getServerNode(std::string const &host, Response &response) const
+{
+	RouterNode										 *server_node = NULL;
+	std::map<std::string, RouterNode>::const_iterator it		  = this->_servers.find(host);
+
+	if (it == this->_servers.end())
+	{
+		response.setError("404", "Not Found");
+		return (NULL);
+	}
+	return (&it->second);
+}
+
+RouterNode const *Router::matchSubPath(std::string URI, std::map<std::string, RouterNode> const &sub_nodes) const
+{
+	std::map<std::string, RouterNode>::const_iterator it;
+	while (!URI.empty())
+	{
+		URI = URI.substr(0, URI.find_last_of('/') - 1);
+		it	= sub_nodes.find(URI);
+		if (it != sub_nodes.end())
+			return (&it->second);
+	}
+	return (NULL);
+}
+
+RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &serv, RouterRuleset &ruleset) const
+{
+	RouterNode const *matching_sub_node = NULL;
+
+	ruleset.list_directories = serv.list_directories;
+	if (!serv.root.empty())
+		ruleset.root = serv.root;
+	ruleset.redirects.insert(serv.redirects.begin(), serv.redirects.end());
+	ruleset.status_pages.insert(serv.status_pages.begin(), serv.status_pages.end());
+	if (!serv.dir_file.empty())
+		ruleset.dir_file = serv.dir_file;
+	ruleset.backend_rules.insert(serv.backend_rules.begin(), serv.backend_rules.end());
+	if (ruleset.redirects.find(URI) != ruleset.redirects.end())
+		return (ruleset);
+	matching_sub_node = matchSubPath(URI, serv.sub_nodes);
+	if (matching_sub_node)
+		return (defineRuleset(URI, *matching_sub_node, ruleset));
+	return (ruleset);
+}
+
+ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::Io &io) const
+{
+	std::map<std::string, std::pair<std::string, e_redirect_type>>::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
+	if (matching_redirect != ruleset.redirects.end())
+	{
+		switch (matching_redirect->second.second)
+		{
+		case _temporary:
+			response.setError("307", "Temporary Redirect");
+			break;
+		case _permanent:
+			response.setError("301", "Moved Permanently");
+		}
+		response.addHeader("Location", matching_redirect->second.first);
+		response.setStatus(_ready);
+		return (NULL);
+	}
+	if (fileType(request.getURI(), ruleset.root) == _dir)
+	{
+		if (ruleset.list_directories)
+		{
+			// Check the allocation in getBackend
+			return (getBackend(_dir_index, std::vector<std::string>(), request, ruleset.root, response, reactor, io));
+		}
+		if (!ruleset.dir_file.empty())
+		{
+			request.setURI(ruleset.dir_file);
+			return (getBackend(_static, std::vector<std::string>(), request, "", response, reactor, io));
+		}
+	}
+	else
+	{
+		std::string																				   file_extension = get_file_ext(request.getURI());
+		std::map<std::string, std::pair<t_backend_type, std::vector<std::string>>>::const_iterator it			  = ruleset.backend_rules.find(file_extension);
+		if (ruleset.backend_rules.find(file_extension) != ruleset.backend_rules.end())
+			return (getBackend(it->second.first, it->second.second, request, ruleset.root, response, reactor, io));
+		else
+			return (getBackend(_static, std::vector<std::string>(), request, ruleset.root, response, reactor, io));
+	}
+	return (NULL);
+}
+
+/// @return ABackend pointer OR NULL if response has been set.
+ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, async::Io &io) const
+{
+	RouterNode const *serv;
+	RouterRuleset	  ruleset;
+
+	if (!validateRequest(request, response))
+		return (NULL);
+	serv = getServerNode(request.peekHeader("host"), response);
+	if (!serv)
+		return (NULL);
+	ruleset = defineRuleset(request.getURI(), *serv, ruleset);
+	return (defineBackend(request, response, ruleset, reactor, io));
+}

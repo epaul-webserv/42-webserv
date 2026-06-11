@@ -199,6 +199,8 @@ std::string Request::getMethod(void) const { return (this->_method); }
 
 std::string Request::getURI(void) const { return (this->_URI); }
 
+void Request::setURI(std::string const &URI) { this->_URI = URI; }
+
 std::string Request::getQueryString(void) const { return (this->_query_string); }
 
 std::string Request::getHTTPVersion(void) const { return (this->_http_version); }
