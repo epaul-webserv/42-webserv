@@ -19,7 +19,7 @@ CGIResponseGenerator::CGIResponseGenerator(Request const &request, Response &res
 	}
 	_cgi_io = new async::BufIo<>(reactor, cgi_io_fd);
 }
-
+// TODO: Maybe this will deadlock because interest is not set ?
 async::Future::Poll CGIResponseGenerator::poll() throw(async::OsError)
 {
 	if (!_request_body_read_done && _request_body_read_index == _request_body_read_len)
