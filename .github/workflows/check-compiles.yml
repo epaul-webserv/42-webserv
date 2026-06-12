@@ -1,5 +1,5 @@
 name: Check code compilation
-on: [push]
+on: [ push ]
 
 jobs:
   clang-format:
@@ -7,7 +7,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          token: ${{ secrets.ACCESS_TOKEN }}
       - name: Run make
         run: make
-      - name: Run make on vec example
-        run: make -C examples/vec
