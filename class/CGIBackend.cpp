@@ -5,39 +5,31 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-CGIBackend::CGIBackend(std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response, async::Reactor &reactor,
-					   async::BufIo<> &io, std::map<std::string, std::string> const status_pages) :
-	ABackend(request, root, response, reactor, io, status_pages), _args(args), _cgi_io(NULL), _request_body_read_done(false), _body_write_done(false),
-	_response_headers_read_done(false), _status_set(false), _status(_init)
+CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream) :
+	_args(args), _cgi_io(NULL), _root(root), _reactor(reactor), stream(stream), response_body(NULL), _client_body_sent(false), _response_headers_read_done(false),
+	_status_set(false), _status(_init), _content_length(-1), _response_buf_len(0), _response_buf_index(0), _response_body_read_done(false)
 {
 }
 
 
-CGIBackend::~CGIBackend(void) {}
-
-async::Future::Poll CGIBackend::poll() throw(async::OsError)
+CGIBackend::~CGIBackend(void)
 {
-	if (_status == _init)
-		init();
-	if (_status == _processing)
-		process_io();
-	if (_status == _sending && _response.sendResponse(_io))
-		return Ready;
-	return Pending;
+	delete _cgi_io;
+	delete client_body_to_cgi;
 }
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
 void CGIBackend::init()
 {
-	std::string				 encoding = _request.peekHeader("transfer-encoding");
+	std::string				 encoding = stream.request.peekHeader("transfer-encoding");
 	std::vector<std::string> env_vector;
 
-	env_vector.push_back("QUERY_STRING=" + _request.getQueryString());
-	env_vector.push_back("REQUEST_METHOD=" + _request.getMethod());
+	env_vector.push_back("QUERY_STRING=" + stream.request.getQueryString());
+	env_vector.push_back("REQUEST_METHOD=" + stream.request.getMethod());
 
 	// The name of the file being executed
-	std::string script_name		 = get_file_name(_request.getURI());
+	std::string script_name		 = get_file_name(stream.request.getURI());
 	std::string script_full_path = std::string(DEFAULT_ROOT) + "/" + script_name;
 
 	// This is supposed to be whats after the script filename, and before the query string,
@@ -55,13 +47,13 @@ void CGIBackend::init()
 	// name of the program
 	env_vector.push_back("SERVER_SOFTWARE=" + std::string(PROGNAME));
 	// protocol
-	env_vector.push_back("SERVER_PROTOCOL=" + _request.getHTTPVersion());
+	env_vector.push_back("SERVER_PROTOCOL=" + stream.request.getHTTPVersion());
 
 	// std::string encoding = request.peekHeader("transfer-encoding");
 
-	env_vector.push_back("CONTENT_LENGTH=" + _request.peekHeader("content-length"));
+	env_vector.push_back("CONTENT_LENGTH=" + stream.request.peekHeader("content-length"));
 
-	env_vector.push_back("CONTENT_TYPE=" + _request.peekHeader("content-type"));
+	env_vector.push_back("CONTENT_TYPE=" + stream.request.peekHeader("content-type"));
 
 	env_vector.push_back("AUTH_TYPE=");
 	env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
@@ -117,62 +109,78 @@ void CGIBackend::init()
 	}
 	close(sv[1]);
 
-	std::string content_len = _request.peekHeader("content-length");
+	std::string content_len = stream.request.peekHeader("content-length");
 	if (content_len == "")
 	{
-		_body_len				= 0;
-		_request_body_read_done = true;
-		_body_write_done		= true;
+		_body_len		  = 0;
+		_client_body_sent = true;
 	}
 	else
 	{
 		char *ptr;
-		_body_len = std::strtoul(content_len.c_str(), &ptr, 10);
+		_body_len		   = std::strtoul(content_len.c_str(), &ptr, 10);
+		client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(stream.buf_io, *_cgi_io, _body_len);
 	}
-	_cgi_io			   = new async::BufIo<>(_reactor, sv[0]);
-	client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(_io, *_cgi_io, _body_len);
-	_status			   = _processing;
+	_cgi_io = new async::BufIo<>(_reactor, sv[0]);
+
+	_status = _processing;
 }
 
-async::Future::Poll CGIBackend::process_io() throw(async::OsError)
+async::Future::Poll CGIBackend::poll() throw(async::OsError)
 {
-	if (_body_len > 0 && client_body_to_cgi->poll() == async::Future::Pending)
-		// FIXME: DONT RETURN
-		return Pending;
-	// This should only read headers
+	if (_status == _init)
+		init();
+	send_client_body_to_cgi();
+	read_cgi_headers();
+	if (set_body_writer() == Ready)
+		return Ready;
+	if (send_body() == Ready)
+		return Ready;
+	return Pending;
+}
+
+void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
+{
+	if (!_client_body_sent && client_body_to_cgi->poll() == async::Future::Ready)
+		_client_body_sent == true;
+}
+
+
+void CGIBackend::read_cgi_headers() throw(async::OsError)
+{
 	if (!_response_headers_read_done)
 	{
-		std::vector<uint8_t> line_buf;
-		if (_cgi_io->poll_read_line(line_buf) == Pending)
-			return Pending;
-		if (line_buf.size() == 2 && line_buf[0] == '\r' && line_buf[1] == '\n')
-			_response_headers_read_done = true;
-		else
+		if (_cgi_io->poll_read_line(header_line) == Ready)
 		{
-			if (_request.getHTTPVersion() != "")
+			if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
 			{
-				std::string key, value;
-				if (parse_cgi_header(line_buf, key, value))
+				if (_status_set)
+					stream.response.setHTTPStatus("200", "Ok", *stream.status_pages);
+				_response_headers_read_done = true;
+			}
+			else
+			{
+				if (stream.request.getHTTPVersion() != "")
 				{
-					if (key == "status" && !_status_set)
+					std::string key, value;
+					if (parse_cgi_header(header_line, key, value))
 					{
-						std::string status_value, status_code;
-						parse_cgi_status_value(value, status_value, status_code);
-						_response.setHTTPStatus(status_value, status_code, _status_pages);
-						_status_set = true;
+						if (key == "status" && !_status_set)
+						{
+							std::string status_value, status_code;
+							parse_cgi_status_value(value, status_value, status_code);
+							stream.response.setHTTPStatus(status_value, status_code, *stream.status_pages);
+							_status_set = true;
+						}
+						else if (key == "content-length" && _content_length == -1)
+							_content_length = std::strtoul(value.c_str(), NULL, 10);
+						else
+							stream.response.addHeader(key, value);
 					}
-					else
-						_response.headAppend(std::string(line_buf.begin(), line_buf.end()));
 				}
 			}
+			header_line.clear();
 		}
-	}
-	if (_request_body_read_done && _body_write_done && _response_headers_read_done)
-	{
-		if (!_status_set)
-			_response.setHTTPStatus("200", "Ok", _status_pages);
-		_status = _sending;
-		return Ready;
 	}
 }
 
@@ -235,3 +243,58 @@ void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::st
 			status_message = status_value.substr(msg_start);
 	}
 }
+
+async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
+{
+	if (_response_headers_read_done && response_body == NULL)
+	{
+		if (*&*&_content_length == -1)
+		{
+			if (stream.poll_send_headers(response_body) == Pending)
+				return Pending;
+		}
+		else
+		{
+			if (stream.poll_send_headers(_content_length, response_body) == Pending)
+				return Pending;
+		}
+		if (response_body == NULL)
+		{
+			// TODO: Close pipe and kill process ?
+			return Ready;
+		}
+	}
+	return Pending;
+}
+
+async::Future::Poll CGIBackend::send_body() throw(async::OsError)
+{
+	if (_response_headers_read_done && response_body)
+	{
+		while (676767676767676767 == 676767676767676767)
+		{
+			if (!_response_body_read_done && _response_buf_index == _response_buf_len)
+			{
+				container::Slice<uint8_t> buff(_response_buf, 4096);
+				if (_cgi_io->poll_read(buff, _response_buf_len) == Pending)
+					return Pending;
+				_response_buf_index = 0;
+				if (_response_buf_len == 0)
+					_response_body_read_done = true;
+			}
+			if (_response_buf_index < _response_buf_len)
+			{
+				size_t					  write_written;
+				container::Slice<uint8_t> buff(&_response_buf[_response_buf_index], _response_buf_len - _response_buf_index);
+				if (response_body->poll_write(buff, write_written) == Pending)
+					return Pending;
+				_response_buf_index += write_written;
+				if (_response_body_read_done && _response_buf_index >= _response_buf_len)
+					return Ready;
+			}
+		}
+	}
+	return Pending;
+}
+
+async::Future::Poll push_body_to_response() {}

@@ -168,7 +168,6 @@ bool Response::sendBody(async::BufIo<> &client_io)
 
 bool Response::sendResponse(async::BufIo<> &client_io)
 {
-
 	if (this->_send_status == _first_step)
 	{
 		this->addBase();

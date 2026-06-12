@@ -61,11 +61,12 @@ namespace async
 	};
 } // namespace async
 
+#include "HTTPStream.hpp"
+
 class CGIBackend : public ABackend
 {
 public:
-	CGIBackend(std::vector<std::string> const &args, Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
-			   std::map<std::string, std::string> const status_pages);
+	CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream);
 	~CGIBackend(void);
 
 	// void generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &io);
@@ -75,37 +76,42 @@ private:
 	enum status
 	{
 		_init,
-		_processing,
-		_sending
+		_processing
 	};
 	CGIBackend(const CGIBackend &other);
 	CGIBackend &operator=(const CGIBackend &other);
 
 
-	bool					 parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value);
-	void					 parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message);
-	void					 init();
-	async::Future::Poll		 copy_to_cgi() throw(async::OsError);
-	async::Future::Poll		 process_io() throw(async::OsError);
+	bool				parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value);
+	void				parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message);
+	void				init();
+	async::Future::Poll copy_to_cgi() throw(async::OsError);
+	void				send_client_body_to_cgi() throw(async::OsError);
+	void				read_cgi_headers() throw(async::OsError);
+	async::Future::Poll set_body_writer() throw(async::OsError);
+	async::Future::Poll send_body() throw(async::OsError);
+
+	std::string const		&_root;
+	async::Reactor			&_reactor;
 	std::vector<std::string> _args;
 	async::BufIo<>			*_cgi_io;
+	HTTPStream				&stream;
 	size_t					 _body_len;
 	std::string				 headers;
+	AResponseBody			*response_body;
 
 
-	bool _request_body_read_done;
-	bool _body_write_done;
-	bool _response_headers_read_done;
-	bool _status_set;
-
-	uint8_t _request_body_buf[4096];
-	size_t	_request_body_read_len;
-	size_t	_request_body_read_index;
-
-	uint8_t _response_body_buf[4096];
-	size_t	_response_body_read_len;
-	size_t	_response_body_read_index;
+	bool	_client_body_sent;
+	bool	_response_headers_read_done;
+	bool	_status_set;
+	ssize_t _content_length;
 
 	status								 _status;
 	async::CopyBufIoToBufIo<4096, 4096> *client_body_to_cgi;
+	std::vector<uint8_t>				 header_line;
+
+	uint8_t _response_buf[4096];
+	size_t	_response_buf_len;
+	size_t	_response_buf_index;
+	bool	_response_body_read_done;
 };
