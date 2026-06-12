@@ -44,7 +44,26 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
     return (len + skipped);
 }
 
-static std::string get_next_word(std::vector<uint8_t> &line)
+// static std::string get_next_word(std::vector<uint8_t> &line)
+// {
+//     size_t      len     = 0;
+//     size_t      skipped = 0;
+//     std::string dest;
+//
+//     if (line.empty())
+//         return (dest);
+//     while (!line.empty() && line[len] && std::isspace(line[len]))
+//         line.erase(line.begin()), ++skipped;
+//     if (line.empty())
+//         return (dest);
+//     while (line[len] && !std::isspace(line[len]))
+//         ++len;
+//     dest = std::string(&line[0], &line[len]);
+//     line.erase(line.begin(), line.begin() + len);
+//     return (dest);
+// }
+
+static std::string get_next_word(std::vector<uint8_t> &line, char const &last_char)
 {
     size_t      len     = 0;
     size_t      skipped = 0;
@@ -56,7 +75,8 @@ static std::string get_next_word(std::vector<uint8_t> &line)
         line.erase(line.begin()), ++skipped;
     if (line.empty())
         return (dest);
-    while (line[len] && !std::isspace(line[len]))
+    while (line[len] && !std::isspace(line[len]) &&
+           (dest.empty() || *(line.end() - 1) != last_char))
         ++len;
     dest = std::string(&line[0], &line[len]);
     line.erase(line.begin(), line.begin() + len);
@@ -72,7 +92,11 @@ static std::string get_end_of_line(std::vector<uint8_t> &line)
     if (line.empty())
         return (dest);
     while (line[len] && std::isspace(line[len]))
+    {
         line.erase(line.begin()), ++skipped;
+        if (line.empty())
+            return (dest);
+    }
     while (line[len] && line[len] != '\r' && line[len] != '\n')
         ++len;
     dest = std::string(&line[0], &line[len]);
@@ -119,12 +143,11 @@ async::Future::Poll HTTPStream::readHeaders()
         if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
             break;
         std::vector<uint8_t>::iterator it         = std::find(line.begin(), line.end(), ':');
-        std::string                    header_key = get_next_word(line);
+        std::string                    header_key = get_next_word(line, ':');
         if (header_key.find(':') == std::string::npos)
         {
-            _request._headers.insert((std::pair<std::string, std::string>(header_key, "")));
             line.clear();
-            break;
+            continue;
         }
         header_key = header_key.substr(0, header_key.find(':'));
         if (it != ite)
