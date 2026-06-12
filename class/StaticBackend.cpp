@@ -8,8 +8,8 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-StaticBackend::StaticBackend(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
-							 std::map<std::string, std::string> const &status_pages) : ABackend(request, root, response, reactor, io, status_pages)
+StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream) :
+	_file_ok(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -73,63 +73,108 @@ static bool consume_body(Request &request, async::BufIo<> &client_io)
 	return (true);
 }
 
-void StaticBackend::generateResponse(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &client_io)
+async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 {
-	(void)reactor;
-	if (!consume_body(const_cast<Request &>(request), client_io))
-		return;
-	if (request.getMethod() == "GET")
+	// if (!consume_body(const_cast<Request &>(request), client_io))
+	// 	return; FIXME: skip body
+	if (http_stream.request.getMethod() == "GET")
 	{
-		switch (fileType(request.getURI(), DEFAULT_ROOT))
+		switch (fileType(http_stream.request.getURI(), DEFAULT_ROOT))
 		{
 		case _dir:
-			response.bodyAppend(get_html_dir(request.getURI(), DEFAULT_ROOT));
-			response.addHeader("Content-Type", "text/html");
-			response.setHTTPStatus("200", "Ok", this->_status_pages);
-			return;
+			http_stream.response.bodyAppend(get_html_dir(http_stream.request.getURI(), DEFAULT_ROOT));
+			http_stream.response.addHeader("Content-Type", "text/html");
+			http_stream.setHTTPStatus("200", "Ok");
+			return Ready;
 		case _no_access:
-			return response.setHTTPStatus("403", "Forbidden", this->_status_pages);
+			return http_stream.setHTTPStatus("403", "Forbidden"), Ready;
 		case _none:
-			return response.setHTTPStatus("404", "Not Found", this->_status_pages);
+			return http_stream.setHTTPStatus("404", "Not Found"), Ready;
 		case _err:
-			return response.setHTTPStatus("500", "Internal Server Error", this->_status_pages);
+			return http_stream.setHTTPStatus("500", "Internal Server Error"), Ready;
 		case _file:
 			break;
 		}
-		switch (this->openFile(DEFAULT_ROOT + request.getURI(), response))
+		switch (this->openFile(DEFAULT_ROOT + http_stream.request.getURI(), http_stream.response))
 		{
 		case _no_permission:
-			return response.setHTTPStatus("403", "Forbidden", this->_status_pages);
+			return http_stream.setHTTPStatus("403", "Forbidden"), Ready;
 		default:
-			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
-			response.setHTTPStatus("200", "Ok", this->_status_pages);
-			return;
+			this->setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
+			http_stream.setHTTPStatus("200", "Ok");
+			this->_file_ok = true;
+			return Ready;
 		}
 	}
-	if (request.getMethod() == "HEAD")
+	if (http_stream.request.getMethod() == "HEAD")
 	{
-		switch (fileType(request.getURI(), DEFAULT_ROOT))
+		switch (fileType(http_stream.request.getURI(), DEFAULT_ROOT))
 		{
 		case _dir:
-			response.addHeader("Content-Type", "text/html");
-			response.setHTTPStatus("200", "Ok", this->_status_pages);
-			return;
+			http_stream.response.addHeader("Content-Type", "text/html");
+			http_stream.setHTTPStatus("200", "Ok");
+			return Ready;
 		case _no_access:
-			response.setHTTPStatus("403", "Forbidden", this->_status_pages);
-			return;
+			http_stream.setHTTPStatus("403", "Forbidden");
+			return Ready;
 		case _none:
-			response.setHTTPStatus("404", "Not found", this->_status_pages);
-			return;
+			http_stream.setHTTPStatus("404", "Not found");
+			return Ready;
 		case _err:
-			response.setHTTPStatus("404", "Not found", this->_status_pages);
-			return;
+			http_stream.setHTTPStatus("404", "Not found");
+			return Ready;
 		case _file:
-			this->setContentType(get_file_ext(DEFAULT_ROOT + request.getURI()), response);
-			response.setHTTPStatus("200", "Ok", this->_status_pages);
+			this->setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
+			http_stream.setHTTPStatus("200", "Ok");
 		}
 	}
 	else
-		return response.setHTTPStatus("405", "Method Not Allowed", this->_status_pages);
+		return http_stream.setHTTPStatus("405", "Method Not Allowed"), Ready;
+	return Ready;
+}
+
+async::Future::Poll StaticBackend::setBodyWriter() throw(async::OsError)
+{
+	if (_response_body == NULL)
+	{
+		if (this->_file_ok && http_stream.poll_send_headers(_sb.st_size, _response_body) == Pending)
+			return Pending;
+		if (!this->_file_ok && http_stream.poll_send_headers(_sb.st_size, _response_body) == Pending)
+			return Pending;
+	}
+	return Ready;
+}
+
+async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
+{
+	if (this->_file_stream.is_open())
+	{
+		std::vector<uint8_t> buf = this->_file_stream.peek_str(4096);
+		size_t				 s;
+
+		while (!this->_file_stream.end())
+		{
+			buf = this->_file_stream.peek_str(4096);
+			if (_response_body->poll_write(container::Slice<uint8_t>(&buf[0], buf.size()), s) == async::Future::Pending)
+				return (Pending);
+			this->_file_stream.consume(s);
+		}
+		if (this->_response_body->poll_flush() == Pending)
+			return (Pending);
+	}
+	return (Ready);
+}
+
+async::Future::Poll StaticBackend::poll() throw(async::OsError)
+{
+	if (!_response_set && this->setResponse() == Pending) // ATTENTION AU RERENTRAGE
+		return (Pending);
+	_response_set = true;
+	if (this->setBodyWriter() == Pending)
+		return (Pending);
+	if (this->_response_body && this->sendResponse() == Pending)
+		return (Pending);
+	return (Ready);
 }
 
 t_file_status StaticBackend::openFile(std::string const &path, Response &response)
@@ -147,6 +192,6 @@ t_file_status StaticBackend::openFile(std::string const &path, Response &respons
 	std::ostringstream oss;
 	oss << this->_sb.st_size;
 	response.addHeader("Content-Length", oss.str());
-	response.setBodyFd(fd);
+	_file_stream.clear(fd);
 	return (_open);
 }

@@ -5,22 +5,30 @@
 #include <string>
 #include <sys/stat.h>
 #include "ABackend.hpp"
-
+#include "HTTPStream.hpp"
 
 class StaticBackend : public ABackend
 {
 public:
-	StaticBackend(Request const &request, std::string const &root, Response &response, async::Reactor &reactor, async::BufIo<> &io,
-				  std::map<std::string, std::string> const &status_pages);
+	StaticBackend(std::string const &root, HTTPStream &http_stream);
 	~StaticBackend(void);
 
-	void generateResponse(Request const &request, Response &response, async::Reactor &Reactor, async::BufIo<> &io);
+	Poll setResponse() throw(async::OsError);
+	Poll setBodyWriter() throw(async::OsError);
+	Poll sendResponse() throw(async::OsError);
+	Poll poll() throw(async::OsError);
 
 private:
 	void		  setContentType(std::string const &file_ext, Response &response);
 	t_file_status openFile(std::string const &path, Response &response);
 
-	struct stat _sb;
+	struct stat	   _sb;
+	bool		   _file_ok;
+	bool		   _response_set;
+	std::string	   root;
+	HTTPStream	  &http_stream;
+	AResponseBody *_response_body;
+	FdStream	   _file_stream;
 };
 
 #endif

@@ -6,17 +6,90 @@
 #include "webserv.h"
 
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream) :
-	_args(args), _cgi_io(NULL), _root(root), _reactor(reactor), stream(stream), response_body(NULL), _client_body_sent(false), _response_headers_read_done(false),
-	_status_set(false), _status(_init), _content_length(-1), _response_buf_len(0), _response_buf_index(0), _response_body_read_done(false)
+	_root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream), response_body(NULL), _client_body_sent(false), _response_headers_read_done(false),
+	_status_set(false), _content_length(-1), _status(_init), _response_buf_len(0), _response_buf_index(0), _response_body_read_done(false)
 {
 }
-
 
 CGIBackend::~CGIBackend(void)
 {
 	delete _cgi_io;
 	delete client_body_to_cgi;
 }
+
+async::Future::Poll CGIBackend::poll() throw(async::OsError)
+{
+	if (_status == _init)
+		init();
+	send_client_body_to_cgi();
+	read_cgi_headers();
+	if (set_body_writer() == Ready)
+		return Ready;
+	if (send_body() == Ready)
+		return Ready;
+	return Pending;
+}
+
+bool CGIBackend::parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value)
+{
+	if (raw_line.empty())
+		return false;
+
+	std::string line(reinterpret_cast<const char *>(&raw_line[0]), raw_line.size());
+
+	while (!line.empty() && (line.at(line.size() - 1) == '\n' || line.at(line.size() - 1) == '\r'))
+		line.erase(line.size() - 1);
+
+	if (line.empty())
+		return false;
+
+	size_t colon_pos = line.find(':');
+	if (colon_pos == std::string::npos || colon_pos == 0)
+		return false;
+
+	size_t key_start = 0;
+	size_t key_end	 = colon_pos;
+
+	while (key_end > key_start && (line[key_end - 1] == ' ' || line[key_end - 1] == '\t'))
+		--key_end;
+
+	if (key_start == key_end)
+		return false;
+
+	size_t val_start = colon_pos + 1;
+	size_t val_end	 = line.size();
+
+	while (val_start < val_end && (line[val_start] == ' ' || line[val_start] == '\t'))
+		++val_start;
+	while (val_end > val_start && (line[val_end - 1] == ' ' || line[val_end - 1] == '\t'))
+		--val_end;
+	key	  = line.substr(key_start, key_end - key_start);
+	value = line.substr(val_start, val_end - val_start);
+
+	return true;
+}
+
+void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message)
+{
+	status_code.clear();
+	status_message.clear();
+
+	std::string::size_type space_pos = status_value.find(' ');
+
+	if (space_pos == std::string::npos)
+		status_code = status_value;
+	else
+	{
+		status_code						 = status_value.substr(0, space_pos);
+		std::string::size_type msg_start = space_pos;
+		while (msg_start < status_value.size() && (status_value[msg_start] == ' ' || status_value[msg_start] == '\t'))
+			++msg_start;
+
+		if (msg_start < status_value.size())
+			status_message = status_value.substr(msg_start);
+	}
+}
+
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
@@ -126,25 +199,11 @@ void CGIBackend::init()
 	_status = _processing;
 }
 
-async::Future::Poll CGIBackend::poll() throw(async::OsError)
-{
-	if (_status == _init)
-		init();
-	send_client_body_to_cgi();
-	read_cgi_headers();
-	if (set_body_writer() == Ready)
-		return Ready;
-	if (send_body() == Ready)
-		return Ready;
-	return Pending;
-}
-
 void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 {
 	if (!_client_body_sent && client_body_to_cgi->poll() == async::Future::Ready)
-		_client_body_sent == true;
+		_client_body_sent = true;
 }
-
 
 void CGIBackend::read_cgi_headers() throw(async::OsError)
 {
@@ -155,7 +214,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
 			if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
 			{
 				if (_status_set)
-					stream.response.setHTTPStatus("200", "Ok", *stream.status_pages);
+					stream.setHTTPStatus("200", "Ok");
 				_response_headers_read_done = true;
 			}
 			else
@@ -169,7 +228,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
 						{
 							std::string status_value, status_code;
 							parse_cgi_status_value(value, status_value, status_code);
-							stream.response.setHTTPStatus(status_value, status_code, *stream.status_pages);
+							stream.setHTTPStatus(status_value, status_code);
 							_status_set = true;
 						}
 						else if (key == "content-length" && _content_length == -1)
@@ -181,66 +240,6 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
 			}
 			header_line.clear();
 		}
-	}
-}
-
-bool CGIBackend::parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value)
-{
-	if (raw_line.empty())
-		return false;
-
-	std::string line(reinterpret_cast<const char *>(&raw_line[0]), raw_line.size());
-
-	while (!line.empty() && (line.at(line.size() - 1) == '\n' || line.at(line.size() - 1) == '\r'))
-		line.erase(line.size() - 1);
-
-	if (line.empty())
-		return false;
-
-	size_t colon_pos = line.find(':');
-	if (colon_pos == std::string::npos || colon_pos == 0)
-		return false;
-
-	size_t key_start = 0;
-	size_t key_end	 = colon_pos;
-
-	while (key_end > key_start && (line[key_end - 1] == ' ' || line[key_end - 1] == '\t'))
-		--key_end;
-
-	if (key_start == key_end)
-		return false;
-
-	size_t val_start = colon_pos + 1;
-	size_t val_end	 = line.size();
-
-	while (val_start < val_end && (line[val_start] == ' ' || line[val_start] == '\t'))
-		++val_start;
-	while (val_end > val_start && (line[val_end - 1] == ' ' || line[val_end - 1] == '\t'))
-		--val_end;
-	key	  = line.substr(key_start, key_end - key_start);
-	value = line.substr(val_start, val_end - val_start);
-
-	return true;
-}
-
-void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message)
-{
-	status_code.clear();
-	status_message.clear();
-
-	std::string::size_type space_pos = status_value.find(' ');
-
-	if (space_pos == std::string::npos)
-		status_code = status_value;
-	else
-	{
-		status_code						 = status_value.substr(0, space_pos);
-		std::string::size_type msg_start = space_pos;
-		while (msg_start < status_value.size() && (status_value[msg_start] == ' ' || status_value[msg_start] == '\t'))
-			++msg_start;
-
-		if (msg_start < status_value.size())
-			status_message = status_value.substr(msg_start);
 	}
 }
 

@@ -40,13 +40,10 @@ public:
 	std::string const &getHTTPStatus(void);
 	std::string		   getIp(void);
 	void			   setHTTPVersion(std::string const &http_version);
-	void			   setHTTPStatus(std::string const &status, std::string const &message, std::map<std::string, std::string> const &status_pages);
 	void			   setHttpVersion(std::string const &http_version);
 	;
-	void setBodyFd(int const &fd);
 
 	t_send_status		 send_status;
-	FdStream			 file_stream;
 	std::string			 head;
 	std::string			 body;
 	size_t				 header_read_index;
@@ -59,8 +56,6 @@ public:
 	std::string			 http_status;
 	std::vector<uint8_t> send_buf;
 	struct stat			 sb;
-	async::Future		*backend;
-	async::BufIo<>		*io_body;
 };
 
 #endif
