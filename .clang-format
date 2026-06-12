@@ -1,0 +1,10 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++03 # space between > >
+ColumnLimit: 100
+InsertNewlineAtEOF: true
+IndentWidth: 4
+BreakBeforeBraces: Allman
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
