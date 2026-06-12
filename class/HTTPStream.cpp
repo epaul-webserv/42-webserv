@@ -1,7 +1,9 @@
 #include "HTTPStream.hpp"
+#include "webserv.h"
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len, Router *router) :
-	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request), _reactor(&reactor)
+	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request), _reactor(&reactor), _headers_status(_initializing_headers),
+	_headers_sent_bytes(0)
 {
 	if (!this->router)
 		throw(std::runtime_error("Cannot initialize HTTPStream with NULL router"));
@@ -9,7 +11,7 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage 
 
 HTTPStream::HTTPStream(HTTPStream const &other) :
 	response(other.response), request(other.request), router(other.router), addr(other.addr), addr_len(other.addr_len), buf(other.buf), buf_io(other.buf_io),
-	_status(other._status), _reactor(other._reactor)
+	_status(other._status), _reactor(other._reactor), _headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes)
 {
 }
 
@@ -68,12 +70,12 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	{
 		container::Slice<uint8_t> slice(NULL, 0);
 
-		if (this->response.sendResponse(buf_io))
-		{
-			if (this->request.getHTTPVersion() == "HTTP/1.1" && this->request.peekHeader("connection") != "close")
-				return (this->keepAlive(), Future::Pending);
-			return (Future::Ready);
-		}
+		// if (this->response.sendResponse(buf_io)) FIXME: Implement new api
+		// {
+		// 	if (this->request.getHTTPVersion() == "HTTP/1.1" && this->request.peekHeader("connection") != "close")
+		// 		return (this->keepAlive(), Future::Pending);
+		// 	return (Future::Ready);
+		// }
 	}
 	return (Future::Pending);
 }
@@ -84,4 +86,19 @@ async::Future::Poll HTTPStream::keepAlive(void)
 	this->response.clear();
 	this->_status = _fetching_request;
 	return (this->poll());
+}
+
+void HTTPStream::headersAddBase()
+{
+	std::ostringstream head;
+
+	if (request.http_version == "HTTP/0.9")
+		return;
+	head << request.http_version + " " + response.http_status << "\r\n";
+	head << "Server: " << PROGNAME << "\r\n";
+	head << "Date: " << Date().str() << "\r\n";
+	if (response.content_length)
+		head << "Content-Length: " << response.content_length << "\r\n";
+	response.head.insert(0, head.str());
+	response.head.append("\r\n");
 }

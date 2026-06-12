@@ -48,12 +48,12 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 	// case _static:
 	// 	backend = new StaticBackend(request, root, response, reactor, io, status_pages);
 	case _cgi:
-		backend = new CGIBackend(args, request, root, response, reactor, io, status_pages);
+		backend = new CGIBackend(args, root, reactor, http_stream);
 		break;
 		// case _dir_index:
 		// 	backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
 	default:
-		backend = new CGIBackend(args, request, root, response, reactor, io, status_pages);
+		backend = new CGIBackend(args, root, reactor, http_stream);
 	}
 	if (!backend)
 	{

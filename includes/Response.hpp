@@ -33,8 +33,6 @@ public:
 	~Response(void);
 
 	void			   clear();
-	bool			   sendResponse(async::BufIo<> &client_io);
-	bool			   ready(void);
 	void			   headAppend(std::string const &resp);
 	void			   bodyAppend(std::string const &resp);
 	void			   addHeader(std::string const &key, std::string const &value);
@@ -45,31 +43,24 @@ public:
 	void			   setHTTPStatus(std::string const &status, std::string const &message, std::map<std::string, std::string> const &status_pages);
 	void			   setHttpVersion(std::string const &http_version);
 	;
-	void setGenerator(Request const &request, Response &response, async::Reactor &reactor, async::BufIo<> &bodyIo, int cgi_in_fd, int cgi_out_fd);
 	void setBodyFd(int const &fd);
-	void pollGenerator();
 
-private:
-	void addBase(void);
-	bool sendHead(async::BufIo<> &client_io);
-	bool sendBody(async::BufIo<> &client_io);
-
-	t_send_status		 _send_status;
-	FdStream			 _file_stream;
-	std::string			 _head;
-	std::string			 _body;
-	size_t				 _header_read_index;
-	size_t				 _header_write_index;
-	size_t				 _body_read_index;
-	size_t				 _body_write_index;
-	size_t				 _content_length;
-	size_t				 _sent_bytes;
-	std::string			 _http_version;
-	std::string			 _http_status;
-	std::vector<uint8_t> _send_buf;
-	struct stat			 _sb;
-	async::Future		*_backend;
-	async::BufIo<>		*_io_body;
+	t_send_status		 send_status;
+	FdStream			 file_stream;
+	std::string			 head;
+	std::string			 body;
+	size_t				 header_read_index;
+	size_t				 header_write_index;
+	size_t				 body_read_index;
+	size_t				 body_write_index;
+	size_t				 content_length;
+	size_t				 sent_bytes;
+	std::string			 http_version;
+	std::string			 http_status;
+	std::vector<uint8_t> send_buf;
+	struct stat			 sb;
+	async::Future		*backend;
+	async::BufIo<>		*io_body;
 };
 
 #endif

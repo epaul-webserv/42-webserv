@@ -57,7 +57,6 @@ public:
 
 	size_t _body_read_index;
 
-private:
 	t_request_state readFirstLine(void);
 	t_request_state readHeaders(void);
 	t_request_state readFirstLine(async::BufIo<> &client_io);
@@ -66,11 +65,11 @@ private:
 	bool _first_line_read;
 	char _buffer[MAX_REQUEST_SIZE + 1];
 	// size_t							   _write_index;
-	std::string						   _method;
-	std::string						   _URI;
-	std::string						   _query_string;
-	std::string						   _http_version;
-	std::map<std::string, std::string> _headers;
+	std::string						   method;
+	std::string						   URI;
+	std::string						   query_string;
+	std::string						   http_version;
+	std::map<std::string, std::string> headers;
 	// StaticResponse                     _response;
 };
 
