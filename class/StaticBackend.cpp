@@ -43,7 +43,7 @@ void StaticBackend::setContentType(std::string const &file_ext, Response &respon
 {
 	std::string mime_type = MimeType::mime_type[file_ext];
 
-	if (MimeType::mime_type.empty())
+	if (mime_type.empty())
 		mime_type = "application/octet-stream";
 	response.addHeader("Content-Type", mime_type);
 }
