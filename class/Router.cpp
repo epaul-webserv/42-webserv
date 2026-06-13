@@ -90,8 +90,7 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
 
 RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &http_stream) const
 {
-	RouterNode										 *server_node = NULL;
-	std::map<std::string, RouterNode>::const_iterator it		  = this->_servers.find(host);
+	std::map<std::string, RouterNode>::const_iterator it = this->_servers.find(host);
 
 	if (it == this->_servers.end())
 	{
@@ -134,8 +133,6 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 		matching_sub_node = matchSubPath(URI, serv.sub_nodes);
 	if (matching_sub_node)
 		return (defineRuleset(URI, *matching_sub_node, ruleset));
-	if (!serv.accepted_methods.empty())
-		ruleset.accepted_methods = serv.accepted_methods;
 	return (ruleset);
 }
 
@@ -152,8 +149,7 @@ static std::vector<std::string>::const_iterator find(std::vector<std::string> co
 	return (it);
 }
 
-ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, async::BufIo<> &io,
-								HTTPStream &http_stream) const
+ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, HTTPStream &http_stream) const
 {
 	std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
 	if (find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
@@ -200,7 +196,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 }
 
 /// @return ABackend pointer OR NULL if response has been set.
-ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, async::BufIo<> &io, HTTPStream &http_stream) const
+ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream) const
 {
 	RouterRuleset ruleset;
 
@@ -211,7 +207,7 @@ ABackend *Router::resolve(Request &request, Response &response, async::Reactor &
 	if (!validateRequest(request, response, http_stream))
 		return (NULL);
 	ruleset = defineRuleset(request.getURI(), *serv, ruleset);
-	return (defineBackend(request, response, ruleset, reactor, io, http_stream));
+	return (defineBackend(request, response, ruleset, reactor, http_stream));
 }
 
 void Router::addServ(std::string const &domain, RouterNode const &node) { this->_servers.insert(std::pair<std::string, RouterNode>(domain, node)); }
