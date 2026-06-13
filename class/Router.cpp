@@ -119,6 +119,8 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 	RouterNode const *matching_sub_node = NULL;
 
 	ruleset.list_directories = serv.list_directories;
+	if (!serv.accepted_methods.empty())
+		ruleset.accepted_methods = serv.accepted_methods;
 	if (!serv.root.empty())
 		ruleset.root = serv.root;
 	ruleset.redirects.insert(serv.redirects.begin(), serv.redirects.end());
