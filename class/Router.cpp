@@ -183,6 +183,9 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 			request.setURI(ruleset.dir_file);
 			return (getBackend(_static, std::vector<std::string>(), "", reactor, http_stream));
 		}
+		http_stream.setHTTPStatus("403", "Forbidden");
+		// FIXME: ADD DEFAULT INDEX PAGES
+		return (NULL);
 	}
 	else
 	{
