@@ -49,7 +49,7 @@ void Response::headAppend(std::string const &content)
 		this->head.push_back('\n');
 }
 
-void Response::addHeader(std::string const &key, std::string const &value) { this->head.append(key + ": " + value + "\r\n"); }
+void Response::addHeader(std::string const &key, std::string const &value) { this->headers[key] = value; }
 
 std::string const &Response::getHTTPVersion(void) { return (this->http_version); }
 

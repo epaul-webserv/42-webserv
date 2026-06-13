@@ -55,7 +55,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	}
 	if (this->_status == _getting_backend)
 	{
-		_backend	  = this->router->resolve(this->request, this->response, *this->_reactor, this->buf_io, *this);
+		_backend	  = this->router->resolve(this->request, this->response, *this->_reactor, *this);
 		this->_status = _processing_response;
 	}
 	if (this->_status == _processing_response)
@@ -94,7 +94,14 @@ void HTTPStream::headersAddBase()
 	head << "Server: " << PROGNAME << "\r\n";
 	head << "Date: " << Date().str() << "\r\n";
 	if (response.content_length)
-		head << "Content-Length: " << response.content_length << "\r\n";
+	{
+		std::ostringstream tmp;
+		tmp << response.content_length;
+		response.headers["Content-Length"] = tmp.str();
+	}
+	std::map<std::string, std::string>::const_iterator ite = response.headers.end();
+	for (std::map<std::string, std::string>::const_iterator it = response.headers.begin(); it != ite; ++it)
+		head << it->first << ": " << it->second << "\r\n";
 	response.head.insert(0, head.str());
 	response.head.append("\r\n");
 }
