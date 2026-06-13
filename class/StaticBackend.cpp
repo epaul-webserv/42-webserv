@@ -139,7 +139,7 @@ async::Future::Poll StaticBackend::setBodyWriter() throw(async::OsError)
 	{
 		if (this->_file_ok && http_stream.poll_send_headers(_sb.st_size, _response_body) == Pending)
 			return Pending;
-		if (!this->_file_ok && http_stream.poll_send_headers(_sb.st_size, _response_body) == Pending)
+		if (!this->_file_ok && http_stream.poll_send_headers(0, _response_body) == Pending)
 			return Pending;
 	}
 	return Ready;
