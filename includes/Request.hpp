@@ -55,7 +55,6 @@ public:
 		const char *what(void) const throw();
 	};
 
-	size_t _body_read_index;
 
 	t_request_state readFirstLine(void);
 	t_request_state readHeaders(void);
@@ -63,12 +62,12 @@ public:
 	t_request_state readHeaders(async::BufIo<> &client_io);
 
 	bool							   _first_line_read;
-	char							   _buffer[MAX_REQUEST_SIZE + 1];
 	std::string						   method;
 	std::string						   URI;
 	std::string						   query_string;
 	std::string						   http_version;
 	std::map<std::string, std::string> headers;
+	size_t							   _body_read_index;
 };
 
 #endif

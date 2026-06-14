@@ -31,12 +31,12 @@ void Response::clear()
 	this->send_status = _first_step;
 	this->head.clear();
 	this->body.clear();
-	this->header_read_index	 = 0;
-	this->header_write_index = 0;
-	this->body_read_index	 = 0;
-	this->body_write_index	 = 0;
-	this->sent_bytes		 = 0;
-	this->content_length	 = 0;
+	this->headers.clear();
+	this->content_length = 0;
+	this->sent_bytes	 = 0;
+	this->http_version.clear();
+	this->http_status.clear();
+	this->send_buf.clear();
 	bzero(&this->sb, sizeof(this->sb));
 }
 
