@@ -4,7 +4,6 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "MimeType.hpp"
 #include "url_utils.hpp"
 #include "webserv.h"
 
