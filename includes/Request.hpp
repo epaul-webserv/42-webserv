@@ -37,10 +37,9 @@ public:
 	Request(int fd);
 	~Request(void);
 
-	Request const  &operator=(const Request &Request);
+	Request		   &operator=(const Request &Request);
 	void			clear();
 	void			prepareNextRead(void);
-	t_request_state readRequest(char *buffer, size_t read_bytes);
 	t_request_state readRequest(async::BufIo<> &client_io);
 	std::string		peekHeader(std::string const key = "") const;
 	std::string		getHeader(std::string const key = "");

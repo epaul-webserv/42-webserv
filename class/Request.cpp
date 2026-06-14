@@ -14,7 +14,7 @@ Request::Request(Request const &Request) :
 
 Request::~Request(void) {}
 
-Request const &Request::operator=(Request const &Request)
+Request &Request::operator=(Request const &Request)
 {
 	this->method		   = Request.method;
 	this->URI			   = Request.URI;
@@ -32,9 +32,7 @@ void Request::clear()
 	this->URI.clear();
 	this->query_string.clear();
 	this->http_version.clear();
-	this->_first_line_read = false;
 	this->headers.clear();
-	*this->_buffer		   = '\0';
 	this->_body_read_index = 0;
 }
 
