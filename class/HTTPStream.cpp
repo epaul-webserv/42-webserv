@@ -44,7 +44,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	container::Slice<uint8_t> buf_slice((uint8_t *)parts[0].iov_base, parts[0].iov_len);
 	if (this->_status == _fetching_request)
 	{
-
 		t_request_state state = this->request.readRequest(this->buf_io);
 		if (state == _reading)
 			return (Future::Pending);
@@ -69,7 +68,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 		}
 		if (_backend && _backend->poll() == Pending)
 			return (Pending);
-		if (this->request.getHTTPVersion() == "HTTP/1.1" && this->request.peekHeader("connection") != "close")
+		if (this->request.getHTTPVersion() == "HTTP/1.1" && this->response.headers["Connection"] != "close")
 			return (this->keepAlive(), Future::Pending);
 		return (Future::Ready);
 	}
