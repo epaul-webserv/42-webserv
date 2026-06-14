@@ -12,12 +12,20 @@ enum e_redirect_type
 	_temporary
 };
 
+enum e_switch
+{
+	_inherit,
+	_true,
+	_false
+};
+
 struct RouterNode
 {
-	RouterNode(void) : list_directories(false), location("/"), root(DEFAULT_ROOT) {}
-	RouterNode(std::string const &location) : list_directories(false), location(location) {}
+	RouterNode(void) : list_directories(_false), file_upload(_false), location("/"), root(DEFAULT_ROOT) {}
+	RouterNode(std::string const &location) : list_directories(_false), file_upload(_false), location(location) {}
 
-	bool															list_directories;
+	e_switch														list_directories;
+	e_switch														file_upload;
 	std::string const												location;
 	std::string														root; // path to the root of the files to serve, inactive if empty
 	std::map<std::string, RouterNode>								sub_nodes; // relative (to active node URI) URI of a sub path, leading to another rule subset
@@ -28,6 +36,7 @@ struct RouterNode
 		backend_rules; // List of accessible backends (file extension, backend type and backend arguments first one being the absolute path to the executable if
 	// applicable)
 	std::vector<std::string> accepted_methods;
+	// FIXME: ADD DEFAULT INDEX PAGES
 };
 
 #endif

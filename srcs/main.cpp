@@ -14,6 +14,7 @@
 #include <async>
 #include "HTTPStream.hpp"
 #include "Router.hpp"
+#include "webserv.h"
 
 class Acceptor : public async::Future
 {
@@ -32,7 +33,6 @@ public:
 		socklen_t				addr_len = sizeof(addr);
 		char					host[1024];
 		char					port[32];
-
 
 		while (accept.poll_accept((struct sockaddr *)&addr, &addr_len, fd) == Future::Ready)
 		{
@@ -102,10 +102,21 @@ int main(int ac, char **av)
 	std::pair<t_backend_type, std::vector<std::string> >						  backend_pair(_cgi, php_args);
 	std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule("php", backend_pair);
 	test.backend_rules.insert(backend_rule);
+	// test.backend_rules.insert(std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > >(
+	// 	"txt", std::pair<t_backend_type, std::vector<std::string> >(_upload, std::vector<std::string>())));
 	test.accepted_methods.push_back("GET");
+	test.accepted_methods.push_back("POST");
+	test.file_upload = _true;
 	test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
 		"/logan", std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
 	router.addServ("localhost:33000", test);
+
+	MimeType::mime_type["html"] = "text/html";
+	MimeType::mime_type["png"]	= "image/png";
+	MimeType::mime_type["jpg"]	= "image/jpg";
+	MimeType::mime_type["svg"]	= "image/svg+xml";
+	MimeType::mime_type["mkv"]	= "video/x-matroska";
+	MimeType::mime_type["txt"]	= "text/plain";
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family	   = AF_UNSPEC;

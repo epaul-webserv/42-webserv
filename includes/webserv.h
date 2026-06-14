@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include "Date.hpp"
+#include "MimeType.hpp"
 #include "default_conf.hpp"
 #include "html_generator.hpp"
 
