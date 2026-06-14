@@ -1,24 +1,17 @@
 #include "Response.hpp"
-#include <async>
-#include <cstring>
 #include <fcntl.h>
-#include <stdexcept>
 #include <strings.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include "webserv.h"
 
-Response::Response(void) : send_status(_first_step), content_length(0), sent_bytes(0) { bzero(&this->sb, sizeof(this->sb)); }
+Response::Response() : send_status(_first_step), content_length(0), sent_bytes(0), sb() { bzero(&this->sb, sizeof(this->sb)); }
 
 Response::Response(Response const &Response) :
 	send_status(Response.send_status), head(Response.head), body(Response.body), content_length(Response.content_length), sent_bytes(Response.sent_bytes),
 	http_version(Response.http_version), http_status(Response.http_status), sb(Response.sb) // FIXME: copy of response generator and io body
 {
-	// if (Response._io_body)
-	// 	this->_io_body = new async::BufIo<>(*Response._io_body);
 }
 
-Response::~Response(void) {}
+Response::~Response() {}
 
 void Response::clear()
 {
@@ -45,9 +38,9 @@ void Response::headAppend(std::string const &content)
 
 void Response::addHeader(std::string const &key, std::string const &value) { this->headers[key] = value; }
 
-std::string const &Response::getHTTPVersion(void) { return (this->http_version); }
+std::string const &Response::getHTTPVersion() const { return (this->http_version); }
 
-void Response::setHTTPVersion(std::string const &http_version) { this->http_version = http_version; }
+void Response::setHTTPVersion(std::string const &new_http_version) { this->http_version = new_http_version; }
 
 void Response::bodyAppend(std::string const &content)
 {
@@ -55,13 +48,4 @@ void Response::bodyAppend(std::string const &content)
 	this->content_length += content.size();
 }
 
-void Response::setHttpVersion(std::string const &http_version)
-{
-	if (http_version != "HTTP/1.0" && http_version != "HTTP/1.1")
-	{
-		throw(std::runtime_error("Invalid HTTP version"));
-	}
-	this->http_version = http_version;
-}
-
-std::string const &Response::getHTTPStatus(void) { return (this->http_status); }
+std::string const &Response::getHTTPStatus() const { return (this->http_status); }

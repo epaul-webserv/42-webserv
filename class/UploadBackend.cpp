@@ -2,9 +2,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <strings.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include "url_utils.hpp"
 #include "webserv.h"
 
 UploadBackend::UploadBackend(std::string const &root, HTTPStream &http_stream, ARequestBody &request_body) :
@@ -14,29 +11,6 @@ UploadBackend::UploadBackend(std::string const &root, HTTPStream &http_stream, A
 }
 
 UploadBackend::~UploadBackend() {}
-
-static t_file_type fileType(std::string const &path, std::string const &root)
-{
-	struct stat s = {};
-
-	if (stat((root + path).c_str(), &s) == -1)
-	{
-		if (errno == EACCES)
-			return (_no_access);
-		if (errno == ENOMEM)
-			return (_err);
-		return (_none);
-	}
-	switch (s.st_mode & S_IFMT)
-	{
-	case S_IFDIR:
-		return (_dir);
-	case S_IFREG:
-		return (_file);
-	default:
-		return (_none);
-	}
-}
 
 t_file_status UploadBackend::openFile(std::string const &URI)
 {
@@ -77,7 +51,7 @@ async::Future::Poll UploadBackend::setResponse() throw(async::OsError)
 {
 	if (http_stream.request.getMethod() == "POST")
 	{
-		t_file_status status = openFile(http_stream.request.getURI());
+		const t_file_status status = openFile(http_stream.request.getURI());
 		switch (status)
 		{
 		case _no_permission:

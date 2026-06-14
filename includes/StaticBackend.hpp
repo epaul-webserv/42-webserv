@@ -11,7 +11,7 @@ class StaticBackend : public ABackend
 {
 public:
 	StaticBackend(std::string const &root, HTTPStream &http_stream);
-	~StaticBackend(void);
+	~StaticBackend();
 
 	Poll setResponse() throw(async::OsError);
 	Poll setBodyWriter() throw(async::OsError);
@@ -19,7 +19,7 @@ public:
 	Poll poll() throw(async::OsError);
 
 private:
-	void		  setContentType(std::string const &file_ext, Response &response);
+	static void	  setContentType(std::string const &file_ext, Response &response);
 	t_file_status openFile(std::string const &path, Response &response);
 
 	struct stat	   _sb;

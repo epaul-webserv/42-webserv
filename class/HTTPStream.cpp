@@ -1,7 +1,7 @@
 #include "HTTPStream.hpp"
 #include "webserv.h"
 
-HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len, Router *router) :
+HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr, socklen_t addr_len, Router *router) :
 	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _request_body(buf_io), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
 	_headers_status(_initializing_headers), _headers_sent_bytes(0)
 {
@@ -76,7 +76,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 	return (Future::Ready);
 }
 
-async::Future::Poll HTTPStream::keepAlive(void)
+async::Future::Poll HTTPStream::keepAlive()
 {
 	this->request.clear();
 	this->response.clear();
