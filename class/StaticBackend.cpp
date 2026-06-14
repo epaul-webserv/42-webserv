@@ -1,19 +1,16 @@
 #include "StaticBackend.hpp"
-#include <cstring>
 #include <fcntl.h>
 #include <strings.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include "url_utils.hpp"
 #include "webserv.h"
 
 StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream) :
-	_file_ok(false), _response_set(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
+	_sb(), _file_ok(false), _response_set(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
 
-StaticBackend::~StaticBackend(void) {}
+StaticBackend::~StaticBackend() {}
 
 static t_file_type fileType(std::string const &path, std::string const &root)
 {
@@ -49,8 +46,8 @@ void StaticBackend::setContentType(std::string const &file_ext, Response &respon
 
 static bool consume_body(Request &request, async::BufIo<> &client_io)
 {
-	char  *end;
-	size_t to_read = std::strtoul(request.peekHeader("Content-Length").c_str(), &end, 10);
+	char		*end;
+	const size_t to_read = std::strtoul(request.peekHeader("Content-Length").c_str(), &end, 10);
 
 	if (request._body_read_index < to_read)
 	{
@@ -99,7 +96,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 		case _no_permission:
 			return http_stream.setHTTPStatus("403", "Forbidden"), Ready;
 		default:
-			this->setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
+			setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
 			http_stream.setHTTPStatus("200", "Ok");
 			this->_file_ok = true;
 			return Ready;
@@ -117,13 +114,11 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 			http_stream.setHTTPStatus("403", "Forbidden");
 			return Ready;
 		case _none:
-			http_stream.setHTTPStatus("404", "Not found");
-			return Ready;
 		case _err:
 			http_stream.setHTTPStatus("404", "Not found");
 			return Ready;
 		case _file:
-			this->setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
+			setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
 			http_stream.setHTTPStatus("200", "Ok");
 		}
 	}

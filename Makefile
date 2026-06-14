@@ -3,7 +3,6 @@ CXXFLAGS += -g3 -Wall -Wextra -std=c++98
 
 SRCS_DIR = srcs
 SRCS = main.cpp \
-		init.cpp \
 		html_generator/html_error.cpp \
 		html_generator/html_dir.cpp \
 		string_overload/string_overload.cpp \

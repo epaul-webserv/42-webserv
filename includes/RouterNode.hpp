@@ -21,7 +21,7 @@ enum e_switch
 
 struct RouterNode
 {
-	RouterNode(void) : list_directories(_false), file_upload(_false), location("/"), root(DEFAULT_ROOT) {}
+	RouterNode() : list_directories(_false), file_upload(_false), location("/"), root(DEFAULT_ROOT) {}
 	RouterNode(std::string const &location) : list_directories(_false), file_upload(_false), location(location) {}
 
 	e_switch														list_directories;

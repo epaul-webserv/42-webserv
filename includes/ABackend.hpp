@@ -24,7 +24,7 @@ class ABackend : public async::Future
 	// 			 std::map<std::string, std::string> const status_pages);
 
 public:
-	virtual ~ABackend(void);
+	virtual ~ABackend();
 	virtual Poll poll() = 0;
 };
 

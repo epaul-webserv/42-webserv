@@ -1,23 +1,26 @@
 #include "../includes/FdStream.hpp"
 
-FdStream::FdStream(int fd) : _end(false), _fd(fd), _read_index(0), _write_index(0) {}
+FdStream::FdStream(int fd) : _end(false), _fd(fd), _buffer(), _read_index(0), _write_index(0) {}
 
-FdStream::~FdStream(void)
+FdStream::~FdStream()
 {
 	if (this->_fd > 2)
 		close(this->_fd);
 }
-FdStream &FdStream::operator=(FdStream const &FdStream)
+FdStream &FdStream::operator=(FdStream const &other)
 {
-	this->_end = FdStream._end;
-	this->_fd  = FdStream._fd;
-	std::copy(FdStream._buffer, FdStream._buffer + FdStream._write_index, this->_buffer);
-	this->_read_index  = FdStream._read_index;
-	this->_write_index = FdStream._write_index;
+	if (this != &other)
+	{
+		this->_end = other._end;
+		this->_fd  = other._fd;
+		std::copy(other._buffer, other._buffer + other._write_index, this->_buffer);
+		this->_read_index  = other._read_index;
+		this->_write_index = other._write_index;
+	}
 	return *this;
 }
 
-bool FdStream::end(void) const
+bool FdStream::end() const
 {
 	if (this->_end && this->_write_index - this->_read_index == 0)
 		return (true);
@@ -53,8 +56,6 @@ std::vector<uint8_t> FdStream::peek_str(size_t n)
 
 std::string FdStream::get_str(size_t n)
 {
-	size_t sent_bytes = 0;
-
 	if (this->_read_index - this->_write_index >= n)
 	{
 		std::string ret(this->_buffer + this->_read_index, n);
@@ -71,7 +72,6 @@ std::string FdStream::get_str(size_t n)
 		size_t to_write = std::min(this->_write_index - this->_read_index, n);
 		ret.append(this->_buffer + this->_read_index, to_write);
 		this->_read_index += to_write;
-		sent_bytes += to_write;
 	}
 	return (ret);
 }
@@ -101,7 +101,7 @@ std::string FdStream::get_str_until(char c)
 	return (ret);
 }
 
-bool FdStream::is_open(void) const { return (this->_fd != -1); }
+bool FdStream::is_open() const { return (this->_fd != -1); }
 
 void FdStream::clear(int fd)
 {
@@ -113,7 +113,7 @@ void FdStream::clear(int fd)
 	this->_write_index = 0;
 }
 
-void FdStream::fillBuffer(void)
+void FdStream::fillBuffer()
 {
 	if (this->_write_index == FDSTREAM_BUFF_SIZE)
 		this->_write_index = 0;
@@ -130,6 +130,6 @@ void FdStream::fillBuffer(void)
 	this->_read_index		  = 0;
 }
 
-const char *FdStream::InvalidFdException::what(void) const throw() { return ("Invalid fd ?"); }
+const char *FdStream::InvalidFdException::what() const throw() { return ("Invalid fd ?"); }
 
-const char *FdStream::InvalidReadException::what(void) const throw() { return ("Error while reading"); }
+const char *FdStream::InvalidReadException::what() const throw() { return ("Error while reading"); }

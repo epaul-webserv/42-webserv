@@ -64,8 +64,8 @@ public:
 class HTTPStream : public async::Future
 {
 public:
-	HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len, Router *router);
-	HTTPStream(HTTPStream const &HTTPStream);
+	HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr, socklen_t addr_len, Router *router);
+	HTTPStream(HTTPStream const &other);
 	~HTTPStream();
 
 	HTTPStream		   &operator=(HTTPStream const &other);
@@ -96,7 +96,7 @@ public:
 		return async::Future::Ready;
 	}
 	Future::Poll poll() throw(async::OsError);
-	Future::Poll keepAlive(void);
+	Future::Poll keepAlive();
 	void		 setHTTPStatus(std::string const &status, std::string const &message);
 
 	Response						   response;
@@ -108,7 +108,7 @@ public:
 
 
 private:
-	HTTPStream(void);
+	HTTPStream();
 	void headersAddBase();
 	Poll sendHeaders() throw(async::OsError);
 

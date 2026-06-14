@@ -32,31 +32,27 @@ typedef enum
 class Request
 {
 public:
-	Request(void);
+	Request();
 	Request(const Request &Request);
-	Request(int fd);
-	~Request(void);
+	~Request();
 
 	Request		   &operator=(const Request &Request);
 	void			clear();
-	void			prepareNextRead(void);
+	void			prepareNextRead();
 	t_request_state readRequest(async::BufIo<> &client_io);
-	std::string		peekHeader(std::string const key = "") const;
-	std::string		getHeader(std::string const key = "");
-	std::string		getMethod(void) const;
-	std::string		getURI(void) const;
-	void			setURI(std::string const &URI);
-	std::string		getQueryString(void) const;
-	std::string		getHTTPVersion(void) const;
+	std::string		peekHeader(std::string const &key = "") const;
+	std::string		getHeader(std::string const &key = "");
+	std::string		getMethod() const;
+	std::string		getURI() const;
+	void			setURI(std::string const &new_URI);
+	std::string		getQueryString() const;
+	std::string		getHTTPVersion() const;
 
 	class InvalidReadException : public std::exception
 	{
-		const char *what(void) const throw();
+		const char *what() const throw();
 	};
 
-
-	t_request_state readFirstLine(void);
-	t_request_state readHeaders(void);
 	t_request_state readFirstLine(async::BufIo<> &client_io);
 	t_request_state readHeaders(async::BufIo<> &client_io);
 

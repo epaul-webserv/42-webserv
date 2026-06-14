@@ -28,19 +28,18 @@ typedef enum
 class Response
 {
 public:
-	Response(void);
+	Response();
 	Response(Response const &Response);
-	~Response(void);
+	~Response();
 
 	void			   clear();
 	void			   headAppend(std::string const &resp);
 	void			   bodyAppend(std::string const &resp);
 	void			   addHeader(std::string const &key, std::string const &value);
-	std::string const &getHTTPVersion(void);
-	std::string const &getHTTPStatus(void);
-	std::string		   getIp(void);
-	void			   setHTTPVersion(std::string const &http_version);
-	void			   setHttpVersion(std::string const &http_version);
+	std::string const &getHTTPVersion() const;
+	std::string const &getHTTPStatus() const;
+	std::string		   getIp();
+	void			   setHTTPVersion(std::string const &new_http_version);
 	;
 
 	t_send_status					   send_status;

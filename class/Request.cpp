@@ -4,7 +4,7 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-Request::Request(void) : _first_line_read(false), _body_read_index(0) {}
+Request::Request() : _first_line_read(false), _body_read_index(0) {}
 
 Request::Request(Request const &Request) :
 	_first_line_read(Request._first_line_read), method(Request.method), URI(Request.URI), http_version(Request.http_version), headers(Request.headers),
@@ -12,7 +12,7 @@ Request::Request(Request const &Request) :
 {
 }
 
-Request::~Request(void) {}
+Request::~Request() {}
 
 Request &Request::operator=(Request const &Request)
 {
@@ -36,7 +36,7 @@ void Request::clear()
 	this->_body_read_index = 0;
 }
 
-void Request::prepareNextRead(void)
+void Request::prepareNextRead()
 {
 	this->method.clear();
 	this->URI.clear();
@@ -112,7 +112,7 @@ t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 
 	if (client_io.poll_read_line(line) == async::Future::Ready)
 	{
-		if (line.size() == 0)
+		if (line.empty())
 			return (_close);
 		get_next_word(line, this->method);
 		if (this->method.empty())
@@ -133,19 +133,17 @@ t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 
 t_request_state Request::readHeaders(async::BufIo<> &client_io)
 {
-	std::vector<uint8_t>		   line;
-	std::vector<uint8_t>::iterator it;
-	std::vector<uint8_t>::iterator ite;
+	std::vector<uint8_t> line;
 
 	while (client_io.poll_read_line(line) == async::Future::Ready)
 	{
-		if (line.size() == 0)
+		if (line.empty())
 			return (_close);
-		ite = line.end();
+		std::vector<uint8_t>::iterator ite = line.end();
 		if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
 			return (_read);
-		it					   = std::find(line.begin(), line.end(), ':');
-		std::string header_key = get_next_word(line);
+		std::vector<uint8_t>::iterator it		  = std::find(line.begin(), line.end(), ':');
+		std::string					   header_key = get_next_word(line);
 		if (header_key.find(':') == std::string::npos)
 		{
 			this->headers.insert((std::pair<std::string, std::string>(header_key, "")));
@@ -165,7 +163,7 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 /// (use getHeader for deletion).
 /// @param key Key of the requested header, do not send to get the next header
 /// @return value of the requested header or empty string if it does not exist
-std::string Request::peekHeader(std::string const key) const
+std::string Request::peekHeader(std::string const &key) const
 {
 	std::map<std::string, std::string>::const_iterator it;
 
@@ -187,7 +185,7 @@ std::string Request::peekHeader(std::string const key) const
 /// (use peekHeader if this behavior is not desired).
 /// @param key Key of the requested header, do not send to get the next header
 /// @return value of the requested header or empty string if it does not exist
-std::string Request::getHeader(std::string const key)
+std::string Request::getHeader(std::string const &key)
 {
 	std::string ret = peekHeader(key);
 
@@ -195,14 +193,14 @@ std::string Request::getHeader(std::string const key)
 	return (ret);
 }
 
-std::string Request::getMethod(void) const { return (this->method); }
+std::string Request::getMethod() const { return (this->method); }
 
-std::string Request::getURI(void) const { return (this->URI); }
+std::string Request::getURI() const { return (this->URI); }
 
-void Request::setURI(std::string const &URI) { this->URI = URI; }
+void Request::setURI(std::string const &new_URI) { this->URI = new_URI; }
 
-std::string Request::getQueryString(void) const { return (this->query_string); }
+std::string Request::getQueryString() const { return (this->query_string); }
 
-std::string Request::getHTTPVersion(void) const { return (this->http_version); }
+std::string Request::getHTTPVersion() const { return (this->http_version); }
 
 const char *Request::InvalidReadException::what() const throw() { return ("Error while reading"); }

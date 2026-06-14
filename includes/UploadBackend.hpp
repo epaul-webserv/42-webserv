@@ -4,7 +4,6 @@
 #include <async>
 #include <fstream>
 #include <string>
-#include <sys/stat.h>
 #include "ABackend.hpp"
 #include "HTTPStream.hpp"
 
@@ -17,8 +16,6 @@ public:
 	async::Future::Poll writeFile();
 
 	Poll setResponse() throw(async::OsError);
-	Poll setBodyWriter() throw(async::OsError);
-	Poll sendResponse() throw(async::OsError);
 	Poll poll() throw(async::OsError);
 
 private:

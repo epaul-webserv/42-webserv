@@ -1,11 +1,10 @@
 #include <cerrno>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -29,14 +28,14 @@ public:
 	Future::Poll poll() throw(async::OsError)
 	{
 		int						fd;
-		struct sockaddr_storage addr;
+		struct sockaddr_storage addr	 = {};
 		socklen_t				addr_len = sizeof(addr);
 		char					host[1024];
 		char					port[32];
 
-		while (accept.poll_accept((struct sockaddr *)&addr, &addr_len, fd) == Future::Ready)
+		while (accept.poll_accept(reinterpret_cast<struct sockaddr *>(&addr), &addr_len, fd) == Future::Ready)
 		{
-			int s = getnameinfo((struct sockaddr *)&addr, addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+			int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&addr), addr_len, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
 			if (s != 0)
 			{
 				std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
@@ -81,10 +80,10 @@ public:
 
 int main(int ac, char **av)
 {
-	int	   sfd, s;
+	int	   sfd = -1, s;
 	Router router;
 	// socklen_t peer_addrlen;
-	struct addrinfo	 hints;
+	struct addrinfo	 hints = {};
 	struct addrinfo *result, *rp;
 	// struct sockaddr_storage peer_addr;
 
