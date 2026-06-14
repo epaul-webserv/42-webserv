@@ -70,9 +70,18 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
 
 	if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
 	{
-		if (http_version == "HTTP/1.1" && request.peekHeader("connection") != "close")
-			response.addHeader("Connection", "keep-alive");
 		response.setHTTPVersion(http_version);
+		if (http_version == "HTTP/1.1")
+		{
+			if (request.peekHeader("host").empty())
+			{
+				http_stream.setHTTPStatus("400", "Bad Request");
+				response.addHeader("Connection", "close");
+				return (false);
+			}
+			if (request.peekHeader("connection") != "close")
+				response.addHeader("Connection", "keep-alive");
+		}
 	}
 	else if (!http_version.empty()) // Empty is HTTP/0.9
 	{
@@ -90,8 +99,12 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
 
 RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &http_stream) const
 {
-	std::map<std::string, RouterNode>::const_iterator it = this->_servers.find(host);
+	std::map<std::string, RouterNode>::const_iterator it;
 
+	if (host.empty())
+		it = this->_servers.begin();
+	else
+		it = this->_servers.find(host);
 	if (it == this->_servers.end())
 	{
 		http_stream.setHTTPStatus("404", "Not Found");
