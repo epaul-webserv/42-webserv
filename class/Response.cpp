@@ -8,17 +8,11 @@
 #include <unistd.h>
 #include "webserv.h"
 
-Response::Response(void) :
-	send_status(_first_step), header_read_index(0), header_write_index(0), body_read_index(0), body_write_index(0), content_length(0), sent_bytes(0)
-{
-	bzero(&this->sb, sizeof(this->sb));
-}
+Response::Response(void) : send_status(_first_step), content_length(0), sent_bytes(0) { bzero(&this->sb, sizeof(this->sb)); }
 
 Response::Response(Response const &Response) :
-	send_status(Response.send_status), head(Response.head), body(Response.body), header_read_index(Response.header_read_index),
-	header_write_index(Response.header_write_index), body_read_index(Response.body_read_index), body_write_index(Response.body_write_index),
-	content_length(Response.content_length), sent_bytes(Response.sent_bytes), http_version(Response.http_version), http_status(Response.http_status),
-	sb(Response.sb) // FIXME: copy of response generator and io body
+	send_status(Response.send_status), head(Response.head), body(Response.body), content_length(Response.content_length), sent_bytes(Response.sent_bytes),
+	http_version(Response.http_version), http_status(Response.http_status), sb(Response.sb) // FIXME: copy of response generator and io body
 {
 	// if (Response._io_body)
 	// 	this->_io_body = new async::BufIo<>(*Response._io_body);
