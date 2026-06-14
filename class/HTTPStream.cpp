@@ -2,7 +2,7 @@
 #include "webserv.h"
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len, Router *router) :
-	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
+	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _request_body(buf_io), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
 	_headers_status(_initializing_headers), _headers_sent_bytes(0)
 {
 	if (!this->router)
@@ -11,7 +11,8 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage 
 
 HTTPStream::HTTPStream(HTTPStream const &other) :
 	response(other.response), request(other.request), router(other.router), addr(other.addr), addr_len(other.addr_len), buf(other.buf), buf_io(other.buf_io),
-	_status(other._status), _reactor(other._reactor), _backend(NULL), _headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes)
+	_request_body(other._request_body), _status(other._status), _reactor(other._reactor), _backend(NULL), _headers_status(other._headers_status),
+	_headers_sent_bytes(other._headers_sent_bytes)
 {
 }
 

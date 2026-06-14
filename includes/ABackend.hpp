@@ -7,7 +7,8 @@ typedef enum
 {
 	_static,
 	_cgi,
-	_dir_index
+	_dir_index,
+	_upload
 } t_backend_type;
 
 class ABackend : public async::Future

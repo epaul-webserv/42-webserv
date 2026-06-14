@@ -2,6 +2,7 @@
 #include <iostream>
 #include "CGIBackend.hpp"
 #include "StaticBackend.hpp"
+#include "UploadBackend.hpp"
 
 static t_file_type fileType(std::string const &path, std::string const &root)
 {
@@ -52,6 +53,9 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 			break;
 			// case _dir_index:
 			// 	backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
+		case _upload:
+			backend = new UploadBackend(root, http_stream, http_stream._request_body);
+			break;
 		default:
 			backend = new CGIBackend(args, root, reactor, http_stream);
 		}
@@ -130,7 +134,10 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 {
 	RouterNode const *matching_sub_node = NULL;
 
-	ruleset.list_directories = serv.list_directories;
+	if (serv.list_directories)
+		ruleset.list_directories = serv.list_directories;
+	if (serv.file_upload)
+		ruleset.file_upload = serv.file_upload;
 	if (!serv.accepted_methods.empty())
 		ruleset.accepted_methods = serv.accepted_methods;
 	if (!serv.root.empty())
@@ -185,7 +192,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 	}
 	if (fileType(request.getURI(), ruleset.root) == _dir)
 	{
-		if (ruleset.list_directories)
+		if (ruleset.list_directories == _true)
 			return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor, http_stream));
 		if (!ruleset.dir_file.empty())
 		{
@@ -202,8 +209,9 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 		std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >::const_iterator it				= ruleset.backend_rules.find(file_extension);
 		if (ruleset.backend_rules.find(file_extension) != ruleset.backend_rules.end())
 			return (getBackend(it->second.first, it->second.second, ruleset.root, reactor, http_stream));
-		else
-			return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
+		if (request.getMethod() == "POST" && ruleset.file_upload == _true)
+			return (getBackend(_upload, std::vector<std::string>(), ruleset.root, reactor, http_stream));
+		return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
 	}
 	return (NULL);
 }

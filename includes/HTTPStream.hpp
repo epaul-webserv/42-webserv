@@ -28,6 +28,7 @@ enum headers_status
 
 class ARequestBody
 {
+public:
 	virtual async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s) throw(async::OsError) = 0;
 };
 
@@ -48,6 +49,16 @@ public:
 	TestResponseBody(async::BufIo<> &io) : io(io) {}
 	async::Future::Poll poll_write(container::Slice<uint8_t> buf, size_t &s) throw(async::OsError) { return io.poll_write(buf, s); }
 	async::Future::Poll poll_flush() throw(async::OsError) { return io.poll_flush(); }
+};
+
+class TestRequestBody : public ARequestBody
+{
+private:
+	async::BufIo<> &io;
+
+public:
+	TestRequestBody(async::BufIo<> &io) : io(io) {}
+	async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s) throw(async::OsError) { return io.poll_read(buf, s); }
 };
 
 class HTTPStream : public async::Future
@@ -105,6 +116,7 @@ private:
 
 public: // FIXME: private
 	async::BufIo<4096> buf_io;
+	TestRequestBody	   _request_body;
 
 private:
 	stream_status	_status;

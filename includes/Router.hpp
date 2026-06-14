@@ -12,8 +12,10 @@ class HTTPStream;
 
 struct RouterRuleset
 {
-	RouterRuleset() : list_directories(true), root(DEFAULT_ROOT) {}
-	bool																		 list_directories;
+	RouterRuleset() : list_directories(_false), file_upload(_false), root(DEFAULT_ROOT) {}
+
+	e_switch																	 list_directories;
+	e_switch																	 file_upload;
 	std::string																	 root;
 	std::map<std::string, std::pair<std::string, e_redirect_type> >				 redirects;
 	std::map<std::string, std::string>											 status_pages;
