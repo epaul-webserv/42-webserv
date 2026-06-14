@@ -137,6 +137,7 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
 		if (!request.http_version.empty())
 			response.send_buf = std::vector<uint8_t>(response.head.c_str(), response.head.c_str() + response.head.size());
 		response.send_buf.insert(response.send_buf.end(), response.body.begin(), response.body.end());
+		std::cerr << request.getMethod() << " " << request.getURI() << " " << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
 		this->_headers_status = _sending_headers;
 	}
 	if (this->_headers_status == _sending_headers)
