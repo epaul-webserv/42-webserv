@@ -15,7 +15,7 @@ HTTPStream::HTTPStream(HTTPStream const &other) :
 {
 }
 
-HTTPStream::~HTTPStream() {}
+HTTPStream::~HTTPStream() { delete this->_backend; }
 
 HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 {
@@ -80,7 +80,12 @@ async::Future::Poll HTTPStream::keepAlive(void)
 {
 	this->request.clear();
 	this->response.clear();
+	this->status_pages.clear();
 	this->_status = _fetching_request;
+	delete this->_backend;
+	this->_backend			  = NULL;
+	this->_headers_status	  = _initializing_headers;
+	this->_headers_sent_bytes = 0;
 	return (this->poll());
 }
 

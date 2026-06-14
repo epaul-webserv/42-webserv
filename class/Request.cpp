@@ -4,11 +4,11 @@
 #include "url_utils.hpp"
 #include "webserv.h"
 
-Request::Request(void) : _body_read_index(0), _first_line_read(false) {}
+Request::Request(void) : _first_line_read(false), _body_read_index(0) {}
 
 Request::Request(Request const &Request) :
-	_body_read_index(0), _first_line_read(Request._first_line_read), method(Request.method), URI(Request.URI), http_version(Request.http_version),
-	headers(Request.headers)
+	_first_line_read(Request._first_line_read), method(Request.method), URI(Request.URI), http_version(Request.http_version), headers(Request.headers),
+	_body_read_index(0)
 {
 }
 
@@ -27,8 +27,10 @@ Request const &Request::operator=(Request const &Request)
 
 void Request::clear()
 {
+	this->_first_line_read = false;
 	this->method.clear();
 	this->URI.clear();
+	this->query_string.clear();
 	this->http_version.clear();
 	this->_first_line_read = false;
 	this->headers.clear();

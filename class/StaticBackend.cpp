@@ -9,7 +9,7 @@
 #include "webserv.h"
 
 StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream) :
-	_file_ok(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
+	_file_ok(false), _response_set(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }

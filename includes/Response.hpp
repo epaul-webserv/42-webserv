@@ -47,10 +47,6 @@ public:
 	std::string						   head;
 	std::string						   body;
 	std::map<std::string, std::string> headers;
-	size_t							   header_read_index;
-	size_t							   header_write_index;
-	size_t							   body_read_index;
-	size_t							   body_write_index;
 	size_t							   content_length;
 	size_t							   sent_bytes;
 	std::string						   http_version;
