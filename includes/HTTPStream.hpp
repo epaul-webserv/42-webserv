@@ -98,6 +98,7 @@ public:
 	Future::Poll poll() throw(async::OsError);
 	Future::Poll keepAlive();
 	void		 setHTTPStatus(std::string const &status, std::string const &message);
+	void		 setBrokenConnection();
 
 	Response						   response;
 	Request							   request;
@@ -119,6 +120,7 @@ public: // FIXME: private
 	TestRequestBody	   _request_body;
 
 private:
+	bool			_broken_connection;
 	stream_status	_status;
 	async::Reactor *_reactor;
 	ABackend	   *_backend;

@@ -1,32 +1,84 @@
 #include "CGIBackend.hpp"
 #include <iostream>
 #include <string>
+#include <sys/wait.h>
 #include <vector>
 #include "url_utils.hpp"
 #include "webserv.h"
 
+
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream) :
-	_root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream), response_body(NULL), _client_body_sent(false), _response_headers_read_done(false),
-	_status_set(false), _content_length(-1), _status(_init), _response_buf_len(0), _response_buf_index(0), _response_body_read_done(false)
+	_root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream), response_body(NULL), _cgi_pid(0), _client_body_sent(false),
+	_response_headers_read_done(false), _status_set(false), _process_done(false), _content_length(-1), _status(_init), client_body_to_cgi(NULL), _response_buf_len(0),
+	_response_buf_index(0), _response_body_read_done(false)
 {
 }
 
 CGIBackend::~CGIBackend(void)
 {
-	delete _cgi_io;
-	delete client_body_to_cgi;
+	if (_cgi_io != NULL)
+		delete _cgi_io;
+	if (client_body_to_cgi != NULL)
+		delete client_body_to_cgi;
+	if (_cgi_pid > 0)
+	{
+		kill(_cgi_pid, SIGKILL);
+		waitpid(_cgi_pid, NULL, 0);
+	}
 }
 
 async::Future::Poll CGIBackend::poll() throw(async::OsError)
 {
-	if (_status == _init)
-		init();
+	if (_status == _init && init() == Ready)
+		return Ready;
+
+	if (check_process_status() == Ready)
+		return Ready;
+
 	send_client_body_to_cgi();
 	read_cgi_headers();
+
 	if (set_body_writer() == Ready)
 		return Ready;
-	if (send_body() == Ready)
+	if (send_body() == Ready && _process_done == true)
 		return Ready;
+	return Pending;
+}
+
+async::Future::Poll CGIBackend::check_process_status()
+{
+	if (_cgi_pid > 0)
+	{
+		int status;
+		int ret = waitpid(_cgi_pid, &status, WNOHANG);
+		if (ret > 0)
+		{
+			_cgi_pid = -1;
+			if (WIFEXITED(status))
+			{
+				if (WEXITSTATUS(status) != 0)
+				{
+					if (_response_headers_read_done == false)
+						stream.setHTTPStatus("500", "Internal Server Error");
+					else
+						stream.setBrokenConnection();
+					return Ready;
+				}
+				else
+					_process_done = true;
+			}
+			else
+			{
+				stream.setBrokenConnection();
+				return Ready;
+			}
+		}
+		else if (ret < 0)
+		{
+			std::cerr << "waitpid error" << std::endl;
+			return Ready;
+		}
+	}
 	return Pending;
 }
 
@@ -93,7 +145,7 @@ void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::st
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
-void CGIBackend::init()
+async::Future::Poll CGIBackend::init()
 {
 	std::string				 encoding = stream.request.peekHeader("transfer-encoding");
 	std::vector<std::string> env_vector;
@@ -144,23 +196,22 @@ void CGIBackend::init()
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0)
 	{
 		std::cerr << "CGI Error: socketpair creation failed." << std::endl;
-		return;
+		stream.setHTTPStatus("500", "Internal Server Error");
+		return Ready;
 	}
 
-	int cgi_pid = 0;
+	_cgi_pid = fork();
 
-
-	cgi_pid = fork();
-
-	if (cgi_pid < 0)
+	if (_cgi_pid < 0)
 	{
 		std::cerr << "CGI Error: fork failed." << std::endl;
 		close(sv[0]);
 		close(sv[1]);
-		return;
+		stream.setHTTPStatus("500", "Internal Server Error");
+		return Ready;
 	}
 
-	if (cgi_pid == 0)
+	if (_cgi_pid == 0)
 	{
 		dup2(sv[1], STDIN_FILENO);
 		dup2(sv[1], STDOUT_FILENO);
@@ -197,6 +248,7 @@ void CGIBackend::init()
 	_cgi_io = new async::BufIo<>(_reactor, sv[0]);
 
 	_status = _processing;
+	return Pending;
 }
 
 void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
@@ -259,7 +311,6 @@ async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
 		}
 		if (response_body == NULL)
 		{
-			// TODO: Close pipe and kill process ?
 			return Ready;
 		}
 	}
@@ -295,5 +346,3 @@ async::Future::Poll CGIBackend::send_body() throw(async::OsError)
 	}
 	return Pending;
 }
-
-async::Future::Poll push_body_to_response() {}

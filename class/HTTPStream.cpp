@@ -2,8 +2,8 @@
 #include "webserv.h"
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr, socklen_t addr_len, Router *router) :
-	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _request_body(buf_io), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
-	_headers_status(_initializing_headers), _headers_sent_bytes(0)
+	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _request_body(buf_io), _broken_connection(false), _status(_fetching_request),
+	_reactor(&reactor), _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0)
 {
 	if (!this->router)
 		throw(std::runtime_error("Cannot initialize HTTPStream with NULL router"));
@@ -128,6 +128,8 @@ void HTTPStream::setHTTPStatus(std::string const &status, std::string const &mes
 		response.addHeader("Content-Type", "text/html"); // FIXME: COULD ADD DUPLICATE HEADER
 	}
 }
+
+void HTTPStream::setBrokenConnection() { _broken_connection = true; }
 
 async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
 {

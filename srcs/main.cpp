@@ -44,7 +44,7 @@ public:
 			std::cout << host << ":" << port << " is connected\n";
 			clients.push_back(HTTPStream(reactor, fd, addr, addr_len, &router));
 		}
-		for (size_t i = 0; i < clients.size(); i++)
+		for (long i = clients.size() - 1; i >= 0; i--)
 		{
 			Poll poll = async::Future::Pending;
 			try
@@ -105,9 +105,8 @@ int main(int ac, char **av)
 	// 	"txt", std::pair<t_backend_type, std::vector<std::string> >(_upload, std::vector<std::string>())));
 	test.accepted_methods.push_back("GET");
 	test.accepted_methods.push_back("POST");
-	test.file_upload = _true;
-	test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
-		"/logan", std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
+	test.file_upload		 = _true;
+	test.redirects["/logan"] = std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary);
 	router.addServ("localhost:33000", test);
 
 	MimeType::mime_type["html"] = "text/html";
