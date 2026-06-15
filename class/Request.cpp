@@ -7,8 +7,8 @@
 Request::Request(void) : _body_read_index(0), _first_line_read(false) {}
 
 Request::Request(Request const &Request) :
-	_body_read_index(0), _first_line_read(Request._first_line_read), _method(Request._method), _URI(Request._URI), _http_version(Request._http_version),
-	_headers(Request._headers)
+	_body_read_index(0), _first_line_read(Request._first_line_read), method(Request.method), URI(Request.URI), http_version(Request.http_version),
+	headers(Request.headers)
 {
 }
 
@@ -16,33 +16,33 @@ Request::~Request(void) {}
 
 Request const &Request::operator=(Request const &Request)
 {
-	this->_method		   = Request._method;
-	this->_URI			   = Request._URI;
-	this->_http_version	   = Request._http_version;
+	this->method		   = Request.method;
+	this->URI			   = Request.URI;
+	this->http_version	   = Request.http_version;
 	this->_first_line_read = Request._first_line_read;
-	this->_headers		   = Request._headers;
+	this->headers		   = Request.headers;
 	this->_body_read_index = Request._body_read_index;
 	return (*this);
 }
 
 void Request::clear()
 {
-	this->_method.clear();
-	this->_URI.clear();
-	this->_http_version.clear();
+	this->method.clear();
+	this->URI.clear();
+	this->http_version.clear();
 	this->_first_line_read = false;
-	this->_headers.clear();
+	this->headers.clear();
 	*this->_buffer		   = '\0';
 	this->_body_read_index = 0;
 }
 
 void Request::prepareNextRead(void)
 {
-	this->_method.clear();
-	this->_URI.clear();
-	this->_http_version.clear();
+	this->method.clear();
+	this->URI.clear();
+	this->http_version.clear();
 	this->_first_line_read = false;
-	this->_headers.clear();
+	this->headers.clear();
 }
 
 t_request_state Request::readRequest(async::BufIo<> &client_io)
@@ -114,17 +114,17 @@ t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 	{
 		if (line.size() == 0)
 			return (_close);
-		get_next_word(line, this->_method);
-		if (this->_method.empty())
+		get_next_word(line, this->method);
+		if (this->method.empty())
 			return (_read);
-		get_next_word(line, this->_URI);
-		get_next_word(line, this->_http_version);
+		get_next_word(line, this->URI);
+		get_next_word(line, this->http_version);
 		this->_first_line_read = true;
-		decodeURL(this->_URI);
-		if (this->_URI.find('?') != std::string::npos)
+		decodeURL(this->URI);
+		if (this->URI.find('?') != std::string::npos)
 		{
-			this->_query_string = this->_URI.substr(this->_URI.find('?'));
-			this->_URI			= this->_URI.substr(0, this->_URI.find('?'));
+			this->query_string = this->URI.substr(this->URI.find('?'));
+			this->URI		   = this->URI.substr(0, this->URI.find('?'));
 		}
 		return (this->readHeaders(client_io));
 	}
@@ -148,13 +148,13 @@ t_request_state Request::readHeaders(async::BufIo<> &client_io)
 		std::string header_key = get_next_word(line);
 		if (header_key.find(':') == std::string::npos)
 		{
-			this->_headers.insert((std::pair<std::string, std::string>(header_key, "")));
+			this->headers.insert((std::pair<std::string, std::string>(header_key, "")));
 			line.clear();
 			break;
 		}
 		header_key = header_key.substr(0, header_key.find(':'));
 		if (it != ite)
-			this->_headers.insert((std::pair<std::string, std::string>(to_lower(header_key), get_end_of_line(line))));
+			this->headers.insert((std::pair<std::string, std::string>(to_lower(header_key), get_end_of_line(line))));
 		line.clear();
 	}
 	return (_reading);
@@ -170,14 +170,14 @@ std::string Request::peekHeader(std::string const key) const
 	std::map<std::string, std::string>::const_iterator it;
 
 	if (key.empty())
-		it = this->_headers.begin();
+		it = this->headers.begin();
 	else
 	{
 		std::string tmp = key;
 		to_lower(tmp);
-		it = this->_headers.find(tmp);
+		it = this->headers.find(tmp);
 	}
-	if (it == this->_headers.end())
+	if (it == this->headers.end())
 		return ("");
 	return (it->second);
 }
@@ -191,18 +191,18 @@ std::string Request::getHeader(std::string const key)
 {
 	std::string ret = peekHeader(key);
 
-	this->_headers.erase(key);
+	this->headers.erase(key);
 	return (ret);
 }
 
-std::string Request::getMethod(void) const { return (this->_method); }
+std::string Request::getMethod(void) const { return (this->method); }
 
-std::string Request::getURI(void) const { return (this->_URI); }
+std::string Request::getURI(void) const { return (this->URI); }
 
-void Request::setURI(std::string const &URI) { this->_URI = URI; }
+void Request::setURI(std::string const &URI) { this->URI = URI; }
 
-std::string Request::getQueryString(void) const { return (this->_query_string); }
+std::string Request::getQueryString(void) const { return (this->query_string); }
 
-std::string Request::getHTTPVersion(void) const { return (this->_http_version); }
+std::string Request::getHTTPVersion(void) const { return (this->http_version); }
 
 const char *Request::InvalidReadException::what() const throw() { return ("Error while reading"); }

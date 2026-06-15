@@ -8,6 +8,8 @@
 #include "Response.hpp"
 #include "Router.hpp"
 
+class Router;
+
 enum stream_status
 {
 	_fetching_request,
@@ -59,32 +61,9 @@ public:
 	ARequestBody	   *request_body();
 	async::Future::Poll poll_send_headers(AResponseBody *&b)
 	{
-		if (this->_headers_status == _initializing_headers)
-		{
-			this->headersAddBase();
-			if (!request.http_version.empty())
-				response.send_buf = std::vector<uint8_t>(response.head.c_str(), response.head.c_str() + response.head.size());
-			response.send_buf.insert(response.send_buf.end(), response.body.begin(), response.body.end());
-			this->_headers_status = _sending_headers;
-		}
-		if (this->_headers_status == _sending_headers)
-		{
-			while (response.send_buf.size() - _headers_sent_bytes > 0)
-			{
-				size_t s;
-				if (this->buf_io.poll_write(container::Slice<uint8_t>(&response.send_buf[_headers_sent_bytes], response.send_buf.size() - _headers_sent_bytes), s) ==
-					async::Future::Pending)
-					return (Pending);
-				_headers_sent_bytes += s;
-				if (_headers_sent_bytes >= response.send_buf.size())
-				{
-					if (buf_io.poll_flush() == async::Future::Pending)
-						return (Pending);
-					this->_headers_status = _headers_sent;
-					// return (Ready);
-				}
-			}
-		}
+		// FIXME: chunk body
+		if (this->sendHeaders() == Pending)
+			return (Pending);
 		if (response.content_length)
 			b = NULL;
 		else
@@ -93,24 +72,34 @@ public:
 	}
 	async::Future::Poll poll_send_headers(size_t content_length, AResponseBody *&b)
 	{
-		// FIXME: send headers
-		b = new TestResponseBody(buf_io);
+		std::ostringstream oss;
+
+		oss << content_length;
+		this->response.addHeader("Content-Length", oss.str());
+		if (this->sendHeaders() == Pending)
+			return (Pending);
+		if (response.content_length)
+			b = NULL;
+		else
+			b = new TestResponseBody(buf_io);
 		return async::Future::Ready;
 	}
 	Future::Poll poll() throw(async::OsError);
 	Future::Poll keepAlive(void);
+	void		 setHTTPStatus(std::string const &status, std::string const &message);
 
-	Response							response;
-	Request								request;
-	Router							   *router;
-	struct sockaddr_storage				addr;
-	socklen_t							addr_len;
-	std::map<std::string, std::string> *status_pages;
+	Response						   response;
+	Request							   request;
+	Router							  *router;
+	struct sockaddr_storage			   addr;
+	socklen_t						   addr_len;
+	std::map<std::string, std::string> status_pages;
 
 
 private:
 	HTTPStream(void);
 	void headersAddBase();
+	Poll sendHeaders() throw(async::OsError);
 
 	container::RingBuf<uint8_t, 4096> buf;
 
