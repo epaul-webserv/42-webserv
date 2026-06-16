@@ -7,7 +7,7 @@ Response::Response() : send_status(_first_step), content_length(0), sent_bytes(0
 
 Response::Response(Response const &Response) :
 	send_status(Response.send_status), head(Response.head), body(Response.body), content_length(Response.content_length), sent_bytes(Response.sent_bytes),
-	http_version(Response.http_version), http_status(Response.http_status), sb(Response.sb) // FIXME: copy of response generator and io body
+	http_version(Response.http_version), http_status(Response.http_status), sb(Response.sb)
 {
 }
 

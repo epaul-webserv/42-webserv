@@ -105,8 +105,11 @@ int main(int ac, char **av)
 	// 	"txt", std::pair<t_backend_type, std::vector<std::string> >(_upload, std::vector<std::string>())));
 	test.accepted_methods.push_back("GET");
 	test.accepted_methods.push_back("POST");
-	test.file_upload		 = _true;
-	test.redirects["/logan"] = std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary);
+	test.file_upload = _true;
+	test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
+		"/logan", std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
+	test.status_pages["201"] = "/index.nginx-debian.html";
+	test.list_directories	 = _true;
 	router.addServ("localhost:33000", test);
 
 	MimeType::mime_type["html"] = "text/html";
@@ -115,6 +118,7 @@ int main(int ac, char **av)
 	MimeType::mime_type["svg"]	= "image/svg+xml";
 	MimeType::mime_type["mkv"]	= "video/x-matroska";
 	MimeType::mime_type["txt"]	= "text/plain";
+	MimeType::mime_type["ico"]	= "image/x-icon";
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family	   = AF_UNSPEC;

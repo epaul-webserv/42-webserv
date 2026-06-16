@@ -10,7 +10,7 @@
 class UploadBackend : public ABackend
 {
 public:
-	UploadBackend(std::string const &root, HTTPStream &http_stream, ARequestBody &request_body);
+	UploadBackend(std::string const &root, HTTPStream &http_stream, ARequestBody *request_body);
 	~UploadBackend();
 	t_file_status		openFile(std::string const &URI);
 	async::Future::Poll writeFile();
@@ -26,7 +26,7 @@ private:
 	std::string	   root;
 	HTTPStream	  &http_stream;
 	AResponseBody *_response_body;
-	ARequestBody  &_request_body;
+	ARequestBody  *_request_body;
 	std::ofstream  _ofile;
 	uint8_t		   _file_buf[4096];
 };

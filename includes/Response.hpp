@@ -14,7 +14,8 @@ typedef enum
 	_open,
 	_not_found,
 	_no_permission,
-	_already_open
+	_already_open,
+	_not_modified
 } t_file_status;
 
 typedef enum
@@ -50,6 +51,7 @@ public:
 	size_t							   sent_bytes;
 	std::string						   http_version;
 	std::string						   http_status;
+	std::string						   http_msg;
 	std::vector<uint8_t>			   send_buf;
 	struct stat						   sb;
 };

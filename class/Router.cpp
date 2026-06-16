@@ -51,10 +51,11 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 		case _cgi:
 			backend = new CGIBackend(args, root, reactor, http_stream);
 			break;
-			// case _dir_index:
-			// 	backend = new DirectoryIndexBackend(request, root, response, reactor, io, status_pages);
+		case _dir_index:
+			backend = new StaticBackend(root, http_stream);
+			break;
 		case _upload:
-			backend = new UploadBackend(root, http_stream, http_stream._request_body);
+			backend = new UploadBackend(root, http_stream, http_stream.request_body());
 			break;
 		default:
 			backend = new CGIBackend(args, root, reactor, http_stream);
@@ -169,15 +170,15 @@ static std::vector<std::string>::const_iterator find(std::vector<std::string> co
 	return (it);
 }
 
-ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, HTTPStream &http_stream)
+ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, HTTPStream &http_stream, bool force)
 {
 	const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator matching_redirect = ruleset.redirects.find(request.getURI());
-	if (find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
+	if (!force && find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
 	{
 		http_stream.setHTTPStatus("405", "Method Not Allowed");
 		return (NULL);
 	}
-	if (matching_redirect != ruleset.redirects.end())
+	if (!force && matching_redirect != ruleset.redirects.end())
 	{
 		switch (matching_redirect->second.second)
 		{
@@ -213,7 +214,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 }
 
 /// @return ABackend pointer OR NULL if response has been set.
-ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream) const
+ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream, bool force) const
 {
 	RouterRuleset ruleset;
 
@@ -221,10 +222,11 @@ ABackend *Router::resolve(Request &request, Response &response, async::Reactor &
 	RouterNode const *serv = getServerNode(request.peekHeader("host"), http_stream);
 	if (!serv)
 		return (NULL);
-	if (!validateRequest(request, response, http_stream))
+	if (!force && !validateRequest(request, response, http_stream))
 		return (NULL);
-	ruleset = defineRuleset(request.getURI(), *serv, ruleset);
-	return (defineBackend(request, response, ruleset, reactor, http_stream));
+	ruleset					 = defineRuleset(request.getURI(), *serv, ruleset);
+	http_stream.status_pages = ruleset.status_pages;
+	return (defineBackend(request, response, ruleset, reactor, http_stream, force));
 }
 
 void Router::addServ(std::string const &domain, RouterNode const &node) { this->_servers.insert(std::pair<std::string, RouterNode>(domain, node)); }
