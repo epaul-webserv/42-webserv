@@ -8,6 +8,7 @@
 enum stream_status
 {
     _fetching_request,
+    _fetching_headers,
     _getting_backend,
     _processing_response,
     _sending_response
@@ -36,7 +37,6 @@ class HTTPStream : public async::Future
     stream_status                       _status;
     async::Reactor                     *_reactor;
     Request                             _request;
-    bool                                _request_first_line_read;
     std::pair<std::string, std::string> _current_header;
 };
 

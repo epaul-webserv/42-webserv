@@ -6,22 +6,21 @@
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr,
                        socklen_t addr_len)
     : addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request),
-      _reactor(&reactor), _request_first_line_read(false)
+      _reactor(&reactor)
 {
     (void)addr;
 }
 
 HTTPStream::HTTPStream(HTTPStream const &HTTPStream)
     : addr(HTTPStream.addr), addr_len(HTTPStream.addr_len), buf_io(HTTPStream.buf_io),
-      _status(HTTPStream._status), _reactor(HTTPStream._reactor), _request(HTTPStream._request),
-      _request_first_line_read(false)
+      _status(HTTPStream._status), _reactor(HTTPStream._reactor), _request(HTTPStream._request)
 {
     (void)addr;
 }
 
 async::Future::Poll HTTPStream::readRequest()
 {
-    if (!this->_request_first_line_read)
+    if (_status == _fetching_request)
         return (readFirstLine());
     return (readHeaders());
 }
@@ -97,7 +96,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         return (Ready);
     get_next_word(line, _request._URI);
     get_next_word(line, _request._http_version);
-    this->_request_first_line_read = true;
+    _status = _fetching_headers;
     decode_url(_request._URI);
     if (_request._URI.find('?') != std::string::npos)
     {
@@ -172,7 +171,7 @@ HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
-    if (this->_status == _fetching_request)
+    if (this->_status <= _fetching_headers)
     {
         if (readRequest() == Pending)
             return (Pending);
