@@ -97,7 +97,11 @@ async::Future::Poll HTTPStream::readFirstLine()
     get_next_word(line, _request._URI);
     get_next_word(line, _request._http_version);
     _status = _fetching_headers;
-    decode_url(_request._URI);
+    if (!decode_url(_request._URI))
+    {
+        std::cerr << "Invalid URI" << std::endl; // FIXME : need to set a 400 error
+        return (Ready);
+    }
     if (_request._URI.find('?') != std::string::npos)
     {
         _request._query_string = _request._URI.substr(_request._URI.find('?'));

@@ -3,8 +3,7 @@
 
 #include <string>
 
-void        decode_url(std::string &URI);
-std::string decode_url(std::string const &URI);
+bool        decode_url(std::string &URI);
 std::string encode_url(std::string const &URI);
 std::string get_file_name(std::string const &URI);
 
