@@ -39,7 +39,7 @@ void decode_url(std::string &URI)
     URI.resize(wrote);
 }
 
-/// @brief Traslates a URL-encoded string into its ASCII form
+/// @brief Translates a URL-encoded string into its ASCII form
 /// @param URI Reference to the string to transform.
 /// @return The translated ASCII string
 std::string decode_url(std::string const &URI)

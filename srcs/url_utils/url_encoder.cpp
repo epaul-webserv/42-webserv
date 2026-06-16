@@ -14,15 +14,18 @@ bool to_encode(char c)
     return (true);
 }
 
-std::string encode_char(char c)
+void encode_char(char c, std::string &dest)
 {
-    std::string ret;
-    std::string base = "0123456789ABCDEF";
+    const char base[] = "0123456789ABCDEF";
 
-    ret += '%';
-    ret += base[c / 16];
-    ret += base[c % 16];
-    return (ret);
+    if (!to_encode(c))
+    {
+        dest += c;
+        return;
+    }
+    dest += '%';
+    dest += base[c / 16];
+    dest += base[c % 16];
 }
 
 /// @brief Translates a URL-encoded string into its ASCII form
@@ -35,13 +38,6 @@ std::string encode_url(std::string const &URI)
     if (URI.empty())
         return result;
     for (size_t read = 0; read < URI.size(); ++read)
-    {
-        if (to_encode(URI[read]))
-            result += encode_char(URI[read]);
-        else if (URI[read] == '+')
-            result += ' ';
-        else
-            result += URI[read];
-    }
+        encode_char(URI[read], result);
     return (result);
 }
