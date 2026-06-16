@@ -5,7 +5,7 @@
 #include "webserv.h"
 
 StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream) :
-	_sb(), _file_ok(false), _response_set(false), root(root), http_stream(http_stream), _response_body(NULL), _file_stream(-1)
+	_sb(), _file_ok(false), _response_set(false), _body_written(0), root(root), http_stream(http_stream), _response_body(NULL)
 {
 	bzero(&this->_sb, sizeof(this->_sb));
 }
@@ -95,6 +95,8 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 		{
 		case _no_permission:
 			return http_stream.setHTTPStatus("403", "Forbidden"), Ready;
+		case _not_modified:
+			return http_stream.setHTTPStatus("304", "Not Modified"), Ready;
 		default:
 			setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
 			http_stream.setHTTPStatus("200", "Ok");
@@ -141,19 +143,29 @@ async::Future::Poll StaticBackend::setBodyWriter() throw(async::OsError)
 
 async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
 {
-	if (this->_file_stream.is_open())
+	if (this->_ifile.is_open())
 	{
-		std::vector<uint8_t> buf = this->_file_stream.peek_str(4096);
-		size_t				 s;
+		uint8_t buf[4096];
+		size_t	s;
 
-		while (!this->_file_stream.end())
+		while (!this->_ifile.eof())
 		{
-			buf = this->_file_stream.peek_str(4096);
-			if (_response_body->poll_write(container::Slice<uint8_t>(&buf[0], buf.size()), s) == async::Future::Pending)
+			s = 0;
+			this->_ifile.read(reinterpret_cast<std::istream::char_type *>(buf), 4096);
+			if (_ifile.gcount() && _response_body->poll_write(container::Slice<uint8_t>(&buf[0], _ifile.gcount()), s) == async::Future::Pending)
+			{
+				_ifile.seekg(-(_ifile.gcount() - s), std::ios::cur);
 				return (Pending);
-			this->_file_stream.consume(s);
+			}
+			if (!s)
+			{
+				if (this->_response_body->poll_end() == Pending)
+					return (Pending);
+				return (Ready);
+			}
+			_ifile.seekg(-(_ifile.gcount() - s), std::ios::cur);
 		}
-		if (this->_response_body->poll_flush() == Pending)
+		if (this->_response_body->poll_end() == Pending)
 			return (Pending);
 	}
 	return (Ready);
@@ -161,7 +173,7 @@ async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
 
 async::Future::Poll StaticBackend::poll() throw(async::OsError)
 {
-	if (!_response_set && this->setResponse() == Pending) // ATTENTION AU RERENTRAGE
+	if (!_response_set && this->setResponse() == Pending)
 		return (Pending);
 	_response_set = true;
 	if (this->setBodyWriter() == Pending)
@@ -205,7 +217,6 @@ bool StaticBackend::conditionalGet(std::string const &etag)
 
 t_file_status StaticBackend::openFile(std::string const &path, Response &response)
 {
-	int fd;
 	if (stat((path).c_str(), &this->_sb) == -1)
 		return (_not_found);
 	Date mod_date(&_sb.st_mtime);
@@ -219,10 +230,8 @@ t_file_status StaticBackend::openFile(std::string const &path, Response &respons
 	_ifile.open(path.c_str(), std::ios::binary);
 	if (!_ifile.is_open())
 		return (_no_permission);
-	}
 	std::ostringstream oss;
 	oss << this->_sb.st_size;
-	response.addHeader("Content-Length", oss.str());
-	_file_stream.clear(fd);
+	response.addHeader("Etag", etag);
 	return (_open);
 }

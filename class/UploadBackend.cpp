@@ -4,13 +4,17 @@
 #include <strings.h>
 #include "webserv.h"
 
-UploadBackend::UploadBackend(std::string const &root, HTTPStream &http_stream, ARequestBody &request_body) :
+UploadBackend::UploadBackend(std::string const &root, HTTPStream &http_stream, ARequestBody *request_body) :
 	_bytes_written(0), _to_write(0), root(root), http_stream(http_stream), _response_body(NULL), _request_body(request_body), _file_buf()
 {
 	bzero(_file_buf, 4096);
 }
 
-UploadBackend::~UploadBackend() {}
+UploadBackend::~UploadBackend()
+{
+	delete _response_body;
+	delete _request_body;
+}
 
 t_file_status UploadBackend::openFile(std::string const &URI)
 {
@@ -29,12 +33,15 @@ t_file_status UploadBackend::openFile(std::string const &URI)
 async::Future::Poll UploadBackend::writeFile()
 {
 	size_t s = 0;
-	while (_bytes_written < _to_write)
+	if (!_request_body)
+		return (Ready);
+	while (true)
 	{
-		container::Slice<uint8_t> sl(_file_buf, std::min(_to_write - _bytes_written, static_cast<size_t>(4096)));
-		if (http_stream.buf_io.poll_read(sl, s) == Pending)
+		container::Slice<uint8_t> sl(_file_buf, 4096);
+		if (_request_body->poll_read(sl, s) == Pending) // FIXME: using request body provoke "Operation not permitted"
 			return (Pending);
-		std::cerr << "fail bit : " << _ofile.fail() << std::endl;
+		if (_request_body->fail() || !s)
+			return (Ready);
 		_ofile.write(reinterpret_cast<const std::ostream::char_type *>(_file_buf), s);
 		if (_ofile.fail())
 		{
@@ -61,7 +68,7 @@ async::Future::Poll UploadBackend::setResponse() throw(async::OsError)
 			if (writeFile() == Pending)
 				return (Pending);
 			http_stream.response.addHeader("Content-Length", "0");
-			http_stream.setHTTPStatus("200", "Created");
+			http_stream.setHTTPStatus("201", "Created");
 			break;
 		default:
 			http_stream.setHTTPStatus("500", "Internal Server Error");
@@ -76,7 +83,7 @@ async::Future::Poll UploadBackend::poll() throw(async::OsError)
 {
 	if (this->setResponse() == Pending)
 		return (Pending);
-	if (http_stream.poll_send_headers(_response_body) == Pending)
+	if (http_stream.poll_send_headers(0, _response_body) == Pending)
 		return (Pending);
 	return (Ready);
 }

@@ -2,6 +2,7 @@
 #define STATIC_BACKEND_HPP
 
 #include <async>
+#include <fstream>
 #include <string>
 #include <sys/stat.h>
 #include "ABackend.hpp"
@@ -27,10 +28,11 @@ private:
 	struct stat	   _sb;
 	bool		   _file_ok;
 	bool		   _response_set;
+	size_t		   _body_written;
 	std::string	   root;
 	HTTPStream	  &http_stream;
 	AResponseBody *_response_body;
-	FdStream	   _file_stream;
+	std::ifstream  _ifile;
 };
 
 #endif
