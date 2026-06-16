@@ -180,5 +180,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             return (Pending);
         std::cout << this->_request;
     }
+    // FIXME: handle body and reponse here
     return (Ready);
 }
