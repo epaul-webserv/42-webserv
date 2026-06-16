@@ -88,11 +88,11 @@ t_date_format Date::try_get_format(const std::string &str_date)
         {
             if (str_date[14] == ' ')
                 return (_rfc822);
-            if (std::isdigit(str_date[14]))
+            if (std::isdigit(static_cast<unsigned char>(str_date[14])))
                 return (_rfc1123);
         }
     }
-    else if (len > 4 && std::isalpha(str_date[3]))
+    else if (len > 4 && std::isalpha(static_cast<unsigned char>(str_date[3])))
     {
         if (len >= 30)
             return (_rfc850);
