@@ -171,16 +171,53 @@ async::Future::Poll StaticBackend::poll() throw(async::OsError)
 	return (Ready);
 }
 
+std::string StaticBackend::generateEtag() const
+{
+	std::ostringstream oss;
+	oss << "\"" << _sb.st_mtime << _sb.st_size << "\"";
+	return (oss.str());
+}
+
+bool StaticBackend::conditionalGet(std::string const &etag)
+{
+	std::string client_etag = http_stream.request.peekHeader("if-none-match");
+	if (!client_etag.empty())
+	{
+		if (client_etag == etag)
+			return (false);
+	}
+	std::string mod_cond = http_stream.request.peekHeader("if-modified-since");
+	if (!mod_cond.empty())
+	{
+		try
+		{
+			Date client_date(mod_cond);
+			if (Date(&_sb.st_mtime) < Date(mod_cond))
+				return (false);
+		}
+		catch (Date::InvalidFormatException &e)
+		{
+			(void)e;
+		}
+	}
+	return (true);
+}
+
 t_file_status StaticBackend::openFile(std::string const &path, Response &response)
 {
 	int fd;
 	if (stat((path).c_str(), &this->_sb) == -1)
 		return (_not_found);
-	fd = open(path.c_str(), O_RDONLY);
-	if (fd < 0)
-	{
-		if (errno == EACCES)
-			return (_no_permission);
+	Date mod_date(&_sb.st_mtime);
+	if (mod_date <= Date())
+		response.addHeader("Last-Modified", mod_date.str());
+	else
+		response.addHeader("Last-Modified", Date().str());
+	std::string etag = generateEtag();
+	if (!conditionalGet(etag))
+		return (_not_modified);
+	_ifile.open(path.c_str(), std::ios::binary);
+	if (!_ifile.is_open())
 		return (_no_permission);
 	}
 	std::ostringstream oss;

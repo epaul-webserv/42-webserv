@@ -13,10 +13,12 @@ public:
 	StaticBackend(std::string const &root, HTTPStream &http_stream);
 	~StaticBackend();
 
-	Poll setResponse() throw(async::OsError);
-	Poll setBodyWriter() throw(async::OsError);
-	Poll sendResponse() throw(async::OsError);
-	Poll poll() throw(async::OsError);
+	Poll		setResponse() throw(async::OsError);
+	Poll		setBodyWriter() throw(async::OsError);
+	Poll		sendResponse() throw(async::OsError);
+	Poll		poll() throw(async::OsError);
+	std::string generateEtag() const;
+	bool		conditionalGet(std::string const &etag);
 
 private:
 	static void	  setContentType(std::string const &file_ext, Response &response);
