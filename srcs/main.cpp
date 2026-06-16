@@ -83,8 +83,9 @@ int main(int ac, char **av)
 	int	   sfd = -1, s;
 	Router router;
 	// socklen_t peer_addrlen;
-	struct addrinfo	 hints = {};
-	struct addrinfo *result, *rp;
+	struct addrinfo								  hints = {};
+	struct addrinfo								 *result, *rp;
+	std::map<std::pair<std::string, int>, Router> router_vec;
 	// struct sockaddr_storage peer_addr;
 
 	if (ac != 3)
@@ -110,7 +111,9 @@ int main(int ac, char **av)
 		"/logan", std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
 	test.status_pages["201"] = "/index.nginx-debian.html";
 	test.list_directories	 = _true;
-	router.addServ("localhost:33000", test);
+
+
+	router.addServ("localhost", test);
 
 	MimeType::mime_type["html"] = "text/html";
 	MimeType::mime_type["png"]	= "image/png";

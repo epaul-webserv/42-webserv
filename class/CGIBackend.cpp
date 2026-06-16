@@ -201,6 +201,7 @@ void CGIBackend::init()
 	// Tells the cgi EXACTLY what file to run
 	env_vector.push_back("SCRIPT_FILENAME=" + script_full_path);
 
+	// FIXME: get proper port
 	env_vector.push_back("SERVER_PORT=" + DEFAULT_PORT);
 
 	// name of teh server on the network ?
