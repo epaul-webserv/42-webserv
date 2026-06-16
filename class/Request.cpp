@@ -118,6 +118,8 @@ t_request_state Request::readFirstLine(async::BufIo<> &client_io)
 		if (this->method.empty())
 			return (_read);
 		get_next_word(line, this->URI);
+		if (this->URI.empty())
+			return (_read);
 		get_next_word(line, this->http_version);
 		this->_first_line_read = true;
 		decodeURL(this->URI);

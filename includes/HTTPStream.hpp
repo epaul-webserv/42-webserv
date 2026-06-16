@@ -80,12 +80,12 @@ public:
 		if (io.poll_write(container::Slice<uint8_t>(reinterpret_cast<unsigned char *>(&oss.str()[0]), oss.str().size()), s) == async::Future::Pending)
 			return async::Future::Pending;
 		s -= to_deduct;
-		return io.poll_flush();
+		return async::Future::Ready;
 	}
 	async::Future::Poll poll_flush() throw(async::OsError) { return io.poll_flush(); }
 	async::Future::Poll poll_end() throw(async::OsError)
 	{
-		size_t s;
+		size_t s = 0;
 		if (_last_chunk.len() > 0 && io.poll_write(_last_chunk, s) == async::Future::Pending)
 			return (async::Future::Pending);
 		_last_chunk = _last_chunk.slice(s, _last_chunk.len());
@@ -204,16 +204,6 @@ public:
 	}
 };
 
-class TestRequestBody : public ARequestBody
-{
-private:
-	async::BufIo<> &io;
-
-public:
-	TestRequestBody(async::BufIo<> &io) : io(io) {}
-	async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s) throw(async::OsError) { return io.poll_read(buf, s); }
-};
-
 class HTTPStream : public async::Future
 {
 public:
@@ -283,7 +273,6 @@ private:
 
 public: // FIXME: private
 	async::BufIo<4096> buf_io;
-	TestRequestBody	   _request_body;
 
 private:
 	bool			_override_response;

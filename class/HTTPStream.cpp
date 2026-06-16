@@ -2,7 +2,7 @@
 #include "webserv.h"
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr, socklen_t addr_len, Router *router) :
-	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _override_response(false), _rerun(false), _request_body(buf_io), _broken_connection(false),
+	router(router), addr(addr), addr_len(addr_len), buf_io(reactor, fd), _override_response(false), _rerun(false), _broken_connection(false),
 	_status(_fetching_request), _reactor(&reactor), _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0)
 {
 	if (!this->router)
@@ -11,8 +11,8 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_st
 
 HTTPStream::HTTPStream(HTTPStream const &other) :
 	response(other.response), request(other.request), router(other.router), addr(other.addr), addr_len(other.addr_len), buf(other.buf), buf_io(other.buf_io),
-	request_body(other._request_body), _override_response(false), _rerun(false), _status(other._status), _reactor(other._reactor), _backend(NULL),
-	_headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes)
+	_override_response(false), _rerun(false), _status(other._status), _reactor(other._reactor), _backend(NULL), _headers_status(other._headers_status),
+	_headers_sent_bytes(other._headers_sent_bytes)
 {
 }
 
@@ -38,6 +38,7 @@ HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
 	struct iovec parts[2];
+
 
 	buf.unfilled(parts);
 	container::Slice<uint8_t> buf_slice((uint8_t *)parts[0].iov_base, parts[0].iov_len);
@@ -149,6 +150,7 @@ bool HTTPStream::setStatusResponse()
 	return (false);
 }
 
+// TODO: close conenction
 void HTTPStream::setBrokenConnection() { _broken_connection = true; }
 
 async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)

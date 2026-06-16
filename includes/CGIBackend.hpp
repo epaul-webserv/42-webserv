@@ -84,9 +84,10 @@ private:
 
 	bool				parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value);
 	void				parse_cgi_status_value(const std::string &status_value, std::string &status_code, std::string &status_message);
-	async::Future::Poll init();
+	bool				check_files_validity(const char *cgi_name, const char *script_name);
+	void				init();
 	async::Future::Poll copy_to_cgi() throw(async::OsError);
-	async::Future::Poll check_process_status();
+	void				check_process_status();
 	void				send_client_body_to_cgi() throw(async::OsError);
 	void				read_cgi_headers() throw(async::OsError);
 	async::Future::Poll set_body_writer() throw(async::OsError);
@@ -118,4 +119,5 @@ private:
 	size_t	_response_buf_len;
 	size_t	_response_buf_index;
 	bool	_response_body_sent;
+	bool	_send_header_and_abort;
 };

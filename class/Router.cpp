@@ -1,4 +1,5 @@
 #include "Router.hpp"
+#include <html_generator.hpp>
 #include <iostream>
 #include "CGIBackend.hpp"
 #include "StaticBackend.hpp"
@@ -184,9 +185,11 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 		{
 		case _temporary:
 			http_stream.setHTTPStatus("307", "Temporary Redirect");
+			response.bodyAppend(get_html_error("307", "Temporary Redirect"));
 			break;
 		case _permanent:
 			http_stream.setHTTPStatus("301", "Moved Permanently");
+			response.bodyAppend(get_html_error("301", "Moved Permanently"));
 		}
 		response.addHeader("Location", matching_redirect->second.first);
 		return (NULL);

@@ -10,7 +10,7 @@
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream) :
 	_root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream), response_body(NULL), _cgi_pid(0), _client_body_sent(false),
 	_response_headers_read_done(false), _status_set(false), _process_done(false), _content_length(-1), _status(_init), client_body_to_cgi(NULL), _response_buf_len(0),
-	_response_buf_index(0), _response_body_sent(false)
+	_response_buf_index(0), _response_body_sent(false), _send_header_and_abort(false)
 {
 }
 
@@ -29,11 +29,11 @@ CGIBackend::~CGIBackend(void)
 
 async::Future::Poll CGIBackend::poll() throw(async::OsError)
 {
-	if (_status == _init && init() == Ready)
-		return Ready;
-
-	if (check_process_status() == Ready)
-		return Ready;
+	if (_status == _init)
+		init();
+	check_process_status();
+	if (_send_header_and_abort)
+		return stream.poll_send_headers(response_body);
 
 	send_client_body_to_cgi();
 	read_cgi_headers();
@@ -43,13 +43,15 @@ async::Future::Poll CGIBackend::poll() throw(async::OsError)
 	send_body();
 	if (_process_done && _response_body_sent)
 	{
-		return response_body->poll_flush();
+		if (response_body->poll_end() == Pending)
+			return Pending;
+		return Ready;
 	}
 
 	return Pending;
 }
 
-async::Future::Poll CGIBackend::check_process_status()
+void CGIBackend::check_process_status()
 {
 	if (_cgi_pid > 0)
 	{
@@ -62,11 +64,12 @@ async::Future::Poll CGIBackend::check_process_status()
 			{
 				if (WEXITSTATUS(status) != 0)
 				{
-					if (_response_headers_read_done == false)
+					if (!_response_headers_read_done)
 						stream.setHTTPStatus("500", "Internal Server Error");
 					else
 						stream.setBrokenConnection();
-					return Ready;
+					_send_header_and_abort = true;
+					return;
 				}
 				else
 					_process_done = true;
@@ -74,16 +77,21 @@ async::Future::Poll CGIBackend::check_process_status()
 			else
 			{
 				stream.setBrokenConnection();
-				return Ready;
+				_send_header_and_abort = true;
+				return;
 			}
 		}
-		else if (ret < 0)
+		else if (ret < 0) // this will probably never happen, idk
 		{
 			std::cerr << "waitpid error" << std::endl;
-			return Ready;
+			if (!_response_headers_read_done)
+				stream.setHTTPStatus("500", "Internal Server Error");
+			else
+				stream.setBrokenConnection();
+			_send_header_and_abort = true;
+			return;
 		}
 	}
-	return Pending;
 }
 
 bool CGIBackend::parse_cgi_header(const std::vector<uint8_t> &raw_line, std::string &key, std::string &value)
@@ -119,7 +127,7 @@ bool CGIBackend::parse_cgi_header(const std::vector<uint8_t> &raw_line, std::str
 		++val_start;
 	while (val_end > val_start && (line[val_end - 1] == ' ' || line[val_end - 1] == '\t'))
 		--val_end;
-	key	  = line.substr(key_start, key_end - key_start);
+	key	  = to_lower(line.substr(key_start, key_end - key_start));
 	value = line.substr(val_start, val_end - val_start);
 
 	return true;
@@ -146,11 +154,32 @@ void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::st
 	}
 }
 
+bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_name)
+{
+	if (access(cgi_name, X_OK) != 0)
+	{
+		std::cerr << "Error: CGI program is not executable or does not exist.\n";
+		stream.setHTTPStatus("500", "Internal Server Error");
+		_send_header_and_abort = true;
+		return false;
+	}
+
+	// 2. Check if the target file exists and has Read (R_OK) permission
+	if (access(script_name, R_OK) != 0)
+	{
+		std::cerr << "Error: Target file is not readable or does not exist.\n";
+		stream.setHTTPStatus("403", "Forbidden");
+		_send_header_and_abort = true;
+		return false;
+	}
+	return true;
+}
 
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
-async::Future::Poll CGIBackend::init()
+void CGIBackend::init()
 {
+	_status							  = _processing;
 	std::string				 encoding = stream.request.peekHeader("transfer-encoding");
 	std::vector<std::string> env_vector;
 
@@ -160,6 +189,9 @@ async::Future::Poll CGIBackend::init()
 	// The name of the file being executed
 	std::string script_name		 = get_file_name(stream.request.getURI());
 	std::string script_full_path = std::string(DEFAULT_ROOT) + "/" + script_name;
+
+	if (!check_files_validity(_args[0].c_str(), script_full_path.c_str()))
+		return;
 
 	// This is supposed to be whats after the script filename, and before the query string,
 	// but Logan Martin told me to trust him, "tkt" was his explanation, it convinced me
@@ -201,7 +233,8 @@ async::Future::Poll CGIBackend::init()
 	{
 		std::cerr << "CGI Error: socketpair creation failed." << std::endl;
 		stream.setHTTPStatus("500", "Internal Server Error");
-		return Ready;
+		_send_header_and_abort = true;
+		return;
 	}
 
 	_cgi_pid = fork();
@@ -212,7 +245,8 @@ async::Future::Poll CGIBackend::init()
 		close(sv[0]);
 		close(sv[1]);
 		stream.setHTTPStatus("500", "Internal Server Error");
-		return Ready;
+		_send_header_and_abort = true;
+		return;
 	}
 
 	if (_cgi_pid == 0)
@@ -250,9 +284,6 @@ async::Future::Poll CGIBackend::init()
 		client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(stream.buf_io, *_cgi_io, _body_len);
 	}
 	_cgi_io = new async::BufIo<>(_reactor, sv[0]);
-
-	_status = _processing;
-	return Pending;
 }
 
 void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
@@ -261,17 +292,20 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 		_client_body_sent = true;
 }
 
+#include "string_overload.hpp"
+
 void CGIBackend::read_cgi_headers() throw(async::OsError)
 {
 	if (!_response_headers_read_done)
 	{
-		if (_cgi_io->poll_read_line(header_line) == Ready)
+		while (_cgi_io->poll_read_line(header_line) == Ready)
 		{
 			if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
 			{
 				if (!_status_set)
 					stream.setHTTPStatus("200", "Ok");
 				_response_headers_read_done = true;
+				return;
 			}
 			else
 			{
