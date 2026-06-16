@@ -32,9 +32,7 @@ class HTTPStream : public async::Future
     Poll readFirstLine();
     Poll readHeaders();
 
-    container::RingBuf<uint8_t, 4096>   buf;
-    async::Io                           io;
-    async::BufIo<4096>                  buf_io;
+    async::BufIo<>                      buf_io;
     stream_status                       _status;
     async::Reactor                     *_reactor;
     Request                             _request;

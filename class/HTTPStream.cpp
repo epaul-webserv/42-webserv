@@ -5,16 +5,16 @@
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr,
                        socklen_t addr_len)
-    : addr(addr), addr_len(addr_len), io(reactor, fd), buf_io(io), _status(_fetching_request),
+    : addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request),
       _reactor(&reactor), _request_first_line_read(false)
 {
     (void)addr;
 }
 
 HTTPStream::HTTPStream(HTTPStream const &HTTPStream)
-    : addr(HTTPStream.addr), addr_len(HTTPStream.addr_len), buf(HTTPStream.buf), io(HTTPStream.io),
-      buf_io(HTTPStream.buf_io), _status(HTTPStream._status), _reactor(HTTPStream._reactor),
-      _request(HTTPStream._request), _request_first_line_read(false)
+    : addr(HTTPStream.addr), addr_len(HTTPStream.addr_len), buf_io(HTTPStream.buf_io),
+      _status(HTTPStream._status), _reactor(HTTPStream._reactor), _request(HTTPStream._request),
+      _request_first_line_read(false)
 {
     (void)addr;
 }
@@ -162,8 +162,6 @@ HTTPStream &HTTPStream::operator=(HTTPStream const &other)
     {
         addr     = other.addr;
         addr_len = other.addr_len;
-        buf      = other.buf;
-        io       = other.io;
         buf_io   = other.buf_io;
         _status  = other._status;
         _reactor = other._reactor;
@@ -180,6 +178,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             return (Pending);
         std::cout << this->_request;
     }
-    // FIXME: handle body and reponse here
+    // FIXME: handle body and response here
     return (Ready);
 }
