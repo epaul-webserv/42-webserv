@@ -90,7 +90,7 @@ private:
 	void				send_client_body_to_cgi() throw(async::OsError);
 	void				read_cgi_headers() throw(async::OsError);
 	async::Future::Poll set_body_writer() throw(async::OsError);
-	async::Future::Poll send_body() throw(async::OsError);
+	void				send_body() throw(async::OsError);
 
 	std::string const		&_root;
 	async::Reactor			&_reactor;
@@ -117,5 +117,5 @@ private:
 	uint8_t _response_buf[4096];
 	size_t	_response_buf_len;
 	size_t	_response_buf_index;
-	bool	_response_body_read_done;
+	bool	_response_body_sent;
 };

@@ -10,7 +10,7 @@
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor, HTTPStream &stream) :
 	_root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream), response_body(NULL), _cgi_pid(0), _client_body_sent(false),
 	_response_headers_read_done(false), _status_set(false), _process_done(false), _content_length(-1), _status(_init), client_body_to_cgi(NULL), _response_buf_len(0),
-	_response_buf_index(0), _response_body_read_done(false)
+	_response_buf_index(0), _response_body_sent(false)
 {
 }
 
@@ -40,8 +40,12 @@ async::Future::Poll CGIBackend::poll() throw(async::OsError)
 
 	if (set_body_writer() == Ready)
 		return Ready;
-	if (send_body() == Ready && _process_done == true)
-		return Ready;
+	send_body();
+	if (_process_done && _response_body_sent)
+	{
+		return response_body->poll_flush();
+	}
+
 	return Pending;
 }
 
@@ -265,7 +269,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
 		{
 			if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
 			{
-				if (_status_set)
+				if (!_status_set)
 					stream.setHTTPStatus("200", "Ok");
 				_response_headers_read_done = true;
 			}
@@ -317,32 +321,32 @@ async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
 	return Pending;
 }
 
-async::Future::Poll CGIBackend::send_body() throw(async::OsError)
+void CGIBackend::send_body() throw(async::OsError)
 {
 	if (_response_headers_read_done && response_body)
 	{
-		while (676767676767676767 == 676767676767676767)
+		while (!_response_body_sent)
 		{
-			if (!_response_body_read_done && _response_buf_index == _response_buf_len)
+			if (_response_buf_index == _response_buf_len)
 			{
 				container::Slice<uint8_t> buff(_response_buf, 4096);
 				if (_cgi_io->poll_read(buff, _response_buf_len) == Pending)
-					return Pending;
+					return;
 				_response_buf_index = 0;
 				if (_response_buf_len == 0)
-					_response_body_read_done = true;
+				{
+					_response_body_sent = true;
+					return;
+				}
 			}
 			if (_response_buf_index < _response_buf_len)
 			{
 				size_t					  write_written;
 				container::Slice<uint8_t> buff(&_response_buf[_response_buf_index], _response_buf_len - _response_buf_index);
 				if (response_body->poll_write(buff, write_written) == Pending)
-					return Pending;
+					return;
 				_response_buf_index += write_written;
-				if (_response_body_read_done && _response_buf_index >= _response_buf_len)
-					return Ready;
 			}
 		}
 	}
-	return Pending;
 }
