@@ -44,25 +44,6 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
     return (len + skipped);
 }
 
-// static std::string get_next_word(std::vector<uint8_t> &line)
-// {
-//     size_t      len     = 0;
-//     size_t      skipped = 0;
-//     std::string dest;
-//
-//     if (line.empty())
-//         return (dest);
-//     while (!line.empty() && line[len] && std::isspace(line[len]))
-//         line.erase(line.begin()), ++skipped;
-//     if (line.empty())
-//         return (dest);
-//     while (line[len] && !std::isspace(line[len]))
-//         ++len;
-//     dest = std::string(&line[0], &line[len]);
-//     line.erase(line.begin(), line.begin() + len);
-//     return (dest);
-// }
-
 static std::string get_next_word(std::vector<uint8_t> &line, char const &last_char)
 {
     size_t      len     = 0;
@@ -75,8 +56,7 @@ static std::string get_next_word(std::vector<uint8_t> &line, char const &last_ch
         line.erase(line.begin()), ++skipped;
     if (line.empty())
         return (dest);
-    while (line[len] && !std::isspace(line[len]) &&
-           (dest.empty() || *(line.end() - 1) != last_char))
+    while (line[len] && !std::isspace(line[len]) && (!len || line[len - 1] != last_char))
         ++len;
     dest = std::string(&line[0], &line[len]);
     line.erase(line.begin(), line.begin() + len);
@@ -108,13 +88,13 @@ async::Future::Poll HTTPStream::readFirstLine()
 {
     std::vector<uint8_t> line;
 
-    if (buf_io.poll_read_line(line) == async::Future::Pending)
-        return (async::Future::Pending);
+    if (buf_io.poll_read_line(line) == Pending)
+        return (Pending);
     if (line.empty())
-        return (async::Future::Ready);
+        return (Ready);
     get_next_word(line, _request._method);
     if (_request._method.empty())
-        return (async::Future::Ready);
+        return (Ready);
     get_next_word(line, _request._URI);
     get_next_word(line, _request._http_version);
     this->_request_first_line_read = true;
@@ -125,7 +105,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         _request._URI          = _request._URI.substr(0, _request._URI.find('?'));
     }
     if (_request._http_version.empty())
-        return (async::Future::Ready);
+        return (Ready);
     return (this->readHeaders());
 }
 
@@ -135,27 +115,43 @@ async::Future::Poll HTTPStream::readHeaders()
 
     while (true)
     {
-        if (buf_io.poll_read_line(line) == async::Future::Pending)
-            return (async::Future::Pending);
+        if (buf_io.poll_read_line(line) == Pending)
+            return (Pending);
         if (line.empty())
             break;
         std::vector<uint8_t>::iterator ite = line.end();
         if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
-            break;
-        std::vector<uint8_t>::iterator it         = std::find(line.begin(), line.end(), ':');
-        std::string                    header_key = get_next_word(line, ':');
-        if (header_key.find(':') == std::string::npos)
         {
+            if (!_current_header.first.empty())
+                _request._headers[_current_header.first] = _current_header.second;
+            break;
+        }
+        if (line[0] == ' ' || line[0] == '\t')
+        {
+            _current_header.second.append(get_end_of_line(line));
             line.clear();
             continue;
         }
-        header_key = header_key.substr(0, header_key.find(':'));
+        if (!_current_header.first.empty())
+        {
+            _request._headers[_current_header.first] = _current_header.second;
+            _current_header.first.clear();
+            _current_header.second.clear();
+        }
+        std::vector<uint8_t>::iterator it = std::find(line.begin(), line.end(), ':');
+        _current_header.first             = get_next_word(line, ':');
+        if (_current_header.first.find(':') == std::string::npos)
+        {
+            _current_header.first.clear();
+            line.clear();
+            continue;
+        }
+        _current_header.first = _current_header.first.substr(0, _current_header.first.find(':'));
         if (it != ite)
-            _request._headers.insert(
-                (std::pair<std::string, std::string>(to_lower(header_key), get_end_of_line(line))));
+            _current_header.second = get_end_of_line(line);
         line.clear();
     }
-    return (async::Future::Ready);
+    return (Ready);
 }
 
 HTTPStream::~HTTPStream() {}
@@ -180,9 +176,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
     if (this->_status == _fetching_request)
     {
-        if (readRequest() == Future::Pending)
-            return (Future::Pending);
+        if (readRequest() == Pending)
+            return (Pending);
         std::cout << this->_request;
     }
-    return (Future::Ready);
+    return (Ready);
 }
