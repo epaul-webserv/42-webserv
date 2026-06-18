@@ -20,7 +20,6 @@ CLASS = ABackend.cpp \
 		Request.cpp \
 		Router.cpp \
 		StaticBackend.cpp \
-		CGIBackend.cpp \
 		MimeType.cpp \
 		UploadBackend.cpp
 
