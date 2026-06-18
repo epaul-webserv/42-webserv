@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CGI_BACKEND_HPP
+#define CGI_BACKEND_HPP
 
 #include <async>
 #include <vector>
@@ -121,3 +122,5 @@ private:
 	bool	_response_body_sent;
 	bool	_send_header_and_abort;
 };
+
+#endif
