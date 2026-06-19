@@ -17,10 +17,12 @@ public:
 	Router();
 	~Router();
 
-	Router	 &operator=(Router const &Router);
-	ABackend *resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream) const;
-	void	  addServ(std::string const &domain, RouterNode const &node);
-	void	  printServers() const;
+	Router			&operator=(Router const &Router);
+	ABackend		*resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream, bool force) const;
+	void			 addServ(std::string const &domain, RouterNode const &node);
+	void			 printServers() const;
+	static ABackend *getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor,
+								HTTPStream &http_stream);
 
 private:
 	static bool				 validateRequest(Request const &request, Response &response, HTTPStream &http_stream);
