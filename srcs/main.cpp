@@ -153,29 +153,22 @@ int main(int ac, char **av)
 	// struct sockaddr_storage peer_addr;
 	int sfd = -1, s;
 	// socklen_t peer_addrlen;
-	struct addrinfo			 hints = {};
-	struct addrinfo			*result, *rp;
-	Router					 router;
-	std::vector<std::string> php_args;
-	php_args.push_back("/bin/php-cgi");
-	php_args.push_back("-f");
+	// struct addrinfo			 hints = {};
+	// struct addrinfo			*result, *rp;
+	// Router					 router;
+	// std::vector<std::string> php_args;
+	// php_args.push_back("/bin/php-cgi");
+	// php_args.push_back("-f");
 
-	RouterNode																	  test;
-	std::pair<t_backend_type, std::vector<std::string> >						  backend_pair(_cgi, php_args);
-	std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule("php", backend_pair);
-	test.backend_rules.insert(backend_rule);
-	test.accepted_methods.push_back("GET");
-	test.accepted_methods.push_back("POST");
-	test.file_upload = _true;
-	test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
-		"/logan", std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
-	test.status_pages["201"] = "/index.nginx-debian.html";
-	test.list_directories	 = _true;
-
-
-	router.addServ("localhost", test);
-	test.index_pages.push_back("index.nginx-debian.html");
-	router.addServ("", test);
+	// RouterNode																	  test;
+	// std::pair<t_backend_type, std::vector<std::string> >						  backend_pair(_cgi, php_args);
+	// std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule("php", backend_pair);
+	// test.backend_rules.insert(backend_rule);
+	// test.accepted_methods.push_back("GET");
+	// test.accepted_methods.push_back("POST");
+	// test.file_upload		 = _true;
+	// test.redirects["/logan"] = std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary);
+	// router.addServ("localhost:33000", test);
 
 	MimeType::mime_type["html"] = "text/html";
 	MimeType::mime_type["png"]	= "image/png";
@@ -185,23 +178,26 @@ int main(int ac, char **av)
 	MimeType::mime_type["txt"]	= "text/plain";
 	MimeType::mime_type["ico"]	= "image/x-icon";
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family	   = AF_UNSPEC;
-	hints.ai_socktype  = SOCK_STREAM;
-	hints.ai_flags	   = 0;
-	hints.ai_protocol  = 0;
-	hints.ai_canonname = NULL;
-	hints.ai_addr	   = NULL;
-	hints.ai_next	   = NULL;
+	// memset(&hints, 0, sizeof(hints));
+	// hints.ai_family	   = AF_UNSPEC;
+	// hints.ai_socktype  = SOCK_STREAM;
+	// hints.ai_flags	   = 0;
+	// hints.ai_protocol  = 0;
+	// hints.ai_canonname = NULL;
+	// hints.ai_addr	   = NULL;
+	// hints.ai_next	   = NULL;
 
-	s = getaddrinfo("localhost", "33000", &hints, &result);
-	if (s != 0)
-	{
-		std::cerr << "getaddrinfo: " << gai_strerror(s) << "\n";
-		exit(EXIT_FAILURE);
-	}
+	// s = getaddrinfo("localhost", "33000", &hints, &result);
+	// if (s != 0)
+	// {
+	// 	std::cerr << "getaddrinfo: " << gai_strerror(s) << "\n";
+	// 	exit(EXIT_FAILURE);
+	// }
 
-	for (rp = result; rp != NULL; rp = rp->ai_next)
+	if (router_map.size() == 0)
+		return (1);
+	struct addrinfo *rp = NULL;
+	for (rp = router_map.begin()->first; rp != NULL; rp = rp->ai_next)
 	{
 		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (sfd == -1)
@@ -220,13 +216,13 @@ int main(int ac, char **av)
 	if (rp == NULL)
 	{
 		std::cerr << "Could not bind\n";
-		freeaddrinfo(result);
+		freeaddrinfo(router_map.begin()->first);
 		exit(EXIT_FAILURE);
 	}
 	char host[1024];
 	char port[32];
 	s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
-	freeaddrinfo(result);
+	freeaddrinfo(router_map.begin()->first);
 
 	if (s != 0)
 	{
@@ -242,7 +238,7 @@ int main(int ac, char **av)
 
 	std::cout << "Listening on " << host << ":" << port << "\n";
 	async::Reactor reactor;
-	Acceptor	   acceptor(reactor, sfd, router);
+	Acceptor	   acceptor(reactor, sfd, router_map.begin()->second);
 	reactor.run(acceptor);
 	shutdown(sfd, SHUT_RDWR);
 	close(sfd);
