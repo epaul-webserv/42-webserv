@@ -1,3 +1,6 @@
 [submodule "libasync"]
 	path = libasync
 	url = git@github.com:epaul-webserv/libasync.git
+[submodule "libtoml"]
+	path = libtoml
+	url = git@github.com:epaul-webserv/libtoml.git
