@@ -216,6 +216,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 	return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
 }
 
+
 /// @return ABackend pointer OR NULL if response has been set.
 ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor, HTTPStream &http_stream, bool force) const
 {
@@ -233,3 +234,130 @@ ABackend *Router::resolve(Request &request, Response &response, async::Reactor &
 }
 
 void Router::addServ(std::string const &domain, RouterNode const &node) { this->_servers.insert(std::pair<std::string, RouterNode>(domain, node)); }
+
+
+#include <iostream>
+#include <map>
+#include <netdb.h>
+#include <string>
+#include <sys/socket.h>
+#include "Router.hpp"
+
+// Helper function to print individual RouterNode structures recursively
+static void printNode(const RouterNode &node, const std::string &indent)
+{
+	std::cout << indent << "Location: \"" << node.location << "\"\n";
+	std::cout << indent << "  Root: \"" << node.root << "\"\n";
+
+	std::cout << indent << "  Directory Listing: ";
+	if (node.list_directories == _true)
+		std::cout << "true\n";
+	else if (node.list_directories == _false)
+		std::cout << "false\n";
+	else
+		std::cout << "inherit\n";
+
+	std::cout << indent << "  File Upload: ";
+	if (node.file_upload == _true)
+		std::cout << "true\n";
+	else if (node.file_upload == _false)
+		std::cout << "false\n";
+	else
+		std::cout << "inherit\n";
+
+	// Print Accepted Methods
+	if (!node.accepted_methods.empty())
+	{
+		std::cout << indent << "  Accepted Methods: [";
+		for (size_t i = 0; i < node.accepted_methods.size(); ++i)
+		{
+			std::cout << "\"" << node.accepted_methods[i] << "\"";
+			if (i + 1 < node.accepted_methods.size())
+				std::cout << ", ";
+		}
+		std::cout << "]\n";
+	}
+
+	// Print index pages
+	if (!node.index_pages.empty())
+	{
+		std::cout << indent << "  Index pages: [";
+		for (size_t i = 0; i < node.index_pages.size(); ++i)
+		{
+			std::cout << "\"" << node.index_pages[i] << "\"";
+			if (i + 1 < node.index_pages.size())
+				std::cout << ", ";
+		}
+		std::cout << "]\n";
+	}
+
+	// Print Status Pages
+	if (!node.status_pages.empty())
+	{
+		std::cout << indent << "  Status Pages:\n";
+		for (std::map<std::string, std::string>::const_iterator it = node.status_pages.begin(); it != node.status_pages.end(); ++it)
+		{
+			std::cout << indent << "    " << it->first << " -> " << it->second << "\n";
+		}
+	}
+
+	// Print Redirects
+	if (!node.redirects.empty())
+	{
+		std::cout << indent << "  Redirects:\n";
+		for (std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator it = node.redirects.begin(); it != node.redirects.end(); ++it)
+		{
+			std::cout << indent << "    " << it->first << " -> " << it->second.first;
+			std::cout << " (" << (it->second.second == _permanent ? "Permanent" : "Temporary") << ")\n";
+		}
+	}
+
+	// Print Backend Rules
+	if (!node.backend_rules.empty())
+	{
+		std::cout << indent << "  Backend Rules:\n";
+		for (std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >::const_iterator it = node.backend_rules.begin();
+			 it != node.backend_rules.end(); ++it)
+		{
+			std::cout << indent << "    Extension: ." << it->first << "\n";
+			std::cout << indent << "      Type: " << (it->second.first == _cgi ? "CGI" : "Unknown") << "\n";
+			std::cout << indent << "      Args: [";
+			const std::vector<std::string> &args = it->second.second;
+			for (size_t i = 0; i < args.size(); ++i)
+			{
+				std::cout << "\"" << args[i] << "\"";
+				if (i + 1 < args.size())
+					std::cout << ", ";
+			}
+			std::cout << "]\n";
+		}
+	}
+
+	// Recursively print sub-nodes (nested locations)
+	if (!node.sub_nodes.empty())
+	{
+		std::cout << indent << "  Sub-nodes (Locations):\n";
+		for (std::map<std::string, RouterNode>::const_iterator it = node.sub_nodes.begin(); it != node.sub_nodes.end(); ++it)
+		{
+			std::cout << indent << "    Key: \"" << it->first << "\"\n";
+			printNode(it->second, indent + "      ");
+		}
+	}
+}
+
+// Custom wrapper inside Router class to print its internal server configurations
+void Router::printServers() const
+{
+	if (_servers.empty())
+	{
+		std::cout << "    (No virtual server_name keys registered inside this Router instance)\n";
+		return;
+	}
+
+	for (std::map<std::string, RouterNode>::const_iterator it = _servers.begin(); it != _servers.end(); ++it)
+	{
+		std::cout << "  Server Name (Key): \"" << it->first << "\"\n";
+		printNode(it->second, "    ");
+		std::cout << "  -------------------------------------\n";
+	}
+}

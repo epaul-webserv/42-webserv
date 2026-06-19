@@ -36,6 +36,7 @@ struct RouterNode
 		backend_rules; // List of accessible backends (file extension, backend type and backend arguments first one being the absolute path to the executable if
 	// applicable)
 	std::vector<std::string> accepted_methods;
+	std::vector<std::string> index_pages;
 	// FIXME: ADD DEFAULT INDEX PAGES
 };
 

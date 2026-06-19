@@ -21,7 +21,8 @@ CLASS = ABackend.cpp \
 		Router.cpp \
 		StaticBackend.cpp \
 		MimeType.cpp \
-		UploadBackend.cpp
+		UploadBackend.cpp \
+		ConfigParser.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
