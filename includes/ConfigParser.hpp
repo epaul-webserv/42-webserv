@@ -8,6 +8,18 @@
 
 class ConfigParser
 {
+public:
+	class ConfigError : public std::exception
+	{
+	protected:
+		std::string _msg;
+
+	public:
+		explicit ConfigError(const std::string &message) : _msg(message) {}
+		virtual ~ConfigError() throw() {}
+		virtual const char *what() const throw() { return _msg.c_str(); }
+	};
+
 private:
 	ConfigParser();
 	~ConfigParser();
@@ -15,7 +27,7 @@ private:
 	ConfigParser &operator=(const ConfigParser &other);
 
 public:
-	static int ParseConfig(std::map<std::pair<std::string, int>, Router> &config, const char *filepath) throw(toml::Parser::ParsingError);
+	static void ParseConfig(std::map<struct addrinfo *, Router> &router_map, const char *filepath);
 };
 
 #endif
