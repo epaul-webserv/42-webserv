@@ -94,7 +94,7 @@ private:
 	async::Future::Poll set_body_writer() throw(async::OsError);
 	void				send_body() throw(async::OsError);
 
-	std::string const		&_root;
+	std::string const		 _root;
 	async::Reactor			&_reactor;
 	std::vector<std::string> _args;
 	async::BufIo<>			*_cgi_io;

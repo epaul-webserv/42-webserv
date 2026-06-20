@@ -289,7 +289,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 	toml::Toml::const_iterator listeners_lookup = toml_root.find("listeners");
 	if (listeners_lookup == toml_root.end())
 	{
-		throw ConfigParser::ConfigError("Error: Config root missing [listeners] or [listener] block");
+		throw ConfigParser::ConfigError("Config missing [listeners] block");
 	}
 
 	// Prepare to iterate through listeners whether it is a single table or an array of tables
@@ -314,6 +314,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 		const toml::Toml &listener_table = *lit;
 		std::string		  domain		 = "localhost";
 		std::string		  port			 = "80";
+		int64_t			  port_nb;
 
 		// 1. Parse listen block
 		toml::Toml::const_iterator listen_lookup = listener_table.find("listen");
@@ -331,7 +332,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 			if (port_it != listen_table.end())
 			{
 				std::stringstream ss;
-				int64_t			  port_nb = port_it->second.as_int64();
+				port_nb = port_it->second.as_int64();
 				if (port_nb < 0 || port_nb > 65535)
 				{
 					free_router_map_keys(router_map);
@@ -341,6 +342,8 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 				port = ss.str();
 			}
 		}
+		else
+			throw ConfigParser::ConfigError("listen key missing in listener block");
 
 		// Get addrinfo socket configuration block
 		struct addrinfo *ai = resolve_listen(domain, port);
@@ -351,6 +354,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 		}
 
 		Router &router = router_map[ai];
+		router.setPort(port_nb);
 
 		// 2. Parse the server block inside this listener
 		toml::Toml::const_iterator server_lookup = listener_table.find("server");

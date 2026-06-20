@@ -175,6 +175,7 @@ bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_n
 	return true;
 }
 
+#include "string_overload.hpp"
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
 void CGIBackend::init()
@@ -188,7 +189,7 @@ void CGIBackend::init()
 
 	// The name of the file being executed
 	std::string script_name		 = get_file_name(stream.request.getURI());
-	std::string script_full_path = std::string(DEFAULT_ROOT) + "/" + script_name;
+	std::string script_full_path = std::string(_root) + "/" + script_name;
 
 	if (!check_files_validity(_args[0].c_str(), script_full_path.c_str()))
 		return;
@@ -201,8 +202,7 @@ void CGIBackend::init()
 	// Tells the cgi EXACTLY what file to run
 	env_vector.push_back("SCRIPT_FILENAME=" + script_full_path);
 
-	// FIXME: get proper port
-	env_vector.push_back("SERVER_PORT=" + DEFAULT_PORT);
+	env_vector.push_back("SERVER_PORT=" + toString(stream.router->getPort()));
 
 	// name of teh server on the network ?
 	env_vector.push_back("SERVER_NAME=" + std::string(PROGNAME));
@@ -265,6 +265,11 @@ void CGIBackend::init()
 			argv.push_back(const_cast<char *>(_args[i].c_str()));
 		argv.push_back(const_cast<char *>(script_full_path.c_str()));
 		argv.push_back(NULL);
+		if (chdir(_root.c_str()) != 0)
+		{
+			std::cerr << "chdir failed for: " << _root << std::endl;
+			std::exit(1);
+		}
 
 		execve(argv[0], &argv[0], env_char.data());
 		std::cerr << "CGI Error: execve failed for " << argv[0] << ", " << argv[1] << ", " << argv[2] << std::endl;

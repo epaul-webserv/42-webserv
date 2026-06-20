@@ -70,6 +70,10 @@ ABackend *Router::getBackend(t_backend_type const &backend_type, std::vector<std
 	return (backend);
 }
 
+int Router::getPort() { return _port; }
+
+void Router::setPort(int port) { _port = port; }
+
 bool Router::validateRequest(Request const &request, Response &response, HTTPStream &http_stream)
 {
 	const std::string http_version = request.getHTTPVersion();

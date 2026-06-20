@@ -23,6 +23,8 @@ public:
 	void			 printServers() const;
 	static ABackend *getBackend(t_backend_type const &backend_type, std::vector<std::string> const &args, std::string const &root, async::Reactor &reactor,
 								HTTPStream &http_stream);
+	int				 getPort();
+	void			 setPort(int port);
 
 private:
 	static bool				 validateRequest(Request const &request, Response &response, HTTPStream &http_stream);
@@ -32,6 +34,7 @@ private:
 	static ABackend *defineBackend(Request &request, Response &response, RouterRuleset const &ruleset, async::Reactor &reactor, HTTPStream &http_stream, bool force);
 
 	std::map<std::string, RouterNode> _servers; // Servers identified by domain[:port(if other than 80)]
+	int								  _port;
 };
 
 #endif
