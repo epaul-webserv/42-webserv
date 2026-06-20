@@ -212,7 +212,6 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 		if (ruleset.list_directories == _true)
 			return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor, http_stream));
 		http_stream.setHTTPStatus("403", "Forbidden");
-		// FIXME: ADD DEFAULT INDEX PAGES
 		return (NULL);
 	}
 	std::string																					 file_extension = get_file_ext(request.getURI());

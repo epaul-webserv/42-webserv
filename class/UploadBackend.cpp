@@ -38,7 +38,7 @@ async::Future::Poll UploadBackend::writeFile()
 	while (true)
 	{
 		container::Slice<uint8_t> sl(_file_buf, 4096);
-		if (_request_body->poll_read(sl, s) == Pending) // FIXME: using request body provoke "Operation not permitted"
+		if (_request_body->poll_read(sl, s) == Pending)
 			return (Pending);
 		if (_request_body->fail() || !s)
 			return (Ready);
