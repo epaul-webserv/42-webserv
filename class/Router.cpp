@@ -146,8 +146,8 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
 		ruleset.root = serv.root;
 	ruleset.redirects.insert(serv.redirects.begin(), serv.redirects.end());
 	ruleset.status_pages.insert(serv.status_pages.begin(), serv.status_pages.end());
-	if (!serv.dir_file.empty())
-		ruleset.dir_file = serv.dir_file;
+	if (!serv.index_pages.empty())
+		ruleset.index_pages = serv.index_pages;
 	ruleset.backend_rules.insert(serv.backend_rules.begin(), serv.backend_rules.end());
 	if (ruleset.redirects.find(URI) != ruleset.redirects.end())
 		return (ruleset);
@@ -196,13 +196,21 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
 	}
 	if (fileType(request.getURI(), ruleset.root) == _dir)
 	{
+		if (!ruleset.index_pages.empty())
+		{
+			std::vector<std::string>::const_iterator it;
+			std::vector<std::string>::const_iterator ite = ruleset.index_pages.end();
+			for (it = ruleset.index_pages.begin(); it != ite; ++it)
+			{
+				if (fileType("/" + *it, ruleset.root) == _file)
+				{
+					request.setURI("/" + *it);
+					return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
+				}
+			}
+		}
 		if (ruleset.list_directories == _true)
 			return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor, http_stream));
-		if (!ruleset.dir_file.empty())
-		{
-			request.setURI(ruleset.dir_file);
-			return (getBackend(_static, std::vector<std::string>(), "", reactor, http_stream));
-		}
 		http_stream.setHTTPStatus("403", "Forbidden");
 		// FIXME: ADD DEFAULT INDEX PAGES
 		return (NULL);

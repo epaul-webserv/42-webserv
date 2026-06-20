@@ -114,6 +114,8 @@ int main(int ac, char **av)
 
 
 	router.addServ("localhost", test);
+	test.index_pages.push_back("index.nginx-debian.html");
+	router.addServ("", test);
 
 	MimeType::mime_type["html"] = "text/html";
 	MimeType::mime_type["png"]	= "image/png";
