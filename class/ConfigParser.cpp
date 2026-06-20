@@ -267,13 +267,14 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
 
 	return loc_node;
 }
+#include "MimeType.hpp"
 
 void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, const char *filepath)
 {
 	toml::Toml toml_root;
 	int		   fd = open(filepath, O_RDONLY);
 	if (fd < 0)
-		throw ConfigParser::ConfigError("Failed to open config file: " + std::string(strerror(errno)));
+		throw ConfigParser::ConfigError("Failed to open config file \"" + std::string(filepath) + "\" : " + std::string(strerror(errno)));
 	try
 	{
 		toml::parse(fd, toml_root);
@@ -284,6 +285,20 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map, 
 		throw ConfigParser::ConfigError("Invalid TOML file: " + std::string(e.what()));
 	}
 	close(fd);
+
+	toml::Toml::const_iterator mime_lookup = toml_root.find("mime_config");
+	if (mime_lookup != toml_root.end())
+	{
+		if (mime_lookup->second.type() == toml::Datum::Array)
+		{
+			const toml::Array &arr = mime_lookup->second.as_array();
+			for (toml::Array::const_iterator it = arr.begin(); it != arr.end(); ++it)
+			{
+				if (it->type() == toml::Datum::String)
+					MimeType::ParseConfig(it->as_string().c_str());
+			}
+		}
+	}
 
 	// Look up the listeners (handles both "listeners" and "listener" to match your TOML robustly)
 	toml::Toml::const_iterator listeners_lookup = toml_root.find("listeners");
