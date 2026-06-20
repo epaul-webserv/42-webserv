@@ -282,7 +282,7 @@ void CGIBackend::init()
 	{
 		char *ptr;
 		_body_len		   = std::strtoul(content_len.c_str(), &ptr, 10);
-		client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(stream.buf_io, *_cgi_io, _body_len);
+		client_body_to_cgi = new async::CopyBufIoToBufIo<4096, 4096>(stream.buf_io, *_cgi_io, _body_len); // FIXME: replace stream buf_io by request body
 	}
 	_cgi_io = new async::BufIo<>(_reactor, sv[0]);
 }
