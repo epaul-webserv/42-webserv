@@ -107,12 +107,12 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
 {
 	std::map<std::string, RouterNode>::const_iterator it;
 
-	if (host.empty())
-		it = this->_servers.begin();
-	else
-		it = this->_servers.find(host);
+	it = this->_servers.find(host);
 	if (it == this->_servers.end())
 	{
+		it = this->_servers.find("");
+		if (it != this->_servers.end())
+			return (&it->second);
 		http_stream.setHTTPStatus("404", "Not Found");
 		return (NULL);
 	}
