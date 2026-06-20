@@ -75,10 +75,10 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 	// 	return; FIXME: skip body
 	if (http_stream.request.getMethod() == "GET")
 	{
-		switch (fileType(http_stream.request.getURI(), DEFAULT_ROOT))
+		switch (fileType(http_stream.request.getURI(), root))
 		{
 		case _dir:
-			http_stream.response.bodyAppend(get_html_dir(http_stream.request.getURI(), DEFAULT_ROOT));
+			http_stream.response.bodyAppend(get_html_dir(http_stream.request.getURI(), root));
 			http_stream.response.addHeader("Content-Type", "text/html");
 			http_stream.setHTTPStatus("200", "Ok");
 			return Ready;
@@ -91,7 +91,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 		case _file:
 			break;
 		}
-		switch (this->openFile(DEFAULT_ROOT + http_stream.request.getURI(), http_stream.response))
+		switch (this->openFile(root + http_stream.request.getURI(), http_stream.response))
 		{
 		case _no_permission:
 			return http_stream.setHTTPStatus("403", "Forbidden"), Ready;
@@ -106,7 +106,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 	}
 	if (http_stream.request.getMethod() == "HEAD")
 	{
-		switch (fileType(http_stream.request.getURI(), DEFAULT_ROOT))
+		switch (fileType(http_stream.request.getURI(), root))
 		{
 		case _dir:
 			http_stream.response.addHeader("Content-Type", "text/html");
@@ -120,7 +120,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 			http_stream.setHTTPStatus("404", "Not found");
 			return Ready;
 		case _file:
-			setContentType(get_file_ext(DEFAULT_ROOT + http_stream.request.getURI()), http_stream.response);
+			setContentType(get_file_ext(root + http_stream.request.getURI()), http_stream.response);
 			http_stream.setHTTPStatus("200", "Ok");
 		}
 	}
