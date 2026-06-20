@@ -74,7 +74,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 			if (_backend && _backend->poll() == Pending)
 				return (Pending);
 		}
-		if (this->request.getHTTPVersion() == "HTTP/1.1" && this->response.headers["Connection"] != "close")
+		if (!this->_broken_connection && this->request.getHTTPVersion() == "HTTP/1.1" && this->response.headers["Connection"] != "close")
 			return (this->keepAlive(), Future::Pending);
 		return (Future::Ready);
 	}
@@ -150,7 +150,6 @@ bool HTTPStream::setStatusResponse()
 	return (false);
 }
 
-// TODO: close conenction
 void HTTPStream::setBrokenConnection() { _broken_connection = true; }
 
 async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
