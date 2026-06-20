@@ -1,0 +1,59 @@
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
+
+#include "webserv.hpp"
+#include <algorithm>
+#include <async>
+#include <map>
+#include <sstream>
+#include <string>
+
+typedef enum
+{
+    _reading,
+    _read,
+    _close
+} t_request_state;
+
+typedef enum
+{
+    _dir,
+    _file,
+    _no_access,
+    _none,
+    _err
+} t_file_type;
+
+class Request
+{
+  public:
+    Request();
+    Request(const Request &Request);
+    ~Request();
+
+    Request                            &operator=(const Request &other);
+    void                                clear();
+    void                                prepareNextRead();
+    std::string                         peekHeader(std::string const &key = "") const;
+    std::pair<std::string, std::string> takeHeader(std::string const &key = "");
+    std::string                         getMethod() const;
+    std::string                         getURI() const;
+    void                                setURI(std::string const &URI);
+    std::string                         getQueryString() const;
+    std::string                         getHTTPVersion() const;
+
+    class InvalidReadException : public std::exception
+    {
+        const char *what() const throw();
+    };
+
+    std::string                        _method;
+    std::string                        _URI;
+    std::string                        _query_string;
+    std::string                        _http_version;
+    std::map<std::string, std::string> _headers;
+};
+
+std::ostream &operator<<(std::ostream &o, Request &request);
+
+#endif

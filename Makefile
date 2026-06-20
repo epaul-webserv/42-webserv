@@ -2,10 +2,16 @@ CXX = c++
 CXXFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
 
 SRCS_DIR = srcs
-SRCS = main.cpp
+SRCS = main.cpp \
+		string_overload/string_overload.cpp \
+		url_utils/file_extension.cpp \
+		url_utils/url_decoder.cpp \
+		url_utils/url_encoder.cpp
 
 CLASS_DIR = class
-CLASS =
+CLASS = Date.cpp \
+		HTTPStream.cpp \
+		Request.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
