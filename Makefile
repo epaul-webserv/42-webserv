@@ -11,7 +11,8 @@ SRCS = main.cpp \
 CLASS_DIR = class
 CLASS = Date.cpp \
 		HTTPStream.cpp \
-		Request.cpp
+		Request.cpp \
+		Router.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
