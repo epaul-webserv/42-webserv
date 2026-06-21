@@ -52,7 +52,7 @@ private:
 public:
 	TestResponseBody(async::BufIo<> &io) : io(io) {}
 	async::Future::Poll poll_write(container::Slice<uint8_t> buf, size_t &s) throw(async::OsError) { return io.poll_write(buf, s); }
-	async::Future::Poll poll_end() throw(async::OsError) { return io.poll_flush(); }
+	async::Future::Poll poll_end() throw(async::OsError) { return io.poll_flush_write(); }
 	~TestResponseBody() {}
 };
 
@@ -82,14 +82,13 @@ public:
 		s -= to_deduct;
 		return async::Future::Ready;
 	}
-	async::Future::Poll poll_flush() throw(async::OsError) { return io.poll_flush(); }
 	async::Future::Poll poll_end() throw(async::OsError)
 	{
 		size_t s = 0;
 		if (_last_chunk.len() > 0 && io.poll_write(_last_chunk, s) == async::Future::Pending)
 			return (async::Future::Pending);
 		_last_chunk = _last_chunk.slice(s, _last_chunk.len());
-		if (_last_chunk.len() == 0 && io.poll_flush() == async::Future::Pending)
+		if (_last_chunk.len() == 0 && io.poll_flush_write() == async::Future::Pending)
 			return (async::Future::Pending);
 		return (async::Future::Ready);
 	}

@@ -30,7 +30,7 @@ namespace async
 				{
 					if (buf.len() == 0)
 					{
-						return to.poll_flush();
+						return to.poll_flush_write();
 					}
 					size_t s;
 					if (to.poll_write(buf, s) == Future::Pending)

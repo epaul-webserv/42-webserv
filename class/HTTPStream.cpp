@@ -98,7 +98,7 @@ void HTTPStream::headersAddBase()
 {
 	std::ostringstream head;
 
-	if (request.http_version == "HTTP/0.9")
+	if (request.http_version == "HTTP/0.9" || request.http_version.empty())
 		return;
 	head << request.http_version + " " + response.http_status + " " + response.http_msg << "\r\n";
 	head << "Server: " << PROGNAME << "\r\n";
@@ -178,7 +178,7 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
 				return (Pending);
 			_headers_sent_bytes += s;
 		}
-		if (this->buf_io.poll_flush() == Pending)
+		if (this->buf_io.poll_flush_write() == Pending)
 			return Pending;
 	}
 	return (Ready);
