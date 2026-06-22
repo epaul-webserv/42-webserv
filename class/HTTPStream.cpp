@@ -190,7 +190,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_status = _getting_backend;
     }
     if (this->_status == _getting_backend)
-        this->_backend = this->_router->resolve(request, response, *_reactor, *this, false);
+        this->_backend = this->_router->resolve(*_reactor, *this, false);
     // FIXME: handle body and response here
     return (Ready);
 }
