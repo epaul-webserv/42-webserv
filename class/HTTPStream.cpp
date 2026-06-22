@@ -1,21 +1,27 @@
 #include "HTTPStream.hpp"
+#include "html_generator.hpp"
 #include "string_overload.hpp"
 #include "url_utils.hpp"
 #include <iostream>
 
-HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr,
+HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
                        socklen_t addr_len, Router *router)
-    : addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request),
-      _reactor(&reactor), _router(router), _backend(NULL)
+    : addr(addr), addr_len(addr_len), _override_response(false), _rerun(false),
+      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _router(router),
+      _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0),
+      buf_io(reactor, fd)
 {
     if (!this->_router)
         throw(std::runtime_error("Cannot initialize HTTPStream with NULL router"));
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
-    : addr(other.addr), addr_len(other.addr_len), request(other.request), buf_io(other.buf_io),
-      _status(other._status), _reactor(other._reactor), _router(other._router),
-      _backend(other._backend)
+    : request(other.request), addr(other.addr), addr_len(other.addr_len),
+      _override_response(other._override_response), _rerun(other._rerun),
+      _broken_connection(other._broken_connection), _status(other._status),
+      _reactor(other._reactor), _router(other._router), _backend(other._backend),
+      _headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes),
+      buf_io(other.buf_io)
 {
     (void)addr;
 }
@@ -92,28 +98,32 @@ async::Future::Poll HTTPStream::readFirstLine()
         return (Pending);
     if ((line.size() == 1 || line.size() == 2) && *(line.end() - 1) == '\n')
     {
-        _status = _sending_response;
-        return (Ready); // FIXME : need to set a 400 error
+        setHTTPStatus("400", "Bad Request");
+        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        _status = _processing_response;
+        return (Ready);
     }
     if (line.empty())
         return (Ready);
-    get_next_word(line, request._method);
-    if (request._method.empty())
+    get_next_word(line, request.method);
+    if (request.method.empty())
         return (Ready);
-    get_next_word(line, request._URI);
-    get_next_word(line, request._http_version);
+    get_next_word(line, request.URI);
+    get_next_word(line, request.http_version);
     _status = _fetching_headers;
-    if (!decode_url(request._URI))
+    if (!decode_url(request.URI))
     {
-        std::cerr << "Invalid URI" << std::endl; // FIXME : need to set a 400 error
+        setHTTPStatus("400", "Bad Request");
+        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        std::cerr << "Invalid URI" << std::endl;
         return (Ready);
     }
-    if (request._URI.find('?') != std::string::npos)
+    if (request.URI.find('?') != std::string::npos)
     {
-        request._query_string = request._URI.substr(request._URI.find('?'));
-        request._URI          = request._URI.substr(0, request._URI.find('?'));
+        request.query_string = request.URI.substr(request.URI.find('?'));
+        request.URI          = request.URI.substr(0, request.URI.find('?'));
     }
-    if (request._http_version.empty())
+    if (request.http_version.empty())
         return (Ready);
     return (this->readHeaders());
 }
@@ -132,7 +142,7 @@ async::Future::Poll HTTPStream::readHeaders()
         if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
         {
             if (!_current_header.first.empty())
-                request._headers[to_lower(_current_header.first)] = _current_header.second;
+                request.headers[to_lower(_current_header.first)] = _current_header.second;
             break;
         }
         if (line[0] == ' ' || line[0] == '\t')
@@ -143,7 +153,7 @@ async::Future::Poll HTTPStream::readHeaders()
         }
         if (!_current_header.first.empty())
         {
-            request._headers[to_lower(_current_header.first)] = _current_header.second;
+            request.headers[to_lower(_current_header.first)] = _current_header.second;
             _current_header.first.clear();
             _current_header.second.clear();
         }
@@ -159,6 +169,116 @@ async::Future::Poll HTTPStream::readHeaders()
         if (it != ite)
             _current_header.second = get_end_of_line(line);
         line.clear();
+    }
+    return (Ready);
+}
+
+async::Future::Poll HTTPStream::keepAlive()
+{
+    this->request.clear();
+    this->response.clear();
+    this->status_pages.clear();
+    this->_status = _fetching_request;
+    delete this->_backend;
+    this->_backend            = NULL;
+    this->_headers_status     = _initializing_headers;
+    this->_headers_sent_bytes = 0;
+    return (this->poll());
+}
+
+void HTTPStream::headersAddBase()
+{
+    std::ostringstream head;
+
+    if (request.http_version == "HTTP/0.9")
+        return;
+    head << request.http_version + " " + response.http_status + " " + response.http_msg << "\r\n";
+    head << "Server: " << PROGNAME << "\r\n";
+    head << "Date: " << Date().str() << "\r\n";
+    if (response.content_length)
+    {
+        std::ostringstream tmp;
+        tmp << response.content_length;
+        response.headers["Content-Length"] = tmp.str();
+    }
+    std::map<std::string, std::string>::const_iterator ite = response.headers.end();
+    for (std::map<std::string, std::string>::const_iterator it = response.headers.begin();
+         it != ite; ++it)
+        head << it->first << ": " << it->second << "\r\n";
+    response.head.insert(0, head.str());
+    response.head.append("\r\n");
+}
+
+/// @brief Sets the response's status and sets the body if an associated file is set in the
+/// configuration or in case of error (3XX, 4XX, 5XX)
+void HTTPStream::setHTTPStatus(std::string const &status, std::string const &message)
+{
+    response.http_status = status;
+    response.http_msg    = message;
+}
+
+bool HTTPStream::setStatusResponse()
+{
+    if (response.http_status.empty())
+        setHTTPStatus("500", "Internal Server Error");
+    const std::map<std::string, std::string>::const_iterator it =
+        status_pages.find(response.http_status);
+    if (it != status_pages.end())
+    {
+        request.URI    = it->second;
+        request.method = "GET";
+        _saved_status  = response.http_status;
+        _saved_msg     = response.http_msg;
+        response.clear();
+        delete _backend;
+        _backend           = _router->resolve(request, response, *_reactor, *this, true);
+        _override_response = true;
+        _rerun             = true;
+        return (true);
+    }
+    else if (response.http_status[0] == '4' || response.http_status[0] == '5')
+    {
+        response.bodyAppend(get_html_error(response.http_status, response.http_msg));
+        response.addHeader("Content-Type", "text/html");
+        return (false);
+    }
+    return (false);
+}
+
+void HTTPStream::setBrokenConnection() { _broken_connection = true; }
+
+async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
+{
+    if (this->_headers_status == _initializing_headers)
+    {
+        if (!_override_response && setStatusResponse())
+            return (Ready);
+        if (_override_response)
+            setHTTPStatus(_saved_status, _saved_msg);
+        this->headersAddBase();
+        if (!request.http_version.empty())
+            response.send_buf = std::vector<uint8_t>(response.head.c_str(),
+                                                     response.head.c_str() + response.head.size());
+        response.send_buf.insert(response.send_buf.end(), response.body.begin(),
+                                 response.body.end());
+        std::cerr << request.getMethod() << " " << request.getURI() << " "
+                  << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
+        this->_headers_status = _sending_headers;
+    }
+    if (this->_headers_status == _sending_headers)
+    {
+        while (_headers_sent_bytes < response.send_buf.size())
+        {
+            size_t s;
+            if (this->buf_io.poll_write(
+                    container::Slice<uint8_t>(&response.send_buf[_headers_sent_bytes],
+                                              response.send_buf.size() - _headers_sent_bytes),
+                    s) == async::Future::Pending)
+                return (Pending);
+            _headers_sent_bytes += s;
+        }
+        if (this->buf_io.poll_flush_write() == Pending)
+            return Pending;
     }
     return (Ready);
 }
@@ -186,11 +306,36 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
         if (readRequest() == Pending)
             return (Pending);
         // std::cout << this->_request;
-        if (this->_status != _sending_response)
+        if (this->_status != _processing_response)
             this->_status = _getting_backend;
     }
     if (this->_status == _getting_backend)
+    {
         this->_backend = this->_router->resolve(*_reactor, *this, false);
+        this->_status  = _processing_response;
+    }
+    if (this->_status == _processing_response)
+    {
+        container::Slice<uint8_t> slice(NULL, 0);
+
+        if (_backend == NULL)
+        {
+            if (this->sendHeaders() == Pending)
+                return Pending;
+        }
+        if (_backend && _backend->poll() == Pending)
+            return (Pending);
+        if (_rerun)
+        {
+            _rerun = false;
+            if (_backend && _backend->poll() == Pending)
+                return (Pending);
+        }
+        if (!this->_broken_connection && this->request.getHTTPVersion() == "HTTP/1.1" &&
+            this->response.headers["Connection"] != "close")
+            return (this->keepAlive(), Future::Pending);
+        return (Future::Ready);
+    }
     // FIXME: handle body and response here
     return (Ready);
 }
