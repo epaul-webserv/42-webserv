@@ -8,6 +8,7 @@
 #include "RouterRuleset.hpp"
 #include "url_utils.hpp"
 #include <async>
+#include <cerrno>
 #include <vector>
 
 class HTTPStream;
