@@ -5,8 +5,8 @@
 Request::Request() {}
 
 Request::Request(Request const &Request)
-    : _method(Request._method), _URI(Request._URI), _http_version(Request._http_version),
-      _headers(Request._headers)
+    : method(Request.method), URI(Request.URI), http_version(Request.http_version),
+      headers(Request.headers)
 {
 }
 
@@ -16,28 +16,28 @@ Request &Request::operator=(Request const &other)
 {
     if (this != &other)
     {
-        this->_method       = other._method;
-        this->_URI          = other._URI;
-        this->_http_version = other._http_version;
-        this->_headers      = other._headers;
+        this->method       = other.method;
+        this->URI          = other.URI;
+        this->http_version = other.http_version;
+        this->headers      = other.headers;
     }
     return (*this);
 }
 
 void Request::clear()
 {
-    this->_method.clear();
-    this->_URI.clear();
-    this->_http_version.clear();
-    this->_headers.clear();
+    this->method.clear();
+    this->URI.clear();
+    this->http_version.clear();
+    this->headers.clear();
 }
 
 void Request::prepareNextRead()
 {
-    this->_method.clear();
-    this->_URI.clear();
-    this->_http_version.clear();
-    this->_headers.clear();
+    this->method.clear();
+    this->URI.clear();
+    this->http_version.clear();
+    this->headers.clear();
 }
 
 /// @brief returns the next header available.
@@ -50,14 +50,14 @@ std::string Request::peekHeader(std::string const &key) const
     std::map<std::string, std::string>::const_iterator it;
 
     if (key.empty())
-        it = this->_headers.begin();
+        it = this->headers.begin();
     else
     {
         std::string tmp = key;
         to_lower(tmp);
-        it = this->_headers.find(tmp);
+        it = this->headers.find(tmp);
     }
-    if (it == this->_headers.end())
+    if (it == this->headers.end())
         return ("");
     return (it->second);
 }
@@ -74,25 +74,25 @@ std::pair<std::string, std::string> Request::takeHeader(std::string const &key)
     if (!key.empty())
     {
         ret = std::pair<std::string, std::string>(key, peekHeader(key));
-        this->_headers.erase(key);
+        this->headers.erase(key);
     }
-    else if (this->_headers.begin() != this->_headers.end())
+    else if (this->headers.begin() != this->headers.end())
     {
-        ret = *this->_headers.begin();
-        this->_headers.erase(this->_headers.begin());
+        ret = *this->headers.begin();
+        this->headers.erase(this->headers.begin());
     }
     return (ret);
 }
 
-std::string Request::getMethod() const { return (this->_method); }
+std::string Request::getMethod() const { return (this->method); }
 
-std::string Request::getURI() const { return (this->_URI); }
+std::string Request::getURI() const { return (this->URI); }
 
-void Request::setURI(std::string const &URI) { this->_URI = URI; }
+void Request::setURI(std::string const &URI) { this->URI = URI; }
 
-std::string Request::getQueryString() const { return (this->_query_string); }
+std::string Request::getQueryString() const { return (this->query_string); }
 
-std::string Request::getHTTPVersion() const { return (this->_http_version); }
+std::string Request::getHTTPVersion() const { return (this->http_version); }
 
 const char *Request::InvalidReadException::what() const throw() { return ("Error while reading"); }
 
