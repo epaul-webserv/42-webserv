@@ -47,11 +47,11 @@ class Request
         const char *what() const throw();
     };
 
-    std::string                        _method;
-    std::string                        _URI;
-    std::string                        _query_string;
-    std::string                        _http_version;
-    std::map<std::string, std::string> _headers;
+    std::string                        method;
+    std::string                        URI;
+    std::string                        query_string;
+    std::string                        http_version;
+    std::map<std::string, std::string> headers;
 };
 
 std::ostream &operator<<(std::ostream &o, Request &request);
