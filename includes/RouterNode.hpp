@@ -2,6 +2,7 @@
 #define ROUTERNODE_HPP
 
 #include "ABackend.hpp"
+#include "webserv.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -41,7 +42,7 @@ struct RouterNode
                                                      // of page to serve in case of this status;
     std::vector<std::string> index_pages; // relative (to applicable root) path to the file to serve
                                           // in case on a dir ressource, inactive if empty
-    std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >
+    std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >
         backend_rules; // List of accessible backends (file extension, backend type and backend
                        // arguments first one being the absolute path to the executable if
     // applicable)

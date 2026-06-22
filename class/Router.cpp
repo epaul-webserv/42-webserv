@@ -180,7 +180,8 @@ RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &se
     ruleset.status_pages.insert(serv.status_pages.begin(), serv.status_pages.end());
     if (!serv.index_pages.empty())
         ruleset.index_pages = serv.index_pages;
-    ruleset.backend_rules.insert(serv.backend_rules.begin(), serv.backend_rules.end());
+    ruleset.backend_rules.insert(ruleset.backend_rules.end(), serv.backend_rules.begin(),
+                                 serv.backend_rules.end());
     if (ruleset.redirects.find(URI) != ruleset.redirects.end())
         return (ruleset);
     if (!serv.sub_nodes.empty())
@@ -267,10 +268,9 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
         // http_stream.setHTTPStatus("403", "Forbidden");
         return (NULL);
     }
-    std::string file_extension = get_file_suffix(get_file_name(request.getURI()));
-    std::map<std::string, std::pair<t_backend_type, std::vector<std::string> > >::const_iterator
-        it = ruleset.backend_rules.find(file_extension);
-    if (ruleset.backend_rules.find(file_extension) != ruleset.backend_rules.end())
+    std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::
+        const_iterator it = ruleset.get_corresponding_router(http_stream.request.getURI());
+    if (it != ruleset.backend_rules.end())
         return (
             getBackend(it->second.first, it->second.second, ruleset.root, reactor, http_stream));
     if (request.getMethod() == "POST" && ruleset.file_upload == _true)
@@ -385,9 +385,9 @@ static void printNode(const RouterNode &node, const std::string &indent)
     if (!node.backend_rules.empty())
     {
         std::cout << indent << "  Backend Rules:\n";
-        for (std::map<std::string,
-                      std::pair<t_backend_type, std::vector<std::string> > >::const_iterator it =
-                 node.backend_rules.begin();
+        for (std::vector<
+                 std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::
+                 const_iterator it = node.backend_rules.begin();
              it != node.backend_rules.end(); ++it)
         {
             std::cout << indent << "    Extension: ." << it->first << "\n";

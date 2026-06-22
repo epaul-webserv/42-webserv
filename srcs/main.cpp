@@ -166,7 +166,7 @@ int main(int ac, char **av)
     std::pair<t_backend_type, std::vector<std::string> > backend_pair(_cgi, php_args);
     std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule(
         "php", backend_pair);
-    test.backend_rules.insert(backend_rule);
+    test.backend_rules.push_back(backend_rule);
     // test.backend_rules.insert(std::pair<std::string, std::pair<t_backend_type,
     // std::vector<std::string> > >( 	"txt", std::pair<t_backend_type, std::vector<std::string>
     // >(_upload, std::vector<std::string>())));

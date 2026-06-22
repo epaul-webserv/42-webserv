@@ -8,10 +8,3 @@ std::string get_file_name(std::string const &URI)
 
     return (URI.substr((beg == std::string::npos) ? 0 : beg, end));
 }
-
-std::string get_file_suffix(std::string const &filename)
-{
-    size_t beg = std::max(filename.find_last_of('/'), filename.find_last_of('.'));
-
-    return (filename.substr((beg == std::string::npos) ? 0 : beg + 1));
-}
