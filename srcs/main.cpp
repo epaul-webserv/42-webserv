@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "HTTPStream.hpp"
+#include "Router.hpp"
 #include <async>
 
 class Acceptor : public async::Future
@@ -18,9 +19,13 @@ class Acceptor : public async::Future
     async::Reactor         &reactor;
     std::vector<HTTPStream> clients;
     int                     sfd;
+    Router                  router;
 
   public:
-    Acceptor(async::Reactor &reactor, int fd) : accept(reactor, fd), reactor(reactor), sfd(fd) {}
+    Acceptor(async::Reactor &reactor, int fd, Router router)
+        : accept(reactor, fd), reactor(reactor), sfd(fd), router(router)
+    {
+    }
     ~Acceptor() { shutdown(sfd, SHUT_RDWR); }
 
     Future::Poll poll() throw(async::OsError)
@@ -42,7 +47,7 @@ class Acceptor : public async::Future
                 exit(EXIT_FAILURE);
             }
             std::cout << host << ":" << port << " is connected\n";
-            clients.push_back(HTTPStream(reactor, fd, addr, addr_len));
+            clients.push_back(HTTPStream(reactor, fd, addr, addr_len, &router));
         }
         for (size_t i = 0; i < clients.size(); i++)
         {
@@ -152,8 +157,31 @@ int main(int ac, char **av)
     }
 
     std::cout << "Listening on " << host << ":" << port << "\n";
-    async::Reactor reactor;
-    Acceptor       acceptor(reactor, sfd);
+    async::Reactor           reactor;
+    Router                   router;
+    RouterNode               test;
+    std::vector<std::string> php_args;
+    php_args.push_back("/bin/php-cgi");
+    php_args.push_back("-f");
+    std::pair<t_backend_type, std::vector<std::string> > backend_pair(_cgi, php_args);
+    std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule(
+        "php", backend_pair);
+    test.backend_rules.insert(backend_rule);
+    // test.backend_rules.insert(std::pair<std::string, std::pair<t_backend_type,
+    // std::vector<std::string> > >( 	"txt", std::pair<t_backend_type, std::vector<std::string>
+    // >(_upload, std::vector<std::string>())));
+    test.accepted_methods.push_back("GET");
+    test.accepted_methods.push_back("POST");
+    test.file_upload = _true;
+    test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
+        "/logan",
+        std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
+    test.status_pages["201"] = "/index.nginx-debian.html";
+    test.list_directories    = _true;
+    test.index_pages.push_back("index.nginx-debian.html");
+
+    router.addServ("localhost", test);
+    Acceptor acceptor(reactor, sfd, router);
     reactor.run(acceptor);
     // close(socketpoll); FIXME: We would like to close the epoll_create1 fd
 }

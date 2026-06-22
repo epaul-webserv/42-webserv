@@ -4,16 +4,18 @@
 #include <iostream>
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr,
-                       socklen_t addr_len)
+                       socklen_t addr_len, Router *router)
     : addr(addr), addr_len(addr_len), buf_io(reactor, fd), _status(_fetching_request),
-      _reactor(&reactor)
+      _reactor(&reactor), _router(router), _backend(NULL)
 {
-    (void)addr;
+    if (!this->_router)
+        throw(std::runtime_error("Cannot initialize HTTPStream with NULL router"));
 }
 
-HTTPStream::HTTPStream(HTTPStream const &HTTPStream)
-    : addr(HTTPStream.addr), addr_len(HTTPStream.addr_len), buf_io(HTTPStream.buf_io),
-      _status(HTTPStream._status), _reactor(HTTPStream._reactor), _request(HTTPStream._request)
+HTTPStream::HTTPStream(HTTPStream const &other)
+    : addr(other.addr), addr_len(other.addr_len), buf_io(other.buf_io), _status(other._status),
+      _reactor(other._reactor), _request(other._request), _router(other._router),
+      _backend(other._backend)
 {
     (void)addr;
 }
@@ -86,9 +88,13 @@ static std::string get_end_of_line(std::vector<uint8_t> &line)
 async::Future::Poll HTTPStream::readFirstLine()
 {
     std::vector<uint8_t> line;
-
     if (buf_io.poll_read_line(line) == Pending)
         return (Pending);
+    if ((line.size() == 1 || line.size() == 2) && *(line.end() - 1) == '\n')
+    {
+        _status = _sending_response;
+        return (Ready); // FIXME : need to set a 400 error
+    }
     if (line.empty())
         return (Ready);
     get_next_word(line, _request._method);
@@ -126,7 +132,7 @@ async::Future::Poll HTTPStream::readHeaders()
         if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
         {
             if (!_current_header.first.empty())
-                _request._headers[_current_header.first] = _current_header.second;
+                _request._headers[to_lower(_current_header.first)] = _current_header.second;
             break;
         }
         if (line[0] == ' ' || line[0] == '\t')
@@ -137,7 +143,7 @@ async::Future::Poll HTTPStream::readHeaders()
         }
         if (!_current_header.first.empty())
         {
-            _request._headers[_current_header.first] = _current_header.second;
+            _request._headers[to_lower(_current_header.first)] = _current_header.second;
             _current_header.first.clear();
             _current_header.second.clear();
         }
@@ -179,8 +185,12 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     {
         if (readRequest() == Pending)
             return (Pending);
-        std::cout << this->_request;
+        // std::cout << this->_request;
+        if (this->_status != _sending_response)
+            this->_status = _getting_backend;
     }
+    if (this->_status == _getting_backend)
+        this->_backend = this->_router->resolve(_request, _response, *_reactor, *this, false);
     // FIXME: handle body and response here
     return (Ready);
 }

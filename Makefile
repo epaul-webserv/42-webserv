@@ -9,7 +9,8 @@ SRCS = main.cpp \
 		url_utils/url_encoder.cpp
 
 CLASS_DIR = class
-CLASS = Date.cpp \
+CLASS = ABackend.cpp \
+		Date.cpp \
 		HTTPStream.cpp \
 		Request.cpp \
 		Router.cpp
