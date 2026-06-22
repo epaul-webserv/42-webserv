@@ -2,8 +2,12 @@
 #define HTTPSTREAM_HPP
 
 #include "Request.hpp"
+#include "Response.hpp"
+#include "Router.hpp"
 #include <async>
 #include <sys/socket.h>
+
+class Router;
 
 enum stream_status
 {
@@ -17,8 +21,9 @@ enum stream_status
 class HTTPStream : public async::Future
 {
   public:
-    HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len);
-    HTTPStream(HTTPStream const &HTTPStream);
+    HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage addr, socklen_t addr_len,
+               Router *router);
+    HTTPStream(HTTPStream const &other);
     ~HTTPStream();
 
     HTTPStream  &operator=(HTTPStream const &other);
@@ -37,7 +42,10 @@ class HTTPStream : public async::Future
     stream_status                       _status;
     async::Reactor                     *_reactor;
     Request                             _request;
+    Response                            _response;
+    Router                             *_router;
     std::pair<std::string, std::string> _current_header;
+    ABackend                           *_backend;
 };
 
 #endif
