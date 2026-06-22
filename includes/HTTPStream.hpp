@@ -31,6 +31,8 @@ class HTTPStream : public async::Future
 
     struct sockaddr_storage addr;
     socklen_t               addr_len;
+    Request                 request;
+    Response                response;
 
   private:
     HTTPStream();
@@ -41,8 +43,6 @@ class HTTPStream : public async::Future
     async::BufIo<>                      buf_io;
     stream_status                       _status;
     async::Reactor                     *_reactor;
-    Request                             _request;
-    Response                            _response;
     Router                             *_router;
     std::pair<std::string, std::string> _current_header;
     ABackend                           *_backend;

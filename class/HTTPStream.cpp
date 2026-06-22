@@ -13,8 +13,8 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, struct sockaddr_storage 
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
-    : addr(other.addr), addr_len(other.addr_len), buf_io(other.buf_io), _status(other._status),
-      _reactor(other._reactor), _request(other._request), _router(other._router),
+    : addr(other.addr), addr_len(other.addr_len), request(other.request), buf_io(other.buf_io),
+      _status(other._status), _reactor(other._reactor), _router(other._router),
       _backend(other._backend)
 {
     (void)addr;
@@ -97,23 +97,23 @@ async::Future::Poll HTTPStream::readFirstLine()
     }
     if (line.empty())
         return (Ready);
-    get_next_word(line, _request._method);
-    if (_request._method.empty())
+    get_next_word(line, request._method);
+    if (request._method.empty())
         return (Ready);
-    get_next_word(line, _request._URI);
-    get_next_word(line, _request._http_version);
+    get_next_word(line, request._URI);
+    get_next_word(line, request._http_version);
     _status = _fetching_headers;
-    if (!decode_url(_request._URI))
+    if (!decode_url(request._URI))
     {
         std::cerr << "Invalid URI" << std::endl; // FIXME : need to set a 400 error
         return (Ready);
     }
-    if (_request._URI.find('?') != std::string::npos)
+    if (request._URI.find('?') != std::string::npos)
     {
-        _request._query_string = _request._URI.substr(_request._URI.find('?'));
-        _request._URI          = _request._URI.substr(0, _request._URI.find('?'));
+        request._query_string = request._URI.substr(request._URI.find('?'));
+        request._URI          = request._URI.substr(0, request._URI.find('?'));
     }
-    if (_request._http_version.empty())
+    if (request._http_version.empty())
         return (Ready);
     return (this->readHeaders());
 }
@@ -132,7 +132,7 @@ async::Future::Poll HTTPStream::readHeaders()
         if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
         {
             if (!_current_header.first.empty())
-                _request._headers[to_lower(_current_header.first)] = _current_header.second;
+                request._headers[to_lower(_current_header.first)] = _current_header.second;
             break;
         }
         if (line[0] == ' ' || line[0] == '\t')
@@ -143,7 +143,7 @@ async::Future::Poll HTTPStream::readHeaders()
         }
         if (!_current_header.first.empty())
         {
-            _request._headers[to_lower(_current_header.first)] = _current_header.second;
+            request._headers[to_lower(_current_header.first)] = _current_header.second;
             _current_header.first.clear();
             _current_header.second.clear();
         }
@@ -174,7 +174,7 @@ HTTPStream &HTTPStream::operator=(HTTPStream const &other)
         buf_io   = other.buf_io;
         _status  = other._status;
         _reactor = other._reactor;
-        _request = other._request;
+        request  = other.request;
     }
     return (*this);
 }
@@ -190,7 +190,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_status = _getting_backend;
     }
     if (this->_status == _getting_backend)
-        this->_backend = this->_router->resolve(_request, _response, *_reactor, *this, false);
+        this->_backend = this->_router->resolve(request, response, *_reactor, *this, false);
     // FIXME: handle body and response here
     return (Ready);
 }
