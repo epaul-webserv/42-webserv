@@ -4,7 +4,7 @@ CXXFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
 SRCS_DIR = srcs
 SRCS = main.cpp \
 		string_overload/string_overload.cpp \
-		url_utils/file_extension.cpp \
+		url_utils/file_name_utils.cpp \
 		url_utils/url_decoder.cpp \
 		url_utils/url_encoder.cpp
 
