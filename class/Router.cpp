@@ -1,11 +1,7 @@
 #include "Router.hpp"
 #include "ABackend.hpp"
-// #include <html_generator.hpp>
 #include <iostream>
 #include <sys/stat.h>
-// #include "CGIBackend.hpp"
-// #include "StaticBackend.hpp"
-// #include "UploadBackend.hpp"
 
 static t_file_type fileType(std::string const &path, std::string const &root)
 {
@@ -15,9 +11,7 @@ static t_file_type fileType(std::string const &path, std::string const &root)
     {
         if (errno == EACCES)
             return (_no_access);
-        if (errno == ENOMEM)
-            return (_err);
-        return (_none);
+        return (_err);
     }
     switch (s.st_mode & S_IFMT)
     {
@@ -83,11 +77,9 @@ int Router::getPort() { return _port; }
 
 void Router::setPort(int port) { _port = port; }
 
-bool Router::validateRequest(Request const &request, Response &response, HTTPStream &http_stream)
+bool Router::validateRequest(HTTPStream &http_stream)
 {
-    const std::string http_version = request.getHTTPVersion();
-    (void)response;
-    (void)http_stream;
+    const std::string http_version = http_stream.request.getHTTPVersion();
 
     if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
     {
@@ -95,7 +87,7 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
         // response.setHTTPVersion(http_version);
         if (http_version == "HTTP/1.1")
         {
-            if (request.peekHeader("host").empty())
+            if (http_stream.request.peekHeader("host").empty())
             {
                 std::cout << "Router : No Host header found (mandatory for HTTP/1.1) - Error 400"
                           << std::endl;
@@ -103,7 +95,7 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
                 // response.addHeader("Connection", "close");
                 return (false);
             }
-            if (request.peekHeader("connection") != "close")
+            if (http_stream.request.peekHeader("connection") != "close")
             {
                 // response.addHeader("Connection", "keep-alive");
             }
@@ -117,7 +109,7 @@ bool Router::validateRequest(Request const &request, Response &response, HTTPStr
         // http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
         return (false);
     }
-    if (request.getURI().empty())
+    if (http_stream.request.getURI().empty())
     {
         std::cout << "Router : URI is empty - Error 400" << std::endl;
         // http_stream.setHTTPStatus("400", "Bad Request");
@@ -205,14 +197,13 @@ static std::vector<std::string>::const_iterator find(std::vector<std::string> co
     return (it);
 }
 
-ABackend *Router::defineBackend(Request &request, Response &response, RouterRuleset const &ruleset,
-                                async::Reactor &reactor, HTTPStream &http_stream, bool force)
+ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
+                                HTTPStream &http_stream, bool force)
 {
-    (void)response;
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
-        matching_redirect = ruleset.redirects.find(request.getURI());
-    if (!force &&
-        find(ruleset.accepted_methods, request.getMethod()) == ruleset.accepted_methods.end())
+        matching_redirect = ruleset.redirects.find(http_stream.request.getURI());
+    if (!force && find(ruleset.accepted_methods, http_stream.request.getMethod()) ==
+                      ruleset.accepted_methods.end())
     {
         std::cout << "Router : Method not accepted - Error 405" << std::endl;
         // http_stream.setHTTPStatus("405", "Method Not Allowed");
@@ -237,7 +228,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
         // response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
-    if (fileType(request.getURI(), ruleset.root) == _dir)
+    if (fileType(http_stream.request.getURI(), ruleset.root) == _dir)
     {
         if (!ruleset.index_pages.empty())
         {
@@ -247,7 +238,7 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
             {
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
-                    request.setURI("/" + *it);
+                    http_stream.request.setURI("/" + *it);
                     std::cout << "Router : Index page matched : " << *it << std::endl;
                     return (NULL);
                     // return (getBackend(_static, std::vector<std::string>(), ruleset.root,
@@ -273,40 +264,32 @@ ABackend *Router::defineBackend(Request &request, Response &response, RouterRule
     if (it != ruleset.backend_rules.end())
         return (
             getBackend(it->second.first, it->second.second, ruleset.root, reactor, http_stream));
-    if (request.getMethod() == "POST" && ruleset.file_upload == _true)
+    if (http_stream.request.getMethod() == "POST" && ruleset.file_upload == _true)
         return (
             getBackend(_upload, std::vector<std::string>(), ruleset.root, reactor, http_stream));
     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
 }
 
 /// @return ABackend pointer OR NULL if response has been set.
-ABackend *Router::resolve(Request &request, Response &response, async::Reactor &reactor,
-                          HTTPStream &http_stream, bool force) const
+ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool force) const
 {
     RouterRuleset ruleset;
 
     // response.setHTTPVersion("HTTP/1.1");
-    RouterNode const *serv = getServerNode(request.peekHeader("host"), http_stream);
+    RouterNode const *serv = getServerNode(http_stream.request.peekHeader("host"), http_stream);
     if (!serv)
         return (NULL);
-    if (!force && !validateRequest(request, response, http_stream))
+    if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset = defineRuleset(request.getURI(), *serv, ruleset);
+    ruleset = defineRuleset(http_stream.request.getURI(), *serv, ruleset);
     // http_stream.status_pages = ruleset.status_pages;
-    return (defineBackend(request, response, ruleset, reactor, http_stream, force));
+    return (defineBackend(ruleset, reactor, http_stream, force));
 }
 
 void Router::addServ(std::string const &domain, RouterNode const &node)
 {
     this->_servers.insert(std::pair<std::string, RouterNode>(domain, node));
 }
-
-#include "Router.hpp"
-#include <iostream>
-#include <map>
-#include <netdb.h>
-#include <string>
-#include <sys/socket.h>
 
 // Helper function to print individual RouterNode structures recursively
 static void printNode(const RouterNode &node, const std::string &indent)

@@ -13,7 +13,8 @@ CLASS = ABackend.cpp \
 		Date.cpp \
 		HTTPStream.cpp \
 		Request.cpp \
-		Router.cpp
+		Router.cpp \
+		RouterRuleset.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
