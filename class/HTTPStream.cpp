@@ -5,14 +5,12 @@
 #include <iostream>
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-                       socklen_t addr_len, Router *router)
+                       socklen_t addr_len, Router &router)
     : addr(addr), addr_len(addr_len), _override_response(false), _rerun(false),
-      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _router(router),
+      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _router(&router),
       _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0),
       buf_io(reactor, fd)
 {
-    if (!this->_router)
-        throw(std::runtime_error("Cannot initialize HTTPStream with NULL router"));
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
@@ -231,7 +229,7 @@ bool HTTPStream::setStatusResponse()
         _saved_msg     = response.http_msg;
         response.clear();
         delete _backend;
-        _backend           = _router->resolve(request, response, *_reactor, *this, true);
+        _backend           = _router->resolve(*_reactor, *this, true);
         _override_response = true;
         _rerun             = true;
         return (true);
