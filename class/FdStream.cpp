@@ -20,7 +20,7 @@ FdStream &FdStream::operator=(FdStream const &other)
     return *this;
 }
 
-bool FdStream::end() const
+bool FdStream::eof() const
 {
     if (this->_end && this->_write_index - this->_read_index == 0)
         return (true);

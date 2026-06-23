@@ -14,10 +14,10 @@ std::string get_html_error(std::string const &status, std::string const &message
         close(fd);
         return ("Error " + status + " : " + message);
     }
-    while (!fdstream.end())
+    while (!fdstream.eof())
     {
         html.append(fdstream.get_str_until('['));
-        if (fdstream.end())
+        if (fdstream.eof())
             break;
         temp = fdstream.get_str_until(']');
         if (temp == "STATUS")
