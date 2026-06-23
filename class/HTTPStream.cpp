@@ -215,6 +215,13 @@ void HTTPStream::setHTTPStatus(std::string const &status, std::string const &mes
     response.http_msg    = message;
 }
 
+void HTTPStream::setErrorResponse(std::string const &status, std::string const &message)
+{
+    setHTTPStatus(status, message);
+    response.bodyAppend(get_html_error(response.http_status, response.http_msg));
+    response.addHeader("Content-Type", "text/html");
+}
+
 bool HTTPStream::setStatusResponse()
 {
     if (response.http_status.empty())
