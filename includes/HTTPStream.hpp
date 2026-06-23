@@ -31,7 +31,7 @@ class HTTPStream : public async::Future
 {
   public:
     HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-               socklen_t addr_len, Router *router);
+               socklen_t addr_len, Router &router);
     HTTPStream(HTTPStream const &other);
     async::Future::Poll readRequest();
     ~HTTPStream();
