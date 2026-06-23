@@ -78,6 +78,23 @@ public:
 	}
 };
 
+class MultiAcceptor : public async::Future
+{
+	std::vector<Acceptor *> acceptors;
+
+public:
+	MultiAcceptor(std::vector<Acceptor *> &acceptors) : acceptors(acceptors) {}
+
+	Future::Poll poll() throw(async::OsError)
+	{
+		for (size_t i = 0; i < acceptors.size(); ++i)
+		{
+			acceptors[i]->poll();
+		}
+		return Future::Pending;
+	}
+};
+
 #include <map>
 #include "ConfigParser.hpp"
 
@@ -196,51 +213,86 @@ int main(int ac, char **av)
 
 	if (router_map.size() == 0)
 		return (1);
-	struct addrinfo *rp = NULL;
-	for (rp = router_map.begin()->first; rp != NULL; rp = rp->ai_next)
+
+	async::Reactor								 reactor;
+	std::vector<Acceptor *>						 acceptors;
+	std::vector<int>							 sockets;
+	std::map<struct addrinfo *, Router>::iterator it;
+
+	for (it = router_map.begin(); it != router_map.end(); ++it)
 	{
-		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-		if (sfd == -1)
-			continue;
-		int opt = 1;
-		if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+		struct addrinfo *ai = it->first;
+		Router			&router = it->second;
+		int				 bound_fd = -1;
+
+		for (struct addrinfo *rp = ai; rp != NULL; rp = rp->ai_next)
 		{
-			std::cerr << "setsockopt: " << strerror(errno) << "\n";
-			exit(EXIT_FAILURE);
+			sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+			if (sfd == -1)
+				continue;
+			int opt = 1;
+			if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+			{
+				std::cerr << "setsockopt: " << strerror(errno) << "\n";
+				close(sfd);
+				continue;
+			}
+			if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+			{
+				bound_fd = sfd;
+				char host[1024];
+				char port[32];
+				s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+				if (s != 0)
+				{
+					std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+					close(sfd);
+					continue;
+				}
+
+				if (listen(sfd, 100) < 0)
+				{
+					std::cerr << "listen: " << strerror(errno) << "\n";
+					close(sfd);
+					continue;
+				}
+
+				std::cout << "Listening on " << host << ":" << port << "\n";
+				break;
+			}
+			close(sfd);
 		}
-		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
-			break;
-		close(sfd);
+
+		if (bound_fd == -1)
+		{
+			std::cerr << "Could not bind to any address\n";
+			freeaddrinfo(ai);
+			continue;
+		}
+
+		sockets.push_back(bound_fd);
+		acceptors.push_back(new Acceptor(reactor, bound_fd, router));
+		freeaddrinfo(ai);
 	}
 
-	if (rp == NULL)
+	if (acceptors.empty())
 	{
-		std::cerr << "Could not bind\n";
-		freeaddrinfo(router_map.begin()->first);
-		exit(EXIT_FAILURE);
+		std::cerr << "No acceptors created\n";
+		return (1);
 	}
-	char host[1024];
-	char port[32];
-	s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
-	freeaddrinfo(router_map.begin()->first);
 
-	if (s != 0)
+	MultiAcceptor multi_acceptor(acceptors);
+	reactor.run(multi_acceptor);
+
+	for (size_t i = 0; i < sockets.size(); ++i)
 	{
-		std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
-		exit(EXIT_FAILURE);
+		shutdown(sockets[i], SHUT_RDWR);
+		close(sockets[i]);
 	}
 
-	if (listen(sfd, 100) < 0)
+	for (size_t i = 0; i < acceptors.size(); ++i)
 	{
-		std::cerr << "listen: " << strerror(errno) << "\n";
-		exit(EXIT_FAILURE);
+		delete acceptors[i];
 	}
-
-	std::cout << "Listening on " << host << ":" << port << "\n";
-	async::Reactor reactor;
-	Acceptor	   acceptor(reactor, sfd, router_map.begin()->second);
-	reactor.run(acceptor);
-	shutdown(sfd, SHUT_RDWR);
-	close(sfd);
 	// close(socketpoll); We would like to close the epoll_create1 fd
 }
