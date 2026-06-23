@@ -314,8 +314,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     }
     if (this->_status == _processing_response)
     {
-        container::Slice<uint8_t> slice(NULL, 0);
-
         if (_backend == NULL)
         {
             if (this->sendHeaders() == Pending)
@@ -334,6 +332,5 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
-    // FIXME: handle body and response here
     return (Ready);
 }
