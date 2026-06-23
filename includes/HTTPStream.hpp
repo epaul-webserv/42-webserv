@@ -42,6 +42,7 @@ class HTTPStream : public async::Future
     async::Future::Poll readHeaders();
     Future::Poll        keepAlive();
     void                setHTTPStatus(std::string const &status, std::string const &message);
+    void                setErrorResponse(std::string const &status, std::string const &message);
     void                setBrokenConnection();
     bool                setStatusResponse();
 

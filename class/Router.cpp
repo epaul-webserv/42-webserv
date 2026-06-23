@@ -51,22 +51,19 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
         switch (backend_type)
         {
         case _static:
-            http_stream.response.bodyAppend(get_html_error("200", "Would call static backend"));
+            http_stream.setErrorResponse("200", "Would call static backend");
             // backend = new StaticBackend(root, http_stream);
             break;
         case _cgi:
-            http_stream.response.bodyAppend(
-                get_html_error("200", "Would respond with cgi backend"));
+            http_stream.setErrorResponse("200", "Would respond with cgi backend");
             // backend = new CGIBackend(args, root, reactor, http_stream);
             break;
         case _dir_index:
-            http_stream.response.bodyAppend(
-                get_html_error("200", "Would respond with dir backend"));
+            http_stream.setErrorResponse("200", "Would respond with dir backend");
             // backend = new StaticBackend(root, http_stream);
             break;
         case _upload:
-            http_stream.response.bodyAppend(
-                get_html_error("200", "Would respond with upload backend"));
+            http_stream.setErrorResponse("200", "Would respond with upload backend");
             // backend = new UploadBackend(root, http_stream, http_stream.request_body());
             break;
         }
@@ -95,8 +92,8 @@ bool Router::validateRequest(HTTPStream &http_stream)
         {
             if (http_stream.request.peekHeader("host").empty())
             {
-                http_stream.response.bodyAppend(get_html_error(
-                    "400", "Router : No Host header found (mandatory for HTTP/1.1)"));
+                http_stream.setErrorResponse(
+                    "400", "Router : No Host header found (mandatory for HTTP/1.1)");
                 http_stream.setHTTPStatus("400", "Bad Request");
                 http_stream.response.addHeader("Connection", "close");
                 return (false);
@@ -111,14 +108,13 @@ bool Router::validateRequest(HTTPStream &http_stream)
     {
         std::cout << "Router : Unrecognized http version, fall back to 1.1 " << std::endl;
         http_stream.response.setHTTPVersion("HTTP/1.1");
-        http_stream.response.bodyAppend(
-            get_html_error("505", "Router : http version not recognized"));
+        http_stream.setErrorResponse("505", "Router : http version not recognized");
         http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
         return (false);
     }
     if (http_stream.request.URI.empty())
     {
-        http_stream.response.bodyAppend(get_html_error("400", "Router : URI is empty"));
+        http_stream.setErrorResponse("400", "Router : URI is empty");
         http_stream.setHTTPStatus("400", "Bad Request");
         return (false);
     }
@@ -139,8 +135,8 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
             std::cout << "Router : fallback to default server" << std::endl;
             return (&it->second);
         }
-        http_stream.response.bodyAppend(get_html_error(
-            "404", "Router : No corresponding server found (and no default server set)"));
+        http_stream.setErrorResponse(
+            "404", "Router : No corresponding server found (and no default server set)");
         http_stream.setHTTPStatus("404", "Not Found");
         return (NULL);
     }
@@ -211,7 +207,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
     if (!force && find(ruleset.accepted_methods, http_stream.request.method) ==
                       ruleset.accepted_methods.end())
     {
-        http_stream.response.bodyAppend(get_html_error("405", "Router : Method not accepted"));
+        http_stream.setErrorResponse("405", "Router : Method not accepted");
         http_stream.setHTTPStatus("405", "Method Not Allowed");
         return (NULL);
     }
@@ -221,15 +217,15 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         {
         case _temporary:
             http_stream.setHTTPStatus("200", "Ok");
-            http_stream.response.bodyAppend(
-                get_html_error("200", "Temporary redirect to " + matching_redirect->second.first));
+            http_stream.setErrorResponse("200", "Temporary redirect to " +
+                                                    matching_redirect->second.first);
             // http_stream.setHTTPStatus("307", "Temporary Redirect");
             // response.bodyAppend(get_html_error("307", "Temporary Redirect"));
             break;
         case _permanent:
             http_stream.setHTTPStatus("200", "Ok");
-            http_stream.response.bodyAppend(
-                get_html_error("200", "Permanent redirect to " + matching_redirect->second.first));
+            http_stream.setErrorResponse("200", "Permanent redirect to " +
+                                                    matching_redirect->second.first);
             // http_stream.setHTTPStatus("301", "Moved Permanently");
             // response.bodyAppend(get_html_error("301", "Moved Permanently"));
         }
@@ -258,8 +254,8 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         if (ruleset.list_directories == _true)
         {
             http_stream.setHTTPStatus("200", "Ok");
-            http_stream.response.bodyAppend(get_html_error(
-                "200", "Would serve generated directory listing with static backend"));
+            http_stream.setErrorResponse(
+                "200", "Would serve generated directory listing with static backend");
             return (NULL);
             // return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
             //                    http_stream));
