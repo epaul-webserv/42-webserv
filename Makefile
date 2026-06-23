@@ -12,6 +12,8 @@ SRCS = main.cpp \
 
 CLASS_DIR = class
 CLASS = ABackend.cpp \
+		ChunkedRequestBody.cpp \
+		ChunkedResponseBody.cpp \
 		Date.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
@@ -25,7 +27,8 @@ CLASS = ABackend.cpp \
 		Request.cpp \
 		Response.cpp \
 		Router.cpp \
-		RouterRuleset.cpp
+		RouterRuleset.cpp \
+		StaticBackend.cpp
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
