@@ -241,12 +241,6 @@ bool HTTPStream::setStatusResponse()
         _rerun             = true;
         return (true);
     }
-    if (response.http_status[0] == '4' || response.http_status[0] == '5')
-    {
-        response.bodyAppend(get_html_error(response.http_status, response.http_msg));
-        response.addHeader("Content-Type", "text/html");
-        return (false);
-    }
     return (false);
 }
 
