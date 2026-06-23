@@ -36,11 +36,6 @@ class Request
     void                                prepareNextRead();
     std::string                         peekHeader(std::string const &key = "") const;
     std::pair<std::string, std::string> takeHeader(std::string const &key = "");
-    std::string                         getMethod() const;
-    std::string                         getURI() const;
-    void                                setURI(std::string const &URI);
-    std::string                         getQueryString() const;
-    std::string                         getHTTPVersion() const;
 
     class InvalidReadException : public std::exception
     {

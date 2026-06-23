@@ -84,24 +84,14 @@ std::pair<std::string, std::string> Request::takeHeader(std::string const &key)
     return (ret);
 }
 
-std::string Request::getMethod() const { return (this->method); }
-
-std::string Request::getURI() const { return (this->URI); }
-
-void Request::setURI(std::string const &URI) { this->URI = URI; }
-
-std::string Request::getQueryString() const { return (this->query_string); }
-
-std::string Request::getHTTPVersion() const { return (this->http_version); }
-
 const char *Request::InvalidReadException::what() const throw() { return ("Error while reading"); }
 
 std::ostream &operator<<(std::ostream &o, Request &request)
 {
     o << "-- REQUEST --" << std::endl;
-    o << "method : \"" << request.getMethod() << "\"" << std::endl;
-    o << "URI : \"" << request.getURI() << "\"" << std::endl;
-    o << "version : \"" << request.getHTTPVersion() << "\"" << std::endl;
+    o << "method : \"" << request.method << "\"" << std::endl;
+    o << "URI : \"" << request.URI << "\"" << std::endl;
+    o << "version : \"" << request.http_version << "\"" << std::endl;
     o << "-- HEADERS --" << std::endl;
     for (std::pair<std::string, std::string> header = request.takeHeader(); !header.first.empty();
          header                                     = request.takeHeader())

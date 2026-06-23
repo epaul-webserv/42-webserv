@@ -85,7 +85,7 @@ void Router::setPort(int port) { _port = port; }
 
 bool Router::validateRequest(HTTPStream &http_stream)
 {
-    const std::string http_version = http_stream.request.getHTTPVersion();
+    const std::string http_version = http_stream.request.http_version;
 
     if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
     {
@@ -116,7 +116,7 @@ bool Router::validateRequest(HTTPStream &http_stream)
         http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
         return (false);
     }
-    if (http_stream.request.getURI().empty())
+    if (http_stream.request.URI.empty())
     {
         http_stream.response.bodyAppend(get_html_error("400", "Router : URI is empty"));
         http_stream.setHTTPStatus("400", "Bad Request");
@@ -207,8 +207,8 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
                                 HTTPStream &http_stream, bool force)
 {
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
-        matching_redirect = ruleset.redirects.find(http_stream.request.getURI());
-    if (!force && find(ruleset.accepted_methods, http_stream.request.getMethod()) ==
+        matching_redirect = ruleset.redirects.find(http_stream.request.URI);
+    if (!force && find(ruleset.accepted_methods, http_stream.request.method) ==
                       ruleset.accepted_methods.end())
     {
         http_stream.response.bodyAppend(get_html_error("405", "Router : Method not accepted"));
@@ -236,7 +236,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         // response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
-    if (fileType(http_stream.request.getURI(), ruleset.root) == _dir)
+    if (fileType(http_stream.request.URI, ruleset.root) == _dir)
     {
         if (!ruleset.index_pages.empty())
         {
@@ -246,7 +246,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             {
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
-                    http_stream.request.setURI("/" + *it);
+                    http_stream.request.URI = "/" + *it;
                     http_stream.setHTTPStatus("200", "Ok");
                     get_html_error("200", "Index page matched" + *it);
                     // return (getBackend(_static, std::vector<std::string>(), ruleset.root,
@@ -269,11 +269,11 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         return (NULL);
     }
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::
-        const_iterator it = ruleset.get_corresponding_router(http_stream.request.getURI());
+        const_iterator it = ruleset.get_corresponding_router(http_stream.request.URI);
     if (it != ruleset.backend_rules.end())
         return (
             getBackend(it->second.first, it->second.second, ruleset.root, reactor, http_stream));
-    if (http_stream.request.getMethod() == "POST" && ruleset.file_upload == _true)
+    if (http_stream.request.method == "POST" && ruleset.file_upload == _true)
         return (
             getBackend(_upload, std::vector<std::string>(), ruleset.root, reactor, http_stream));
     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
@@ -290,7 +290,7 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset                  = defineRuleset(http_stream.request.getURI(), *serv, ruleset);
+    ruleset                  = defineRuleset(http_stream.request.URI, *serv, ruleset);
     http_stream.status_pages = ruleset.status_pages;
     return (defineBackend(ruleset, reactor, http_stream, force));
 }
