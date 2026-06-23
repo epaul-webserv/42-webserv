@@ -15,6 +15,7 @@ CLASS = ABackend.cpp \
 		Date.cpp \
 		FdStream.cpp \
 		HTTPStream.cpp \
+		MimeType.cpp \
 		Request.cpp \
 		Response.cpp \
 		Router.cpp \
