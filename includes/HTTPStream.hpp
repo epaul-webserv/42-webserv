@@ -1,6 +1,8 @@
 #ifndef WEBSERV_HTTPSTREAM_HPP
 #define WEBSERV_HTTPSTREAM_HPP
 
+#include "IRequestBody.hpp"
+#include "IResponseBody.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 #include "Router.hpp"
@@ -45,6 +47,9 @@ class HTTPStream : public async::Future
     void                setErrorResponse(std::string const &status, std::string const &message);
     void                setBrokenConnection();
     bool                setStatusResponse();
+	IRequestBody *request_body();
+	async::Future::Poll poll_send_headers(IResponseBody *&b);
+	async::Future::Poll poll_send_headers(size_t content_length, IResponseBody *&b);
 
     Response                           response;
     Request                            request;
