@@ -234,7 +234,7 @@ bool HTTPStream::setStatusResponse()
         _rerun             = true;
         return (true);
     }
-    else if (response.http_status[0] == '4' || response.http_status[0] == '5')
+    if (response.http_status[0] == '4' || response.http_status[0] == '5')
     {
         response.bodyAppend(get_html_error(response.http_status, response.http_msg));
         response.addHeader("Content-Type", "text/html");
@@ -259,8 +259,8 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
                                                      response.head.c_str() + response.head.size());
         response.send_buf.insert(response.send_buf.end(), response.body.begin(),
                                  response.body.end());
-        std::cerr << request.getMethod() << " " << request.getURI() << " "
-                  << response.getHTTPVersion() << " - " << response.getHTTPStatus() << std::endl;
+        std::cerr << request.method << " " << request.URI << " " << response.getHTTPVersion()
+                  << " - " << response.getHTTPStatus() << std::endl;
         this->_headers_status = _sending_headers;
     }
     if (this->_headers_status == _sending_headers)
@@ -327,7 +327,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             if (_backend && _backend->poll() == Pending)
                 return (Pending);
         }
-        if (!this->_broken_connection && this->request.getHTTPVersion() == "HTTP/1.1" &&
+        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
             this->response.headers["Connection"] != "close")
             return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
