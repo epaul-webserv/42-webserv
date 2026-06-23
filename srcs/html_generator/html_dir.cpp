@@ -91,10 +91,10 @@ std::string fill_blanks(DIR *dir, FdStream &fdstream, std::string const &path,
     std::string html;
     std::string temp;
 
-    while (!fdstream.end())
+    while (!fdstream.eof())
     {
         html.append(fdstream.get_str_until('['));
-        if (fdstream.end())
+        if (fdstream.eof())
             break;
         temp = fdstream.get_str_until(']');
         if (temp == "PATH")

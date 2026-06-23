@@ -19,7 +19,7 @@ class FdStream
     ~FdStream();
 
     FdStream            &operator=(FdStream const &other);
-    bool                 end() const;
+    bool                 eof() const;
     std::string          get_str(size_t n);
     void                 consume(size_t n);
     std::vector<uint8_t> peek_str(size_t n);
