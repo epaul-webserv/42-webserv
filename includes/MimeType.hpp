@@ -9,7 +9,7 @@ class MimeType
 
   public:
     static std::map<std::string, std::string> mime_type;
-    static std::string getType(std::string const &URI) ;
+    static std::string                        getType(std::string const &URI);
 
   private:
     MimeType();

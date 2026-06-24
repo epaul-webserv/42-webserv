@@ -1,9 +1,9 @@
+#include "HTTPStream.hpp"
 #include "ChunkedRequestBody.hpp"
 #include "ChunkedResponseBody.hpp"
-#include "HTTPStream.hpp"
-#include "html_generator.hpp"
 #include "PlainRequestBody.hpp"
 #include "PlainResponseBody.hpp"
+#include "html_generator.hpp"
 #include "string_overload.hpp"
 #include "url_utils.hpp"
 #include <iostream>
@@ -342,41 +342,42 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 
 IRequestBody *HTTPStream::request_body()
 {
-	if (!request.peekHeader("Content-Length").empty())
-	{
-		char *end;
-		return (new PlainRequestBody(buf_io, std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10)));
-	}
-	if (to_lower(request.peekHeader("Transfer-Encoding")) == "chunked")
-		return (new ChunkedRequestBody(buf_io));
-	return (NULL);
+    if (!request.peekHeader("Content-Length").empty())
+    {
+        char *end;
+        return (new PlainRequestBody(
+            buf_io, std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10)));
+    }
+    if (to_lower(request.peekHeader("Transfer-Encoding")) == "chunked")
+        return (new ChunkedRequestBody(buf_io));
+    return (NULL);
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
 {
-	this->response.headers.erase("Content-Length");
-	response.addHeader("Transfer-Encoding", "chunked");
-	if (this->sendHeaders() == Pending)
-		return (Pending);
-	if (response.content_length)
-		b = NULL;
-	else
-		b = new ChunkedResponseBody(buf_io);
-	return async::Future::Ready;
+    this->response.headers.erase("Content-Length");
+    response.addHeader("Transfer-Encoding", "chunked");
+    if (this->sendHeaders() == Pending)
+        return (Pending);
+    if (response.content_length)
+        b = NULL;
+    else
+        b = new ChunkedResponseBody(buf_io);
+    return async::Future::Ready;
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(size_t content_length, IResponseBody *&b)
 {
-	std::ostringstream oss;
+    std::ostringstream oss;
 
-	this->response.headers.erase("Transfer-Encoding");
-	oss << content_length;
-	this->response.addHeader("Content-Length", oss.str());
-	if (this->sendHeaders() == Pending)
-		return (Pending);
-	if (response.content_length || content_length == 0)
-		b = NULL;
-	else
-		b = new PlainResponseBody(buf_io);
-	return async::Future::Ready;
+    this->response.headers.erase("Transfer-Encoding");
+    oss << content_length;
+    this->response.addHeader("Content-Length", oss.str());
+    if (this->sendHeaders() == Pending)
+        return (Pending);
+    if (response.content_length || content_length == 0)
+        b = NULL;
+    else
+        b = new PlainResponseBody(buf_io);
+    return async::Future::Ready;
 }
