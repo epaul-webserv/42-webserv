@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "HTTPStream.hpp"
+#include "MimeType.hpp"
 #include "Router.hpp"
 #include <async>
 
@@ -181,6 +182,7 @@ int main(int ac, char **av)
     test.index_pages.push_back("index.nginx-debian.html");
 
     router.addServ("localhost", test);
+    MimeType::mime_type["png"] = "image/png";
     Acceptor acceptor(reactor, sfd, router);
     reactor.run(acceptor);
     // close(socketpoll); FIXME: We would like to close the epoll_create1 fd
