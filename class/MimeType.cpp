@@ -2,7 +2,7 @@
 
 std::map<std::string, std::string> MimeType::mime_type;
 
-std::string MimeType::getType(std::string const &URI) const
+std::string MimeType::getType(std::string const &URI)
 {
     std::map<std::string, std::string>::const_iterator it;
     std::map<std::string, std::string>::const_iterator ite = mime_type.end();
