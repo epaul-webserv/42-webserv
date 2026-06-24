@@ -1,5 +1,6 @@
 #include "Router.hpp"
 #include "ABackend.hpp"
+#include "StaticBackend.hpp"
 #include "html_generator.hpp"
 
 #include <iostream>
@@ -51,16 +52,14 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
         switch (backend_type)
         {
         case _static:
-            http_stream.setErrorResponse("200", "Would call static backend");
-            // backend = new StaticBackend(root, http_stream);
+            backend = new StaticBackend(root, http_stream);
             break;
         case _cgi:
             http_stream.setErrorResponse("200", "Would respond with cgi backend");
             // backend = new CGIBackend(args, root, reactor, http_stream);
             break;
         case _dir_index:
-            http_stream.setErrorResponse("200", "Would respond with dir backend");
-            // backend = new StaticBackend(root, http_stream);
+            backend = new StaticBackend(root, http_stream);
             break;
         case _upload:
             http_stream.setErrorResponse("200", "Would respond with upload backend");
