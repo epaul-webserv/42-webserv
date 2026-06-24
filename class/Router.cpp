@@ -252,12 +252,8 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         }
         if (ruleset.list_directories == _true)
         {
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse(
-                "200", "Would serve generated directory listing with static backend");
-            return (NULL);
-            // return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
-            //                    http_stream));
+            return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
+                               http_stream));
         }
         get_html_error("403", "No good response for directory request");
         http_stream.setHTTPStatus("403", "Forbidden");
