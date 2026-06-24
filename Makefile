@@ -13,9 +13,13 @@ SRCS = main.cpp \
 CLASS_DIR = class
 CLASS = ABackend.cpp \
 		Date.cpp \
+		ChunkedRequestBody.cpp \
+		ChunkedResponseBody.cpp \
 		FdStream.cpp \
 		HTTPStream.cpp \
 		MimeType.cpp \
+		PlainRequestBody.cpp \
+		PlainResponseBody.cpp \
 		Request.cpp \
 		Response.cpp \
 		Router.cpp \
