@@ -47,9 +47,9 @@ class HTTPStream : public async::Future
     void                setErrorResponse(std::string const &status, std::string const &message);
     void                setBrokenConnection();
     bool                setStatusResponse();
-	IRequestBody *request_body();
-	async::Future::Poll poll_send_headers(IResponseBody *&b);
-	async::Future::Poll poll_send_headers(size_t content_length, IResponseBody *&b);
+    IRequestBody       *request_body();
+    async::Future::Poll poll_send_headers(IResponseBody *&b);
+    async::Future::Poll poll_send_headers(size_t content_length, IResponseBody *&b);
 
     Response                           response;
     Request                            request;

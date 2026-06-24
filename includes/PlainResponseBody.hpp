@@ -5,13 +5,13 @@
 
 class PlainResponseBody : public IResponseBody
 {
-private:
-	async::BufIo<> &io;
+  private:
+    async::BufIo<> &io;
 
-public:
-	PlainResponseBody(async::BufIo<> &io);
-	async::Future::Poll poll_write(container::Slice<uint8_t> buf, size_t &s) throw(async::OsError);
-	async::Future::Poll poll_end() throw(async::OsError);
+  public:
+    PlainResponseBody(async::BufIo<> &io);
+    async::Future::Poll poll_write(container::Slice<uint8_t> buf, size_t &s) throw(async::OsError);
+    async::Future::Poll poll_end() throw(async::OsError);
 };
 
 #endif
