@@ -1,9 +1,12 @@
 #include "StaticBackend.hpp"
+
+#include "MimeType.hpp"
+
+#include "html_generator.hpp"
+#include "url_utils.hpp"
+#include "webserv.hpp"
 #include <fcntl.h>
 #include <strings.h>
-#include "url_utils.hpp"
-#include "html_generator.hpp"
-#include "webserv.hpp"
 
 StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream) :
 	_sb(), _file_ok(false), _response_set(false), _body_written(0), root(root), http_stream(http_stream), _response_body(NULL)
@@ -38,13 +41,11 @@ static t_file_type fileType(std::string const &path, std::string const &root)
 
 void StaticBackend::setContentType(std::string const &URI, Response &response)
 {
-	//std::string mime_type = MimeType::mime_type[file_ext];
+	std::string mime_type = MimeType::getType(URI);
 
-	//if (mime_type.empty())
-	//	mime_type = "application/octet-stream";
-	//response.addHeader("Content-Type", mime_type);
-	(void)URI;
-	response.addHeader("Content-Type", "text/html"); // FIXME: add mimetype back
+	if (mime_type.empty())
+		mime_type = "application/octet-stream";
+	response.addHeader("Content-Type", mime_type);
 }
 
 static bool consume_body()
