@@ -16,6 +16,7 @@ class HTTPStream;
 class Router
 {
   public:
+    static t_file_type fileType(std::string const &path, std::string const &root);
     Router();
     ~Router();
 
