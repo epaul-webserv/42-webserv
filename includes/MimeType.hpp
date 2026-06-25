@@ -12,6 +12,7 @@ class MimeType
     static void                               ParseConfig(const char *file);
     static std::string                        getType(std::string const &URI);
     static void setType(std::string const &key, std::string const &value);
+    static void ParseConfig(const char *file);
 
   private:
     MimeType();
