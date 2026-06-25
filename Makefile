@@ -17,6 +17,8 @@ CLASS = ABackend.cpp \
 		ChunkedResponseBody.cpp \
 		FdStream.cpp \
 		HTTPStream.cpp \
+		IRequestBody.cpp \
+		IResponseBody.cpp \
 		MimeType.cpp \
 		PlainRequestBody.cpp \
 		PlainResponseBody.cpp \
