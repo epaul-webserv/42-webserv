@@ -348,9 +348,7 @@ IRequestBody *HTTPStream::request_body()
         return (new PlainRequestBody(
             buf_io, std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10)));
     }
-    if (to_lower(request.peekHeader("Transfer-Encoding")) == "chunked")
-        return (new ChunkedRequestBody(buf_io));
-    return (NULL);
+    return (new ChunkedRequestBody(buf_io));
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
