@@ -1,6 +1,6 @@
 #include "CGIBackend.hpp"
 #include "url_utils.hpp"
-#include "webserv.h"
+#include "webserv.hpp"
 #include <iostream>
 #include <string>
 #include <sys/wait.h>
@@ -9,10 +9,11 @@
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root,
                        async::Reactor &reactor, HTTPStream &stream)
     : _root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream),
-      response_body(NULL), _cgi_pid(0), _client_body_sent(false),
-      _response_headers_read_done(false), _status_set(false), _process_done(false),
-      _content_length(-1), _status(_init), client_body_to_cgi(NULL), _response_buf_len(0),
-      _response_buf_index(0), _response_body_sent(false), _send_header_and_abort(false)
+      response_body(NULL), _cgi_pid(0), _body_read_buf_len(0), _body_read_buf_index(0),
+      _client_body_sent(false), _response_headers_read_done(false), _status_set(false),
+      _process_done(false), _content_length(-1), _status(_init), client_body_reader(NULL),
+      _response_buf_len(0), _response_buf_index(0), _response_body_sent(false),
+      _send_header_and_abort(false)
 {
 }
 
@@ -20,8 +21,7 @@ CGIBackend::~CGIBackend(void)
 {
     if (_cgi_io != NULL)
         delete _cgi_io;
-    if (client_body_to_cgi != NULL)
-        delete client_body_to_cgi;
+    delete client_body_reader;
     if (_cgi_pid > 0)
     {
         kill(_cgi_pid, SIGKILL);
@@ -291,17 +291,38 @@ void CGIBackend::init()
     else
     {
         char *ptr;
-        _body_len = std::strtoul(content_len.c_str(), &ptr, 10);
-        client_body_to_cgi =
-            new async::CopyBufIoToBufIo<4096, 4096>(stream.buf_io, *_cgi_io, _body_len);
+        _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
+        client_body_reader = stream.request_body();
     }
     _cgi_io = new async::BufIo<>(_reactor, sv[0]);
 }
 
 void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 {
-    if (!_client_body_sent && client_body_to_cgi->poll() == async::Future::Ready)
-        _client_body_sent = true;
+    while (!_client_body_sent)
+    {
+        if (_body_read_buf_index == _body_read_buf_len)
+        {
+            container::Slice<uint8_t> buff(_body_read_buf, 4096);
+            if (_cgi_io->poll_read(buff, _body_read_buf_len) == Pending)
+                return;
+            _body_read_buf_index = 0;
+            if (_body_read_buf_len == 0)
+            {
+                _client_body_sent = true;
+                return;
+            }
+        }
+        if (_body_read_buf_index < _body_read_buf_len)
+        {
+            size_t                    write_written;
+            container::Slice<uint8_t> buff(&_body_read_buf[_body_read_buf_index],
+                                           _body_read_buf_len - _body_read_buf_index);
+            if (response_body->poll_write(buff, write_written) == Pending)
+                return;
+            _body_read_buf_index += write_written;
+        }
+    }
 }
 
 #include "string_overload.hpp"
@@ -321,7 +342,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
             }
             else
             {
-                if (stream.request.getHTTPVersion() != "")
+                if (stream.request.http_version != "")
                 {
                     std::string key, value;
                     if (parse_cgi_header(header_line, key, value))
