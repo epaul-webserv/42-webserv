@@ -17,6 +17,7 @@ CLASS = ABackend.cpp \
 		Date.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
+		ConfigParser.cpp \
 		FdStream.cpp \
 		HTTPStream.cpp \
 		MimeType.cpp \
@@ -27,6 +28,7 @@ CLASS = ABackend.cpp \
 		Router.cpp \
 		RouterRuleset.cpp \
 		StaticBackend.cpp
+
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))
@@ -45,31 +47,33 @@ LIBASYNC_PREFIX = libasync
 
 LIBCONTAINER_PREFIX = $(LIBASYNC_PREFIX)/libcontainer
 
+LIBTOML_PREFIX = libtoml
+
 -include $(LIBCONTAINER_PREFIX)/module.mk
 
 -include $(LIBASYNC_PREFIX)/module.mk
+
+-include $(LIBTOML_PREFIX)/module.mk
 
 .PHONY = $(NAME) all clean fclean re
 
 $(OBJS_DIR)/%.o : $(SRCS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -I$(LIBTOML_INCLUDE_DIR) -c $< -o $@
 
 $(OBJS_DIR)/%.o : $(CLASS_DIR)/%.cpp
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -I$(LIBTOML_INCLUDE_DIR) -c $< -o $@
 
-$(NAME) : $(OBJS) $(LIBASYNC_DEST)
-	$(CXX) $(CXXFLAGS) $^ -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -o $@
+$(NAME) : $(OBJS) $(LIBASYNC_DEST) $(LIBTOML_DEST)
+	$(CXX) $(CXXFLAGS) $^ -I$(INCLUDES) -I$(LIBASYNC_INCLUDE_DIR) -I$(LIBCONTAINER_INCLUDE_DIR) -I$(LIBTOML_INCLUDE_DIR) -o $@
 
-clean : libasync_clean libcontainer_clean
+clean : libasync_clean libcontainer_clean libtoml_clean
 	$(RM) -r $(OBJS) $(DEPS) $(OBJS_DIR)
 
 fclean : clean
 	$(RM) $(NAME)
 
-re:
-	$(MAKE) fclean
-	$(MAKE) all
+re : fclean all
 
 -include $(DEPS)
