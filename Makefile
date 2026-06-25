@@ -15,6 +15,7 @@ CLASS = ABackend.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
 		Date.cpp \
+		CGIBackend.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
 		ConfigParser.cpp \

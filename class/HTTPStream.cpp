@@ -10,20 +10,18 @@
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
                        socklen_t addr_len, Router &router)
-    : addr(addr), addr_len(addr_len), _override_response(false), _rerun(false),
-      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _router(&router),
-      _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0),
-      buf_io(reactor, fd)
+    : addr(addr), addr_len(addr_len), _router(&router), _override_response(false), _rerun(false),
+      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
+      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd)
 {
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
-    : request(other.request), addr(other.addr), addr_len(other.addr_len),
+    : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
       _override_response(other._override_response), _rerun(other._rerun),
       _broken_connection(other._broken_connection), _status(other._status),
-      _reactor(other._reactor), _router(other._router), _backend(other._backend),
-      _headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes),
-      buf_io(other.buf_io)
+      _reactor(other._reactor), _backend(other._backend), _headers_status(other._headers_status),
+      _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
 {
     (void)addr;
 }
