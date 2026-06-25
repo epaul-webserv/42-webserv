@@ -217,10 +217,12 @@ void CGIBackend::init()
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
 
     // std::string encoding = request.peekHeader("transfer-encoding");
-
-    env_vector.push_back("CONTENT_LENGTH=" + stream.request.peekHeader("content-length"));
-
-    env_vector.push_back("CONTENT_TYPE=" + stream.request.peekHeader("content-type"));
+    std::string length = stream.request.peekHeader("content-length");
+    if (!length.empty())
+    {
+        env_vector.push_back("CONTENT_LENGTH=" + length);
+        env_vector.push_back("CONTENT_TYPE=" + stream.request.peekHeader("content-type"));
+    }
 
     env_vector.push_back("AUTH_TYPE=");
     env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
@@ -257,6 +259,7 @@ void CGIBackend::init()
 
     if (_cgi_pid == 0)
     {
+        // FIXME: check return values
         dup2(sv[1], STDIN_FILENO);
         dup2(sv[1], STDOUT_FILENO);
 
@@ -306,11 +309,13 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
         if (_body_read_buf_index == _body_read_buf_len)
         {
             container::Slice<uint8_t> buff(_body_read_buf, 4096);
-            if (_cgi_io->poll_read(buff, _body_read_buf_len) == Pending)
+            if (client_body_reader->poll_read(buff, _body_read_buf_len) == Pending)
                 return;
             _body_read_buf_index = 0;
             if (_body_read_buf_len == 0)
             {
+                if (_cgi_io->poll_flush_write() == Pending)
+                    return;
                 _client_body_sent = true;
                 return;
             }
@@ -320,7 +325,7 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
             size_t                    write_written;
             container::Slice<uint8_t> buff(&_body_read_buf[_body_read_buf_index],
                                            _body_read_buf_len - _body_read_buf_index);
-            if (response_body->poll_write(buff, write_written) == Pending)
+            if (_cgi_io->poll_write(buff, write_written) == Pending)
                 return;
             _body_read_buf_index += write_written;
         }
