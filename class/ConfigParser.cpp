@@ -24,7 +24,7 @@ bool containsWhitespace(const std::string &str)
 
 bool is_absolute(const std::string &str) { return !str.empty() && str.at(0) == '/'; }
 
-bool is_directory(const std::string &str) { return !str.empty() && str.at(str.length() - 1) == '/'; }
+bool has_trailing_slash(const std::string &str) { return !str.empty() && str.at(str.length() - 1) == '/'; }
 
 // Helper to convert boolean to custom e_switch enum
 static e_switch get_switch_value(bool val) { return val ? _true : _false; }
@@ -97,8 +97,8 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
 	if (path_it != loc_table.end())
 	{
 		path = path_it->second.as_string();
-		if (!is_directory(path))
-			throw ConfigParser::ConfigError("location path must end with \"/\"");
+		if (!is_absolute(path))
+			throw ConfigParser::ConfigError("location path must start with \"/\"");
 	}
 
 	RouterNode loc_node(path);
@@ -107,8 +107,10 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
 	toml::Toml::const_iterator root_it = loc_table.find("root");
 	if (root_it != loc_table.end())
 	{
-		if (!is_absolute(root_it->second.as_string()) || !is_directory(root_it->second.as_string()))
-			throw ConfigParser::ConfigError("root must be an absolute path and a directory");
+		if (!is_absolute(root_it->second.as_string()))
+			throw ConfigParser::ConfigError("root must be an absolute path");
+		if (has_trailing_slash(root_it->second.as_string()))
+			throw ConfigParser::ConfigError("Root cannot end with \"/\"");
 		loc_node.root = root_it->second.as_string();
 	}
 	else

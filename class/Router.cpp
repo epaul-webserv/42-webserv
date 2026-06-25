@@ -125,13 +125,17 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
 
 RouterNode const *Router::matchSubPath(std::string URI, std::map<std::string, RouterNode> const &sub_nodes)
 {
+	std::string										  debug = sub_nodes.begin()->first;
 	std::map<std::string, RouterNode>::const_iterator it;
 	while (!URI.empty())
 	{
-		URI = URI.substr(0, URI.find_last_of('/') - 1);
-		it	= sub_nodes.find(URI);
+		it = sub_nodes.find(URI);
 		if (it != sub_nodes.end())
 			return (&it->second);
+		size_t pos = URI.find_last_of('/');
+		if (!pos)
+			return (NULL);
+		URI = URI.substr(0, pos);
 	}
 	return (NULL);
 }

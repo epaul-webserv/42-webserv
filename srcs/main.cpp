@@ -187,13 +187,13 @@ int main(int ac, char **av)
 	// test.redirects["/logan"] = std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary);
 	// router.addServ("localhost:33000", test);
 
-	MimeType::mime_type["html"] = "text/html";
-	MimeType::mime_type["png"]	= "image/png";
-	MimeType::mime_type["jpg"]	= "image/jpg";
-	MimeType::mime_type["svg"]	= "image/svg+xml";
-	MimeType::mime_type["mkv"]	= "video/x-matroska";
-	MimeType::mime_type["txt"]	= "text/plain";
-	MimeType::mime_type["ico"]	= "image/x-icon";
+	// MimeType::mime_type["html"] = "text/html";
+	// MimeType::mime_type["png"]	= "image/png";
+	// MimeType::mime_type["jpg"]	= "image/jpg";
+	// MimeType::mime_type["svg"]	= "image/svg+xml";
+	// MimeType::mime_type["mkv"]	= "video/x-matroska";
+	// MimeType::mime_type["txt"]	= "text/plain";
+	// MimeType::mime_type["ico"]	= "image/x-icon";
 
 	// memset(&hints, 0, sizeof(hints));
 	// hints.ai_family	   = AF_UNSPEC;
@@ -214,15 +214,15 @@ int main(int ac, char **av)
 	if (router_map.size() == 0)
 		return (1);
 
-	async::Reactor								 reactor;
-	std::vector<Acceptor *>						 acceptors;
-	std::vector<int>							 sockets;
+	async::Reactor								  reactor;
+	std::vector<Acceptor *>						  acceptors;
+	std::vector<int>							  sockets;
 	std::map<struct addrinfo *, Router>::iterator it;
 
 	for (it = router_map.begin(); it != router_map.end(); ++it)
 	{
-		struct addrinfo *ai = it->first;
-		Router			&router = it->second;
+		struct addrinfo *ai		  = it->first;
+		Router			&router	  = it->second;
 		int				 bound_fd = -1;
 
 		for (struct addrinfo *rp = ai; rp != NULL; rp = rp->ai_next)
