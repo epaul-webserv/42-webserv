@@ -293,6 +293,8 @@ void CGIBackend::init()
         char *ptr;
         _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
         client_body_reader = stream.request_body();
+        if (client_body_reader == NULL)
+            _client_body_sent = true;
     }
     _cgi_io = new async::BufIo<>(_reactor, sv[0]);
 }
