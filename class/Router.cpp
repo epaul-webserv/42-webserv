@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sys/stat.h>
 
-static t_file_type fileType(std::string const &path, std::string const &root)
+t_file_type Router::fileType(std::string const &path, std::string const &root)
 {
     struct stat s = {};
 
