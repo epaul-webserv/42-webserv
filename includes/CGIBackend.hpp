@@ -93,7 +93,7 @@ class CGIBackend : public ABackend
     void init();
     async::Future::Poll copy_to_cgi() throw(async::OsError);
     void                check_process_status();
-    void                send_client_body() throw(async::OsError);
+    void                send_client_body_to_cgi() throw(async::OsError);
     void                read_cgi_headers() throw(async::OsError);
     async::Future::Poll set_body_writer() throw(async::OsError);
     void                send_body() throw(async::OsError);
