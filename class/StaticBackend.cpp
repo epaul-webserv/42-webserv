@@ -16,29 +16,6 @@ StaticBackend::StaticBackend(std::string const &root, HTTPStream &http_stream)
 
 StaticBackend::~StaticBackend() {}
 
-static t_file_type fileType(std::string const &path, std::string const &root)
-{
-    struct stat s = {};
-
-    if (stat((root + path).c_str(), &s) == -1)
-    {
-        if (errno == EACCES)
-            return (_no_access);
-        if (errno == ENOMEM)
-            return (_err);
-        return (_none);
-    }
-    switch (s.st_mode & S_IFMT)
-    {
-    case S_IFDIR:
-        return (_dir);
-    case S_IFREG:
-        return (_file);
-    default:
-        return (_none);
-    }
-}
-
 void StaticBackend::setContentType(std::string const &URI, Response &response)
 {
     std::string mime_type = MimeType::getType(URI);
@@ -48,19 +25,11 @@ void StaticBackend::setContentType(std::string const &URI, Response &response)
     response.addHeader("Content-Type", mime_type);
 }
 
-static bool consume_body()
-{
-    // TODO: implement
-    return (true);
-}
-
 async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 {
-    if (!consume_body())
-        return Pending; // FIXME: skip body
     if (http_stream.request.method == "GET")
     {
-        switch (fileType(http_stream.request.rewrited_URI, root))
+        switch (Router::fileType(http_stream.request.rewrited_URI, root))
         {
         case _dir:
             http_stream.response.bodyAppend(get_html_dir(http_stream.request.rewrited_URI, root));
@@ -91,7 +60,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
     }
     if (http_stream.request.method == "HEAD")
     {
-        switch (fileType(http_stream.request.rewrited_URI, root))
+        switch (Router::fileType(http_stream.request.rewrited_URI, root))
         {
         case _dir:
             http_stream.response.addHeader("Content-Type", "text/html");
