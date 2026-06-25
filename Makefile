@@ -17,6 +17,7 @@ CLASS = ABackend.cpp \
 		Date.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
+		ConfigParser.cpp \
 		FdStream.cpp \
 		HTTPStream.cpp \
 		MimeType.cpp \
@@ -27,6 +28,7 @@ CLASS = ABackend.cpp \
 		Router.cpp \
 		RouterRuleset.cpp \
 		StaticBackend.cpp
+
 
 OBJS_DIR = objs
 OBJS = $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SRCS)) $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(CLASS))

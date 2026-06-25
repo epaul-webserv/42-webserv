@@ -111,6 +111,7 @@ async::Future::Poll HTTPStream::readFirstLine()
     if (request.method.empty())
         return (Ready);
     get_next_word(line, request.URI);
+    request.rewrited_URI = request.URI;
     get_next_word(line, request.http_version);
     _status = _fetching_headers;
     if (!decode_url(request.URI))
@@ -185,6 +186,7 @@ async::Future::Poll HTTPStream::keepAlive()
     this->_backend            = NULL;
     this->_headers_status     = _initializing_headers;
     this->_headers_sent_bytes = 0;
+    this->_override_response  = false;
     return (this->poll());
 }
 
@@ -234,10 +236,11 @@ bool HTTPStream::setStatusResponse()
         status_pages.find(response.http_status);
     if (it != status_pages.end())
     {
-        request.URI    = it->second;
-        request.method = "GET";
-        _saved_status  = response.http_status;
-        _saved_msg     = response.http_msg;
+        request.URI          = it->second;
+        request.rewrited_URI = it->second;
+        request.method       = "GET";
+        _saved_status        = response.http_status;
+        _saved_msg           = response.http_msg;
         response.clear();
         delete _backend;
         _backend           = _router->resolve(*_reactor, *this, true);
@@ -257,7 +260,12 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
         if (!_override_response && setStatusResponse())
             return (Ready);
         if (_override_response)
+        {
+            if (response.http_status.empty() || response.http_status[0] == '4' ||
+                response.http_status[0] == '5')
+                setErrorResponse(_saved_status, _saved_msg);
             setHTTPStatus(_saved_status, _saved_msg);
+        }
         this->headersAddBase();
         if (!request.http_version.empty())
             response.send_buf = std::vector<uint8_t>(response.head.c_str(),

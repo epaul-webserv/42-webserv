@@ -32,9 +32,9 @@ class Router
   private:
     static bool              validateRequest(HTTPStream &http_stream);
     RouterNode const        *getServerNode(std::string const &host, HTTPStream &http_stream) const;
-    static RouterNode const *matchSubPath(std::string                              URI,
+    static RouterNode const *matchSubPath(std::string                             &URI,
                                           std::map<std::string, RouterNode> const &sub_nodes);
-    static RouterRuleset     defineRuleset(std::string const &URI, RouterNode const &serv,
+    static RouterRuleset     defineRuleset(std::string &URI, RouterNode const &serv,
                                            RouterRuleset &ruleset);
     static ABackend         *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
                                            HTTPStream &http_stream, bool force);
