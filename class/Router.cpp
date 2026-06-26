@@ -2,6 +2,7 @@
 #include "ABackend.hpp"
 #include "CGIBackend.hpp"
 #include "StaticBackend.hpp"
+#include "UploadBackend.hpp"
 #include "html_generator.hpp"
 
 #include <iostream>
@@ -62,8 +63,7 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
             backend = new StaticBackend(root, http_stream);
             break;
         case _upload:
-            http_stream.setErrorResponse("200", "Would respond with upload backend");
-            // backend = new UploadBackend(root, http_stream, http_stream.request_body());
+            backend = new UploadBackend(root, http_stream, http_stream.request_body());
             break;
         }
     }
