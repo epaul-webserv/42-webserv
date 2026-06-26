@@ -9,7 +9,9 @@
 #include <unistd.h>
 #include <vector>
 
+#include "ConfigParser.hpp"
 #include "HTTPStream.hpp"
+#include "MimeType.hpp"
 #include "Router.hpp"
 #include <async>
 
@@ -88,100 +90,138 @@ class Acceptor : public async::Future
     }
 };
 
+class MultiAcceptor : public async::Future
+{
+    std::vector<Acceptor *> acceptors;
+
+  private:
+    MultiAcceptor &operator=(MultiAcceptor &other);
+    MultiAcceptor();
+    MultiAcceptor(const MultiAcceptor &other);
+
+  public:
+    MultiAcceptor(std::vector<Acceptor *> &acceptors) : acceptors(acceptors) {}
+    ~MultiAcceptor()
+    {
+        for (size_t i = 0; i < acceptors.size(); ++i)
+        {
+            delete acceptors[i];
+        }
+    }
+
+    Future::Poll poll() throw(async::OsError)
+    {
+        for (size_t i = 0; i < acceptors.size(); ++i)
+        {
+            acceptors[i]->poll();
+        }
+        return Future::Pending;
+    }
+};
+
 int main(int ac, char **av)
 {
-    int              sfd, s;
-    struct addrinfo  hints;
-    struct addrinfo *result, *rp;
 
-    if (ac != 3)
+    // TODO: router_map keys must bee freed with freeaddrinfo when exiting teh program
+    std::map<struct addrinfo *, Router> router_map;
+
+    if (ac != 2)
     {
-        std::cerr << "Usage: " << av[0] << "ip port\n";
-        exit(EXIT_FAILURE);
+        std::cerr << "Usage: " << av[0] << " config.toml\n";
+        return (1);
     }
 
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family    = AF_UNSPEC;
-    hints.ai_socktype  = SOCK_STREAM;
-    hints.ai_flags     = 0;
-    hints.ai_protocol  = 0;
-    hints.ai_canonname = NULL;
-    hints.ai_addr      = NULL;
-    hints.ai_next      = NULL;
-
-    s = getaddrinfo(av[1], av[2], &hints, &result);
-    if (s != 0)
+    try
     {
-        std::cerr << "getaddrinfo: " << gai_strerror(s) << "\n";
-        exit(EXIT_FAILURE);
+        ConfigParser::ParseConfig(router_map, av[1]);
+        // printRouterMap(router_map);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error in config: \n\t" << e.what() << '\n';
+        return (1);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next)
+    int sfd = -1, s;
+
+    if (router_map.size() == 0)
+        return (1);
+
+    async::Reactor                                reactor;
+    std::vector<Acceptor *>                       acceptors;
+    std::vector<int>                              sockets;
+    std::map<struct addrinfo *, Router>::iterator it;
+
+    for (it = router_map.begin(); it != router_map.end(); ++it)
     {
-        sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sfd == -1)
-            continue;
-        int opt = 1;
-        if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+        struct addrinfo *ai       = it->first;
+        Router          &router   = it->second;
+        int              bound_fd = -1;
+
+        for (struct addrinfo *rp = ai; rp != NULL; rp = rp->ai_next)
         {
-            std::cerr << "setsockopt: " << strerror(errno) << "\n";
-            exit(EXIT_FAILURE);
+            sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+            if (sfd == -1)
+                continue;
+            int opt = 1;
+            if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+            {
+                std::cerr << "setsockopt: " << strerror(errno) << "\n";
+                close(sfd);
+                continue;
+            }
+            if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+            {
+                bound_fd = sfd;
+                char host[1024];
+                char port[32];
+                s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
+                                NI_NUMERICHOST | NI_NUMERICSERV);
+                if (s != 0)
+                {
+                    std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+                    close(sfd);
+                    continue;
+                }
+
+                if (listen(sfd, 100) < 0)
+                {
+                    std::cerr << "listen: " << strerror(errno) << "\n";
+                    close(sfd);
+                    continue;
+                }
+
+                std::cout << "Listening on " << host << ":" << port << "\n";
+                break;
+            }
+            close(sfd);
         }
-        if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
-            break;
-        close(sfd);
+
+        if (bound_fd == -1)
+        {
+            std::cerr << "Could not bind to any address\n";
+            freeaddrinfo(ai);
+            continue;
+        }
+
+        sockets.push_back(bound_fd);
+        acceptors.push_back(new Acceptor(reactor, bound_fd, router));
+        freeaddrinfo(ai);
     }
 
-    if (rp == NULL)
+    if (acceptors.empty())
     {
-        std::cerr << "Could not bind\n";
-        freeaddrinfo(result);
-        exit(EXIT_FAILURE);
+        std::cerr << "No acceptors created\n";
+        return (1);
     }
-    char host[1024];
-    char port[32];
-    s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
-                    NI_NUMERICHOST | NI_NUMERICSERV);
-    freeaddrinfo(result);
 
-    if (s != 0)
+    MultiAcceptor multi_acceptor(acceptors);
+    reactor.run(multi_acceptor);
+
+    for (size_t i = 0; i < sockets.size(); ++i)
     {
-        std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
-        exit(EXIT_FAILURE);
+        shutdown(sockets[i], SHUT_RDWR);
+        close(sockets[i]);
     }
-
-    if (listen(sfd, 100) < 0)
-    {
-        std::cerr << "listen: " << strerror(errno) << "\n";
-        exit(EXIT_FAILURE);
-    }
-
-    std::cout << "Listening on " << host << ":" << port << "\n";
-    async::Reactor           reactor;
-    Router                   router;
-    RouterNode               test;
-    std::vector<std::string> php_args;
-    php_args.push_back("/bin/php-cgi");
-    php_args.push_back("-f");
-    std::pair<t_backend_type, std::vector<std::string> > backend_pair(_cgi, php_args);
-    std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > backend_rule(
-        "php", backend_pair);
-    test.backend_rules.push_back(backend_rule);
-    // test.backend_rules.insert(std::pair<std::string, std::pair<t_backend_type,
-    // std::vector<std::string> > >( 	"txt", std::pair<t_backend_type, std::vector<std::string>
-    // >(_upload, std::vector<std::string>())));
-    test.accepted_methods.push_back("GET");
-    test.accepted_methods.push_back("POST");
-    test.file_upload = _true;
-    test.redirects.insert(std::pair<std::string, std::pair<std::string, e_redirect_type> >(
-        "/logan",
-        std::pair<std::string, e_redirect_type>("https://www.loganmartin.fr/", _temporary)));
-    test.status_pages["201"] = "/index.nginx-debian.html";
-    test.list_directories    = _true;
-    test.index_pages.push_back("index.nginx-debian.html");
-
-    router.addServ("localhost", test);
-    Acceptor acceptor(reactor, sfd, router);
-    reactor.run(acceptor);
-    // close(socketpoll); FIXME: We would like to close the epoll_create1 fd
+    // close(socketpoll); We would like to close the epoll_create1 fd
 }

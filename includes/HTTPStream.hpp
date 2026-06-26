@@ -1,6 +1,8 @@
 #ifndef HTTPSTREAM_HPP
 #define HTTPSTREAM_HPP
 
+#include "IRequestBody.hpp"
+#include "IResponseBody.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 #include "Router.hpp"
@@ -45,12 +47,16 @@ class HTTPStream : public async::Future
     void                setErrorResponse(std::string const &status, std::string const &message);
     void                setBrokenConnection();
     bool                setStatusResponse();
+    IRequestBody       *request_body();
+    async::Future::Poll poll_send_headers(IResponseBody *&b);
+    async::Future::Poll poll_send_headers(size_t content_length, IResponseBody *&b);
 
     Response                           response;
     Request                            request;
     struct sockaddr_storage            addr;
     socklen_t                          addr_len;
     std::map<std::string, std::string> status_pages;
+    Router                            *_router;
 
   private:
     HTTPStream();
@@ -67,7 +73,6 @@ class HTTPStream : public async::Future
     std::string                         _saved_msg;
     stream_status                       _status;
     async::Reactor                     *_reactor;
-    Router                             *_router;
     ABackend                           *_backend;
     headers_status                      _headers_status;
     size_t                              _headers_sent_bytes;
