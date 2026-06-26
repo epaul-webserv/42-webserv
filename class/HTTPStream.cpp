@@ -10,20 +10,18 @@
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
                        socklen_t addr_len, Router &router)
-    : addr(addr), addr_len(addr_len), _override_response(false), _rerun(false),
-      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _router(&router),
-      _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0),
-      buf_io(reactor, fd)
+    : addr(addr), addr_len(addr_len), _router(&router), _override_response(false), _rerun(false),
+      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
+      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd)
 {
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
-    : request(other.request), addr(other.addr), addr_len(other.addr_len),
+    : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
       _override_response(other._override_response), _rerun(other._rerun),
       _broken_connection(other._broken_connection), _status(other._status),
-      _reactor(other._reactor), _router(other._router), _backend(other._backend),
-      _headers_status(other._headers_status), _headers_sent_bytes(other._headers_sent_bytes),
-      buf_io(other.buf_io)
+      _reactor(other._reactor), _backend(other._backend), _headers_status(other._headers_status),
+      _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
 {
     (void)addr;
 }
@@ -100,8 +98,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         return (Pending);
     if ((line.size() == 1 || line.size() == 2) && *(line.end() - 1) == '\n')
     {
-        setHTTPStatus("400", "Bad Request");
-        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        setErrorResponse("400", "Bad Request");
         _status = _processing_response;
         return (Ready);
     }
@@ -111,12 +108,12 @@ async::Future::Poll HTTPStream::readFirstLine()
     if (request.method.empty())
         return (Ready);
     get_next_word(line, request.URI);
+    request.rewrited_URI = request.URI;
     get_next_word(line, request.http_version);
     _status = _fetching_headers;
     if (!decode_url(request.URI))
     {
-        setHTTPStatus("400", "Bad Request");
-        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        setErrorResponse("400", "Bad Request");
         std::cerr << "Invalid URI" << std::endl;
         return (Ready);
     }
@@ -185,6 +182,7 @@ async::Future::Poll HTTPStream::keepAlive()
     this->_backend            = NULL;
     this->_headers_status     = _initializing_headers;
     this->_headers_sent_bytes = 0;
+    this->_override_response  = false;
     return (this->poll());
 }
 
@@ -229,15 +227,16 @@ void HTTPStream::setErrorResponse(std::string const &status, std::string const &
 bool HTTPStream::setStatusResponse()
 {
     if (response.http_status.empty())
-        setHTTPStatus("500", "Internal Server Error");
+        setErrorResponse("500", "Internal Server Error");
     const std::map<std::string, std::string>::const_iterator it =
         status_pages.find(response.http_status);
     if (it != status_pages.end())
     {
-        request.URI    = it->second;
-        request.method = "GET";
-        _saved_status  = response.http_status;
-        _saved_msg     = response.http_msg;
+        request.URI          = it->second;
+        request.rewrited_URI = it->second;
+        request.method       = "GET";
+        _saved_status        = response.http_status;
+        _saved_msg           = response.http_msg;
         response.clear();
         delete _backend;
         _backend           = _router->resolve(*_reactor, *this, true);
@@ -257,7 +256,12 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
         if (!_override_response && setStatusResponse())
             return (Ready);
         if (_override_response)
+        {
+            if (response.http_status.empty() || response.http_status[0] == '4' ||
+                response.http_status[0] == '5')
+                setErrorResponse(_saved_status, _saved_msg);
             setHTTPStatus(_saved_status, _saved_msg);
+        }
         this->headersAddBase();
         if (!request.http_version.empty())
             response.send_buf = std::vector<uint8_t>(response.head.c_str(),
@@ -308,7 +312,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     {
         if (readRequest() == Pending)
             return (Pending);
-        // std::cout << this->_request;
         if (this->_status != _processing_response)
             this->_status = _getting_backend;
     }
@@ -348,9 +351,7 @@ IRequestBody *HTTPStream::request_body()
         return (new PlainRequestBody(
             buf_io, std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10)));
     }
-    if (to_lower(request.peekHeader("Transfer-Encoding")) == "chunked")
-        return (new ChunkedRequestBody(buf_io));
-    return (NULL);
+    return (new ChunkedRequestBody(buf_io));
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)

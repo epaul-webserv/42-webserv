@@ -1,11 +1,14 @@
 #include "Router.hpp"
 #include "ABackend.hpp"
+#include "CGIBackend.hpp"
+#include "StaticBackend.hpp"
+#include "UploadBackend.hpp"
 #include "html_generator.hpp"
 
 #include <iostream>
 #include <sys/stat.h>
 
-static t_file_type fileType(std::string const &path, std::string const &root)
+t_file_type Router::fileType(std::string const &path, std::string const &root)
 {
     struct stat s = {};
 
@@ -51,20 +54,16 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
         switch (backend_type)
         {
         case _static:
-            http_stream.setErrorResponse("200", "Would call static backend");
-            // backend = new StaticBackend(root, http_stream);
+            backend = new StaticBackend(root, http_stream);
             break;
         case _cgi:
-            http_stream.setErrorResponse("200", "Would respond with cgi backend");
-            // backend = new CGIBackend(args, root, reactor, http_stream);
+            backend = new CGIBackend(args, root, reactor, http_stream);
             break;
         case _dir_index:
-            http_stream.setErrorResponse("200", "Would respond with dir backend");
-            // backend = new StaticBackend(root, http_stream);
+            backend = new StaticBackend(root, http_stream);
             break;
         case _upload:
-            http_stream.setErrorResponse("200", "Would respond with upload backend");
-            // backend = new UploadBackend(root, http_stream, http_stream.request_body());
+            backend = new UploadBackend(root, http_stream, http_stream.request_body());
             break;
         }
     }
@@ -143,21 +142,29 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
     return (&it->second);
 }
 
-RouterNode const *Router::matchSubPath(std::string                              URI,
+RouterNode const *Router::matchSubPath(std::string                             &URI,
                                        std::map<std::string, RouterNode> const &sub_nodes)
 {
     std::map<std::string, RouterNode>::const_iterator it;
-    while (!URI.empty())
+    std::string                                       copy = URI;
+    while (!copy.empty())
     {
-        URI = URI.substr(0, URI.find_last_of('/') - 1);
-        it  = sub_nodes.find(URI);
+        it = sub_nodes.find(copy);
         if (it != sub_nodes.end())
+        {
+            std::cout << it->first.size() << std::endl;
+            URI = URI.substr(it->first.size());
             return (&it->second);
+        }
+        size_t pos = copy.find_last_of('/');
+        if (!pos)
+            return (NULL);
+        copy = copy.substr(0, pos);
     }
     return (NULL);
 }
 
-RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &serv,
+RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
                                     RouterRuleset &ruleset)
 {
     RouterNode const *matching_sub_node = NULL;
@@ -216,20 +223,12 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         switch (matching_redirect->second.second)
         {
         case _temporary:
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse("200", "Temporary redirect to " +
-                                                    matching_redirect->second.first);
-            // http_stream.setHTTPStatus("307", "Temporary Redirect");
-            // response.bodyAppend(get_html_error("307", "Temporary Redirect"));
+            http_stream.setHTTPStatus("307", "Temporary Redirect");
             break;
         case _permanent:
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse("200", "Permanent redirect to " +
-                                                    matching_redirect->second.first);
-            // http_stream.setHTTPStatus("301", "Moved Permanently");
-            // response.bodyAppend(get_html_error("301", "Moved Permanently"));
+            http_stream.setHTTPStatus("301", "Moved Permanently");
         }
-        // response.addHeader("Location", matching_redirect->second.first);
+        http_stream.response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
     if (fileType(http_stream.request.URI, ruleset.root) == _dir)
@@ -243,22 +242,15 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
                     http_stream.request.URI = "/" + *it;
-                    http_stream.setHTTPStatus("200", "Ok");
-                    get_html_error("200", "Index page matched" + *it);
-                    // return (getBackend(_static, std::vector<std::string>(), ruleset.root,
-                    // reactor,
-                    //                    http_stream));
+                    return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
+                                       http_stream));
                 }
             }
         }
         if (ruleset.list_directories == _true)
         {
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse(
-                "200", "Would serve generated directory listing with static backend");
-            return (NULL);
-            // return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
-            //                    http_stream));
+            return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
+                               http_stream));
         }
         get_html_error("403", "No good response for directory request");
         http_stream.setHTTPStatus("403", "Forbidden");
@@ -286,7 +278,9 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset                  = defineRuleset(http_stream.request.URI, *serv, ruleset);
+    ruleset = defineRuleset(http_stream.request.rewrited_URI, *serv, ruleset);
+    if (force)
+        ruleset.root = "";
     http_stream.status_pages = ruleset.status_pages;
     return (defineBackend(ruleset, reactor, http_stream, force));
 }
@@ -350,9 +344,7 @@ static void printNode(const RouterNode &node, const std::string &indent)
         std::cout << indent << "  Status Pages:\n";
         for (std::map<std::string, std::string>::const_iterator it = node.status_pages.begin();
              it != node.status_pages.end(); ++it)
-        {
             std::cout << indent << "    " << it->first << " -> " << it->second << "\n";
-        }
     }
 
     // Print Redirects
