@@ -231,7 +231,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         http_stream.response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
-    if (fileType(http_stream.request.URI, ruleset.root) == _dir)
+    if (fileType(http_stream.request.rewrited_URI, ruleset.root) == _dir)
     {
         if (!ruleset.index_pages.empty())
         {
@@ -241,7 +241,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             {
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
-                    http_stream.request.URI = "/" + *it;
+                    http_stream.request.rewrited_URI = "/" + *it;
                     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
                                        http_stream));
                 }
