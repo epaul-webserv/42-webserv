@@ -16,6 +16,8 @@ t_file_type Router::fileType(std::string const &path, std::string const &root)
     {
         if (errno == EACCES)
             return (_no_access);
+        if (errno == ENOENT)
+            return (_none);
         return (_err);
     }
     switch (s.st_mode & S_IFMT)
@@ -50,7 +52,6 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
     (void)http_stream;
     try
     {
-        http_stream.setHTTPStatus("200", "Ok");
         switch (backend_type)
         {
         case _static:
@@ -85,36 +86,28 @@ bool Router::validateRequest(HTTPStream &http_stream)
 
     if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
     {
-        std::cout << "Router : Setting http version to " << http_version << std::endl;
         http_stream.response.setHTTPVersion(http_version);
         if (http_version == "HTTP/1.1")
         {
             if (http_stream.request.peekHeader("host").empty())
             {
-                http_stream.setErrorResponse(
-                    "400", "Router : No Host header found (mandatory for HTTP/1.1)");
-                http_stream.setHTTPStatus("400", "Bad Request");
+                http_stream.setErrorResponse("400", "Bad Request");
                 http_stream.response.addHeader("Connection", "close");
                 return (false);
             }
             if (http_stream.request.peekHeader("connection") != "close")
-            {
                 http_stream.response.addHeader("Connection", "keep-alive");
-            }
         }
     }
     else if (!http_version.empty()) // Empty is HTTP/0.9
     {
-        std::cout << "Router : Unrecognized http version, fall back to 1.1 " << std::endl;
         http_stream.response.setHTTPVersion("HTTP/1.1");
-        http_stream.setErrorResponse("505", "Router : http version not recognized");
-        http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
+        http_stream.setErrorResponse("505", "HTTP Version Not Supported");
         return (false);
     }
     if (http_stream.request.URI.empty())
     {
-        http_stream.setErrorResponse("400", "Router : URI is empty");
-        http_stream.setHTTPStatus("400", "Bad Request");
+        http_stream.setErrorResponse("400", "Bad Request");
         return (false);
     }
     return (true);
@@ -134,9 +127,7 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
             std::cout << "Router : fallback to default server" << std::endl;
             return (&it->second);
         }
-        http_stream.setErrorResponse(
-            "404", "Router : No corresponding server found (and no default server set)");
-        http_stream.setHTTPStatus("404", "Not Found");
+        http_stream.setErrorResponse("404", "Not Found");
         return (NULL);
     }
     return (&it->second);
@@ -214,8 +205,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
     if (!force && find(ruleset.accepted_methods, http_stream.request.method) ==
                       ruleset.accepted_methods.end())
     {
-        http_stream.setErrorResponse("405", "Router : Method not accepted");
-        http_stream.setHTTPStatus("405", "Method Not Allowed");
+        http_stream.setErrorResponse("405", "Method Not Allowed");
         return (NULL);
     }
     if (!force && matching_redirect != ruleset.redirects.end())
@@ -252,8 +242,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
                                http_stream));
         }
-        get_html_error("403", "No good response for directory request");
-        http_stream.setHTTPStatus("403", "Forbidden");
+        http_stream.setErrorResponse("403", "Forbidden");
         return (NULL);
     }
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::

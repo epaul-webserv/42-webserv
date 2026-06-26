@@ -39,7 +39,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
         case _no_access:
             return http_stream.setErrorResponse("403", "Forbidden"), Ready;
         case _none:
-            return http_stream.setHTTPStatus("404", "Not Found"), Ready;
+            return http_stream.setErrorResponse("404", "Not Found"), Ready;
         case _err:
             return http_stream.setErrorResponse("500", "Internal Server Error"), Ready;
         case _file:
