@@ -100,8 +100,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         return (Pending);
     if ((line.size() == 1 || line.size() == 2) && *(line.end() - 1) == '\n')
     {
-        setHTTPStatus("400", "Bad Request");
-        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        setErrorResponse("400", "Bad Request");
         _status = _processing_response;
         return (Ready);
     }
@@ -116,8 +115,7 @@ async::Future::Poll HTTPStream::readFirstLine()
     _status = _fetching_headers;
     if (!decode_url(request.URI))
     {
-        setHTTPStatus("400", "Bad Request");
-        // response.bodyAppend(get_html_error("400", "Bad Request"));
+        setErrorResponse("400", "Bad Request");
         std::cerr << "Invalid URI" << std::endl;
         return (Ready);
     }
@@ -231,7 +229,7 @@ void HTTPStream::setErrorResponse(std::string const &status, std::string const &
 bool HTTPStream::setStatusResponse()
 {
     if (response.http_status.empty())
-        setHTTPStatus("500", "Internal Server Error");
+        setErrorResponse("500", "Internal Server Error");
     const std::map<std::string, std::string>::const_iterator it =
         status_pages.find(response.http_status);
     if (it != status_pages.end())
@@ -316,7 +314,6 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     {
         if (readRequest() == Pending)
             return (Pending);
-        // std::cout << this->_request;
         if (this->_status != _processing_response)
             this->_status = _getting_backend;
     }
