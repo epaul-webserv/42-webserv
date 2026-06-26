@@ -155,10 +155,6 @@
 	extension = ".m21"
 
 [[mime_types]]
-	type = "application/mp4"
-	extension = ".mp4"
-
-[[mime_types]]
 	type = "application/msword"
 	extension = ".doc"
 
@@ -196,10 +192,6 @@
 
 [[mime_types]]
 	type = "application/pgp-encrypted"
-	extension = ".pgp"
-
-[[mime_types]]
-	type = "application/pgp-signature"
 	extension = ".pgp"
 
 [[mime_types]]
@@ -2291,14 +2283,6 @@
 	extension = ".png"
 
 [[mime_types]]
-	type = "image/x-png"
-	extension = ".png"
-
-[[mime_types]]
-	type = "image/x-citrix-png"
-	extension = ".png"
-
-[[mime_types]]
 	type = "image/prs.btif"
 	extension = ".btif"
 
@@ -2790,9 +2774,6 @@
 	type = "text/javascript"
 	extension = ".mjs"
 
-[[mime_types]]
-	type = "text/javascript"
-	extension = ".mjs"
 
 [[mime_types]]
 	type = "audio/opus"

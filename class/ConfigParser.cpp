@@ -141,9 +141,51 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
         const toml::Array &methods = method_lookup->second.as_array();
         for (toml::Array::const_iterator m_it = methods.begin(); m_it != methods.end(); ++m_it)
         {
+
             if (containsWhitespace(m_it->as_string()))
                 throw ConfigParser::ConfigError("Methods cannot contain whitespace");
             loc_node.accepted_methods.push_back(m_it->as_string());
+        }
+    }
+
+    toml::Toml::const_iterator map_lookup = loc_table.find("method_map");
+    if (map_lookup != loc_table.end() && map_lookup->second.type() == toml::Datum::Array)
+    {
+        const toml::Array &map_arr = map_lookup->second.as_array();
+        for (toml::Array::const_iterator m_it = map_arr.begin(); m_it != map_arr.end(); ++m_it)
+        {
+            if (m_it->type() == toml::Datum::Table)
+            {
+                const toml::Toml &inner_table = m_it->as_table();
+
+                // Iterate through the key-value pairs in each table (e.g., GET = [...])
+                for (toml::Toml::const_iterator t_it = inner_table.begin();
+                     t_it != inner_table.end(); ++t_it)
+                {
+                    std::string method_name = t_it->first;
+                    if (containsWhitespace(method_name))
+                        throw ConfigParser::ConfigError(
+                            "Method names in method_map cannot contain whitespace");
+
+                    std::vector<std::string> extensions;
+                    if (t_it->second.type() == toml::Datum::Array)
+                    {
+                        const toml::Array &ext_arr = t_it->second.as_array();
+                        for (toml::Array::const_iterator e_it = ext_arr.begin();
+                             e_it != ext_arr.end(); ++e_it)
+                        {
+                            extensions.push_back(e_it->as_string());
+                        }
+                    }
+                    else
+                    {
+                        throw ConfigParser::ConfigError("Value for method " + method_name +
+                                                        " in method_map must be an array");
+                    }
+
+                    loc_node.method_map[method_name] = extensions;
+                }
+            }
         }
     }
 

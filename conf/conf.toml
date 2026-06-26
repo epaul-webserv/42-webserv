@@ -12,7 +12,8 @@ mime_config = ["conf/mime_types.toml"]
 	# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
 	# 	{ status = 404, target = "/var/www/html/404.php" },
 	# ] # can be empty
-	accepted_method = ["GET", "POST"] # can be empty
+	method_map = [{ GET = [".py", ".jpeg"] }, { POST = [] }]
+	accepted_method = ["GET"]                                # can be empty
 	# index = ["index.html", "index.php"]                                            # can be empty
 	backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
 
@@ -22,83 +23,33 @@ mime_config = ["conf/mime_types.toml"]
 	]
 
 [[listeners.server.location]]
-	path = "/test" # defaults to "/"
-	directory_listing = true # defaults to false
-	file_upload = true # defaults to false
-	root = "/var/www/html" # no default must be set
-	status_pages = [
-		#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
-		{ status = 404, target = "/var/www/html/404.php" },
-	] # can be empty
-	accepted_method = ["GET", "POST"] # can be empty
-	index = ["index.html", "index.php"] # can be empty
-	backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
-
-	redirects = [
-		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
-		{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	]
-
-[[listeners]]
-	listen = { domain = "localhost", port = 42000 } # must be unique ?
-
-[listeners.server]
-	server_name = "localhost:42000"    # defaults to "";
-	directory_listing = false          # defaults to false
-	file_upload = false                # defaults to false
 	path = "/"                         # defaults to "/"
 	root = "/home/bl4st/Documents/www" # no default must be set
 	# status_pages = [
-	# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
+	# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
 	# 	{ status = 404, target = "/var/www/html/404.php" },
 	# ] # can be empty
-	accepted_method = ["GET", "POST"]                                              # can be empty
-	index = ["index.html", "index.php"]                                            # can be empty
-	backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
+	accepted_method = ["POST"] # can be empty
+	# index = ["index.html", "index.php"]                                            # can be empty
+	backends = [["php", "cgi", ["/bin/php-cgi"]]]
 
-	redirects = [
-		{ path = "/test", target = "http://google.fr/", type = "perm" },
-		{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	]
+	# redirects = [
+	# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
+	# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
+	# ]
 
 [[listeners.server.location]]
-	path = "/wow" # defaults to "/"
-	directory_listing = true # defaults to false
-	file_upload = true # defaults to false
-	root = "/var/www/html" # no default must be set
-	status_pages = [
-		{ status = 403, target = "/home/bl4st/Documents/www/indrewraweraewraewex.html" }, # absolute path (begins with /)
-		{ status = 404, target = "/var/www/html/404.php" },
-	] # can be empty
+	path = "/directory"                            # defaults to "/"
+	root = "/home/bl4st/Documents/www/YoupiBanane" # no default must be set
+	# status_pages = [
+	# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
+	# 	{ status = 404, target = "/var/www/html/404.php" },
+	# ] # can be empty
 	accepted_method = ["GET", "POST"] # can be empty
-	index = ["index.html", "index.php"] # can be empty
-	backends = [
-		[
-			"php",
-			"cgi",
-			[
-				"/bin/php-cgi",
-				"-s",
-				"-i",
-				"-x",
-				"-s",
-				"-e",
-				"-v",
-				"-e",
-				"-n",
-			],
-		],
-		[
-			"py",
-			"cgi",
-			[
-				"/bin/python3",
-				"-test",
-			],
-		],
-	]
+	index = ["youpi.bad_extension"]   # can be empty
+	# backends = [["php", "cgi", ["/bin/php-cgi"]]]
 
-	redirects = [
-		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
-		{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	]
+	# redirects = [
+	# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
+	# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
+	# ]

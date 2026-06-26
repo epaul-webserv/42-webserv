@@ -8,6 +8,9 @@ std::map<std::string, std::string> MimeType::mime_type;
 void MimeType::setType(std::string const &key, std::string const &value)
 {
     std::string rev_key(key.rbegin(), key.rend());
+
+    if (mime_type.find(rev_key) != mime_type.end())
+        throw ConfigParser::ConfigError("Duplicate mime_type extension: " + key);
     mime_type[rev_key] = value;
 }
 
@@ -54,6 +57,7 @@ void MimeType::ParseConfig(const char *filepath)
             std::string extension = ext_it->second.as_string();
             if (extension.empty())
                 throw ConfigParser::ConfigError("Empty extension");
+
             std::string type = type_it->second.as_string();
             MimeType::setType(extension, type);
         }
