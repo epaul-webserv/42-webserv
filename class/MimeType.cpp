@@ -19,6 +19,8 @@ std::string MimeType::getType(std::string const &URI)
     for (match = mime_type.lower_bound(rev_URI.substr(0, n)); match != ite && n < URI.size();
          match = mime_type.lower_bound(rev_URI.substr(0, ++n)))
     {
+        if (match->first.empty())
+            return ("");
         if (!rev_URI.compare(0, match->first.size(), match->first))
             return (match->second);
     }

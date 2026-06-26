@@ -183,6 +183,7 @@ int main(int ac, char **av)
 
     router.addServ("localhost", test);
     MimeType::setType("png", "image/png");
+    MimeType::setType("html", "text/html");
     std::cout << MimeType::getType("testpng") << std::endl;
     Acceptor acceptor(reactor, sfd, router);
     reactor.run(acceptor);
