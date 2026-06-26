@@ -13,6 +13,7 @@ SRCS = main.cpp \
 CLASS_DIR = class
 CLASS = ABackend.cpp \
 		Date.cpp \
+		CGIBackend.cpp \
 		ChunkedRequestBody.cpp \
 		ChunkedResponseBody.cpp \
 		ConfigParser.cpp \

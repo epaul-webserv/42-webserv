@@ -56,6 +56,7 @@ class HTTPStream : public async::Future
     struct sockaddr_storage            addr;
     socklen_t                          addr_len;
     std::map<std::string, std::string> status_pages;
+    Router                            *_router;
 
   private:
     HTTPStream();
@@ -72,7 +73,6 @@ class HTTPStream : public async::Future
     std::string                         _saved_msg;
     stream_status                       _status;
     async::Reactor                     *_reactor;
-    Router                             *_router;
     ABackend                           *_backend;
     headers_status                      _headers_status;
     size_t                              _headers_sent_bytes;
