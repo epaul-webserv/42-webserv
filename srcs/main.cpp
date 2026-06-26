@@ -182,7 +182,8 @@ int main(int ac, char **av)
     test.index_pages.push_back("index.nginx-debian.html");
 
     router.addServ("localhost", test);
-    MimeType::mime_type["png"] = "image/png";
+    MimeType::setType("png", "image/png");
+    std::cout << MimeType::getType("testpng") << std::endl;
     Acceptor acceptor(reactor, sfd, router);
     reactor.run(acceptor);
     // close(socketpoll); FIXME: We would like to close the epoll_create1 fd
