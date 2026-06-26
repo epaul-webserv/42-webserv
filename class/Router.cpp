@@ -215,20 +215,12 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         switch (matching_redirect->second.second)
         {
         case _temporary:
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse("200", "Temporary redirect to " +
-                                                    matching_redirect->second.first);
-            // http_stream.setHTTPStatus("307", "Temporary Redirect");
-            // response.bodyAppend(get_html_error("307", "Temporary Redirect"));
+            http_stream.setHTTPStatus("307", "Temporary Redirect");
             break;
         case _permanent:
-            http_stream.setHTTPStatus("200", "Ok");
-            http_stream.setErrorResponse("200", "Permanent redirect to " +
-                                                    matching_redirect->second.first);
-            // http_stream.setHTTPStatus("301", "Moved Permanently");
-            // response.bodyAppend(get_html_error("301", "Moved Permanently"));
+            http_stream.setHTTPStatus("301", "Moved Permanently");
         }
-        // response.addHeader("Location", matching_redirect->second.first);
+        http_stream.response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
     if (fileType(http_stream.request.URI, ruleset.root) == _dir)
@@ -242,11 +234,8 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
                     http_stream.request.URI = "/" + *it;
-                    http_stream.setHTTPStatus("200", "Ok");
-                    get_html_error("200", "Index page matched" + *it);
-                    // return (getBackend(_static, std::vector<std::string>(), ruleset.root,
-                    // reactor,
-                    //                    http_stream));
+                    return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
+                                       http_stream));
                 }
             }
         }
@@ -345,9 +334,7 @@ static void printNode(const RouterNode &node, const std::string &indent)
         std::cout << indent << "  Status Pages:\n";
         for (std::map<std::string, std::string>::const_iterator it = node.status_pages.begin();
              it != node.status_pages.end(); ++it)
-        {
             std::cout << indent << "    " << it->first << " -> " << it->second << "\n";
-        }
     }
 
     // Print Redirects
