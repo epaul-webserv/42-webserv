@@ -11,7 +11,6 @@ void MimeType::setType(std::string const &key, std::string const &value)
     mime_type[rev_key] = value;
 }
 
-#include <iostream>
 // Adds the content of this file to the dictionary, this is called for every mime_type config file
 void MimeType::ParseConfig(const char *filepath)
 {
@@ -55,8 +54,8 @@ void MimeType::ParseConfig(const char *filepath)
             std::string extension = ext_it->second.as_string();
             if (extension.empty())
                 throw ConfigParser::ConfigError("Empty extension");
-            std::string type               = type_it->second.as_string();
-            MimeType::mime_type[extension] = type;
+            std::string type = type_it->second.as_string();
+            MimeType::setType(extension, type);
         }
         else
             throw ConfigParser::ConfigError("Missing or invalid 'extension'/'type' keys");
