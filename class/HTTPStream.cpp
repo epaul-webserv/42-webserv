@@ -223,6 +223,7 @@ void HTTPStream::setErrorResponse(std::string const &status, std::string const &
 {
     setHTTPStatus(status, message);
     response.bodyAppend(get_html_error(response.http_status, response.http_msg));
+    this->response.headers.erase("Transfer-Encoding");
     response.addHeader("Content-Type", "text/html");
 }
 
@@ -334,6 +335,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             return (Pending);
         if (_rerun)
         {
+            // response.clear();
             _rerun = false;
             if (_backend && _backend->poll() == Pending)
                 return (Pending);

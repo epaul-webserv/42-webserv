@@ -14,7 +14,29 @@ mime_config = ["conf/mime_types.toml"]
 	# ] # can be empty
 	accepted_method = ["GET", "POST"] # can be empty
 	# index = ["index.html", "index.php"]                                            # can be empty
-	backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
+	backends = [
+		[
+			"php",
+			"cgi",
+			[
+				"/bin/php-cgi",
+			],
+		],
+		[
+			"py",
+			"cgi",
+			[
+				"/bin/python3",
+			],
+		],
+		[
+			"test",
+			"cgi",
+			[
+				"/home/bl4st/Documents/www/cgi_tester",
+			],
+		],
+	]
 
 	redirects = [
 		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },

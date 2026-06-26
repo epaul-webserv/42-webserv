@@ -102,6 +102,7 @@ class CGIBackend : public ABackend
     async::Reactor          &_reactor;
     std::vector<std::string> _args;
     async::BufIo<>          *_cgi_io;
+    int                      _io_fd;
     HTTPStream              &stream;
     size_t                   _body_len;
     std::string              headers;
