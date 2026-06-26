@@ -142,21 +142,29 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
     return (&it->second);
 }
 
-RouterNode const *Router::matchSubPath(std::string                              URI,
+RouterNode const *Router::matchSubPath(std::string                             &URI,
                                        std::map<std::string, RouterNode> const &sub_nodes)
 {
     std::map<std::string, RouterNode>::const_iterator it;
-    while (!URI.empty())
+    std::string                                       copy = URI;
+    while (!copy.empty())
     {
-        URI = URI.substr(0, URI.find_last_of('/') - 1);
-        it  = sub_nodes.find(URI);
+        it = sub_nodes.find(copy);
         if (it != sub_nodes.end())
+        {
+            std::cout << it->first.size() << std::endl;
+            URI = URI.substr(it->first.size());
             return (&it->second);
+        }
+        size_t pos = copy.find_last_of('/');
+        if (!pos)
+            return (NULL);
+        copy = copy.substr(0, pos);
     }
     return (NULL);
 }
 
-RouterRuleset Router::defineRuleset(std::string const &URI, RouterNode const &serv,
+RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
                                     RouterRuleset &ruleset)
 {
     RouterNode const *matching_sub_node = NULL;
@@ -270,7 +278,9 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset                  = defineRuleset(http_stream.request.URI, *serv, ruleset);
+    ruleset = defineRuleset(http_stream.request.rewrited_URI, *serv, ruleset);
+    if (force)
+        ruleset.root = "";
     http_stream.status_pages = ruleset.status_pages;
     return (defineBackend(ruleset, reactor, http_stream, force));
 }

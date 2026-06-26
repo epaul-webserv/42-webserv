@@ -29,10 +29,10 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
 {
     if (http_stream.request.method == "GET")
     {
-        switch (Router::fileType(http_stream.request.URI, DEFAULT_ROOT))
+        switch (Router::fileType(http_stream.request.rewrited_URI, root))
         {
         case _dir:
-            http_stream.response.bodyAppend(get_html_dir(http_stream.request.URI, DEFAULT_ROOT));
+            http_stream.response.bodyAppend(get_html_dir(http_stream.request.rewrited_URI, root));
             http_stream.response.addHeader("Content-Type", "text/html");
             http_stream.setHTTPStatus("200", "Ok");
             return Ready;
@@ -45,14 +45,14 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
         case _file:
             break;
         }
-        switch (this->openFile(DEFAULT_ROOT + http_stream.request.URI, http_stream.response))
+        switch (this->openFile(root + http_stream.request.rewrited_URI, http_stream.response))
         {
         case _no_permission:
             return http_stream.setErrorResponse("403", "Forbidden"), Ready;
         case _not_modified:
             return http_stream.setHTTPStatus("304", "Not Modified"), Ready;
         default:
-            setContentType(http_stream.request.URI, http_stream.response);
+            setContentType(http_stream.request.rewrited_URI, http_stream.response);
             http_stream.setHTTPStatus("200", "Ok");
             this->_file_ok = true;
             return Ready;
@@ -60,7 +60,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
     }
     if (http_stream.request.method == "HEAD")
     {
-        switch (Router::fileType(http_stream.request.URI, DEFAULT_ROOT))
+        switch (Router::fileType(http_stream.request.rewrited_URI, root))
         {
         case _dir:
             http_stream.response.addHeader("Content-Type", "text/html");
@@ -74,7 +74,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
             http_stream.setErrorResponse("404", "Not found");
             return Ready;
         case _file:
-            setContentType(http_stream.request.URI, http_stream.response);
+            setContentType(http_stream.request.rewrited_URI, http_stream.response);
             http_stream.setHTTPStatus("200", "Ok");
         }
     }
