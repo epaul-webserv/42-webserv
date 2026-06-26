@@ -134,20 +134,6 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
         loc_node.file_upload = get_switch_value(up_it->second.as_bool());
     }
 
-    // accepted HTTP Methods
-    toml::Toml::const_iterator method_lookup = loc_table.find("accepted_method");
-    if (method_lookup != loc_table.end() && method_lookup->second.type() == toml::Datum::Array)
-    {
-        const toml::Array &methods = method_lookup->second.as_array();
-        for (toml::Array::const_iterator m_it = methods.begin(); m_it != methods.end(); ++m_it)
-        {
-
-            if (containsWhitespace(m_it->as_string()))
-                throw ConfigParser::ConfigError("Methods cannot contain whitespace");
-            loc_node.accepted_methods.push_back(m_it->as_string());
-        }
-    }
-
     toml::Toml::const_iterator map_lookup = loc_table.find("method_map");
     if (map_lookup != loc_table.end() && map_lookup->second.type() == toml::Datum::Array)
     {
@@ -174,7 +160,8 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
                         for (toml::Array::const_iterator e_it = ext_arr.begin();
                              e_it != ext_arr.end(); ++e_it)
                         {
-                            extensions.push_back(e_it->as_string());
+                            std::string ext = e_it->as_string();
+                            extensions.push_back(std::string(ext.rbegin(), ext.rend()));
                         }
                     }
                     else

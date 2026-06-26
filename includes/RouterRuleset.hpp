@@ -19,7 +19,7 @@ struct RouterRuleset
     std::vector<std::string>                                        index_pages;
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >
                              backend_rules;
-    std::vector<std::string> accepted_methods;
+    std::map<std::string, std::vector<std::string> > method_map;
 };
 
 #endif

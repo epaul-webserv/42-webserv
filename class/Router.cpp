@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sys/stat.h>
+#include <algorithm>
 
 t_file_type Router::fileType(std::string const &path, std::string const &root)
 {
@@ -164,8 +165,8 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
         ruleset.list_directories = serv.list_directories;
     if (serv.file_upload)
         ruleset.file_upload = serv.file_upload;
-    if (!serv.accepted_methods.empty())
-        ruleset.accepted_methods = serv.accepted_methods;
+    if (!serv.method_map.empty())
+        ruleset.method_map = serv.method_map;
     if (!serv.root.empty())
         ruleset.root = serv.root;
     ruleset.redirects.insert(serv.redirects.begin(), serv.redirects.end());
@@ -183,18 +184,35 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
     return (ruleset);
 }
 
-static std::vector<std::string>::const_iterator find(std::vector<std::string> const &vec,
-                                                     std::string const              &to_find)
-{
-    std::vector<std::string>::const_iterator it;
-    std::vector<std::string>::const_iterator ite = vec.end();
+// static std::vector<std::string>::const_iterator find(std::vector<std::string> const &vec,
+//                                                      std::string const              &to_find)
+// {
+//     std::vector<std::string>::const_iterator it;
+//     std::vector<std::string>::const_iterator ite = vec.end();
+//
+//     for (it = vec.begin(); it != ite; ++it)
+//     {
+//         if (to_find == *it)
+//             return (it);
+//     }
+//     return (it);
+// }
 
-    for (it = vec.begin(); it != ite; ++it)
+bool    suffix_match(std::string const &URI, std::vector<std::string> const &array)
+{
+    std::string                                        rev_URI(URI.rbegin(), URI.rend());
+    std::vector<std::string>::const_iterator match;
+    std::vector<std::string>::const_iterator ite = array.end();
+    size_t                                             n = 1;
+    std::string                                         cmp;
+
+    for (cmp = rev_URI.substr(0, n); n < URI.size();
+         cmp = rev_URI.substr(0, ++n))
     {
-        if (to_find == *it)
-            return (it);
+        if (std::find(array.begin(), array.end(), cmp) != ite)
+            return (true);
     }
-    return (it);
+    return (false);
 }
 
 ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
@@ -202,11 +220,20 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
 {
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
         matching_redirect = ruleset.redirects.find(http_stream.request.URI);
-    if (!force && find(ruleset.accepted_methods, http_stream.request.method) ==
-                      ruleset.accepted_methods.end())
+    if (!force && ruleset.method_map.find(http_stream.request.method) ==
+                      ruleset.method_map.end())
     {
         http_stream.setErrorResponse("405", "Method Not Allowed");
         return (NULL);
+    }
+    if (!force)
+    {
+        const std::vector<std::string> accepted_filetypes = ruleset.method_map.at(http_stream.request.method);
+        if (!accepted_filetypes.empty() && !suffix_match(http_stream.request.rewrited_URI, accepted_filetypes))
+        {
+            http_stream.setErrorResponse("405", "Method Not Allowed");
+            return (NULL);
+        }
     }
     if (!force && matching_redirect != ruleset.redirects.end())
     {
@@ -277,130 +304,4 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
 void Router::addServ(std::string const &domain, RouterNode const &node)
 {
     this->_servers.insert(std::pair<std::string, RouterNode>(domain, node));
-}
-
-// Helper function to print individual RouterNode structures recursively
-static void printNode(const RouterNode &node, const std::string &indent)
-{
-    std::cout << indent << "Location: \"" << node.location << "\"\n";
-    std::cout << indent << "  Root: \"" << node.root << "\"\n";
-
-    std::cout << indent << "  Directory Listing: ";
-    if (node.list_directories == _true)
-        std::cout << "true\n";
-    else if (node.list_directories == _false)
-        std::cout << "false\n";
-    else
-        std::cout << "inherit\n";
-
-    std::cout << indent << "  File Upload: ";
-    if (node.file_upload == _true)
-        std::cout << "true\n";
-    else if (node.file_upload == _false)
-        std::cout << "false\n";
-    else
-        std::cout << "inherit\n";
-
-    // Print Accepted Methods
-    if (!node.accepted_methods.empty())
-    {
-        std::cout << indent << "  Accepted Methods: [";
-        for (size_t i = 0; i < node.accepted_methods.size(); ++i)
-        {
-            std::cout << "\"" << node.accepted_methods[i] << "\"";
-            if (i + 1 < node.accepted_methods.size())
-                std::cout << ", ";
-        }
-        std::cout << "]\n";
-    }
-
-    // Print index pages
-    if (!node.index_pages.empty())
-    {
-        std::cout << indent << "  Index pages: [";
-        for (size_t i = 0; i < node.index_pages.size(); ++i)
-        {
-            std::cout << "\"" << node.index_pages[i] << "\"";
-            if (i + 1 < node.index_pages.size())
-                std::cout << ", ";
-        }
-        std::cout << "]\n";
-    }
-
-    // Print Status Pages
-    if (!node.status_pages.empty())
-    {
-        std::cout << indent << "  Status Pages:\n";
-        for (std::map<std::string, std::string>::const_iterator it = node.status_pages.begin();
-             it != node.status_pages.end(); ++it)
-            std::cout << indent << "    " << it->first << " -> " << it->second << "\n";
-    }
-
-    // Print Redirects
-    if (!node.redirects.empty())
-    {
-        std::cout << indent << "  Redirects:\n";
-        for (std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator it =
-                 node.redirects.begin();
-             it != node.redirects.end(); ++it)
-        {
-            std::cout << indent << "    " << it->first << " -> " << it->second.first;
-            std::cout << " (" << (it->second.second == _permanent ? "Permanent" : "Temporary")
-                      << ")\n";
-        }
-    }
-
-    // Print Backend Rules
-    if (!node.backend_rules.empty())
-    {
-        std::cout << indent << "  Backend Rules:\n";
-        for (std::vector<
-                 std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::
-                 const_iterator it = node.backend_rules.begin();
-             it != node.backend_rules.end(); ++it)
-        {
-            std::cout << indent << "    Extension: ." << it->first << "\n";
-            std::cout << indent << "      Type: " << (it->second.first == _cgi ? "CGI" : "Unknown")
-                      << "\n";
-            std::cout << indent << "      Args: [";
-            const std::vector<std::string> &args = it->second.second;
-            for (size_t i = 0; i < args.size(); ++i)
-            {
-                std::cout << "\"" << args[i] << "\"";
-                if (i + 1 < args.size())
-                    std::cout << ", ";
-            }
-            std::cout << "]\n";
-        }
-    }
-
-    // Recursively print sub-nodes (nested locations)
-    if (!node.sub_nodes.empty())
-    {
-        std::cout << indent << "  Sub-nodes (Locations):\n";
-        for (std::map<std::string, RouterNode>::const_iterator it = node.sub_nodes.begin();
-             it != node.sub_nodes.end(); ++it)
-        {
-            std::cout << indent << "    Key: \"" << it->first << "\"\n";
-            printNode(it->second, indent + "      ");
-        }
-    }
-}
-
-// Custom wrapper inside Router class to print its internal server configurations
-void Router::printServers() const
-{
-    if (_servers.empty())
-    {
-        std::cout << "    (No virtual server_name keys registered inside this Router instance)\n";
-        return;
-    }
-
-    for (std::map<std::string, RouterNode>::const_iterator it = _servers.begin();
-         it != _servers.end(); ++it)
-    {
-        std::cout << "  Server Name (Key): \"" << it->first << "\"\n";
-        printNode(it->second, "    ");
-        std::cout << "  -------------------------------------\n";
-    }
 }
