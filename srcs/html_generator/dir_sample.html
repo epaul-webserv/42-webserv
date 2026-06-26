@@ -1,0 +1,68 @@
+<!-- @formatter:off -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>[PATH]</title>
+    <style>
+        html {
+            color-scheme: light dark;
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            min-height: 100%;
+        }
+
+        hr {
+            margin: 10px 0;
+        }
+
+        table {
+            font-family: Arial, sans-serif;
+        }
+
+        .dir:before {
+            content: "";
+            display: inline-block;
+            vertical-align: middle;
+            content: url("/folder.svg");
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .file:before {
+            content: "";
+            display: inline-block;
+            vertical-align: middle;
+            content: url("/paste.svg");
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .img:before {
+            content: "";
+            display: inline-block;
+            vertical-align: middle;
+            content: url("/image.svg");
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .fileline {
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<h1>Index of [PATH]</h1>
+<hr>
+<table>
+    [FILELINE]<tr><td>[FILELINK]</td><td>[FILEDATE]</td><td>[FILESIZE]</td></tr>
+</table>
+<p style="margin-top: auto; margin-bottom: 1em; text-align: center;">Webserv directory index</p>
+</body>
+</html>

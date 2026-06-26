@@ -36,22 +36,17 @@ class Request
     void                                prepareNextRead();
     std::string                         peekHeader(std::string const &key = "") const;
     std::pair<std::string, std::string> takeHeader(std::string const &key = "");
-    std::string                         getMethod() const;
-    std::string                         getURI() const;
-    void                                setURI(std::string const &URI);
-    std::string                         getQueryString() const;
-    std::string                         getHTTPVersion() const;
 
     class InvalidReadException : public std::exception
     {
         const char *what() const throw();
     };
 
-    std::string                        _method;
-    std::string                        _URI;
-    std::string                        _query_string;
-    std::string                        _http_version;
-    std::map<std::string, std::string> _headers;
+    std::string                        method;
+    std::string                        URI;
+    std::string                        query_string;
+    std::string                        http_version;
+    std::map<std::string, std::string> headers;
 };
 
 std::ostream &operator<<(std::ostream &o, Request &request);

@@ -47,7 +47,7 @@ class Acceptor : public async::Future
                 exit(EXIT_FAILURE);
             }
             std::cout << host << ":" << port << " is connected\n";
-            clients.push_back(HTTPStream(reactor, fd, addr, addr_len, &router));
+            clients.push_back(HTTPStream(reactor, fd, addr, addr_len, router));
         }
         for (size_t i = 0; i < clients.size(); i++)
         {

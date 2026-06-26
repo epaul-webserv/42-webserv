@@ -3,6 +3,8 @@ CXXFLAGS += -g3 -Wall -Wextra -Werror -std=c++98
 
 SRCS_DIR = srcs
 SRCS = main.cpp \
+		html_generator/html_dir.cpp \
+		html_generator/html_error.cpp \
 		string_overload/string_overload.cpp \
 		url_utils/file_name_utils.cpp \
 		url_utils/url_decoder.cpp \
@@ -11,8 +13,10 @@ SRCS = main.cpp \
 CLASS_DIR = class
 CLASS = ABackend.cpp \
 		Date.cpp \
+		FdStream.cpp \
 		HTTPStream.cpp \
 		Request.cpp \
+		Response.cpp \
 		Router.cpp \
 		RouterRuleset.cpp
 

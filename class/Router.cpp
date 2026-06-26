@@ -1,5 +1,7 @@
 #include "Router.hpp"
 #include "ABackend.hpp"
+#include "html_generator.hpp"
+
 #include <iostream>
 #include <sys/stat.h>
 
@@ -45,22 +47,23 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
     (void)http_stream;
     try
     {
+        http_stream.setHTTPStatus("200", "Ok");
         switch (backend_type)
         {
         case _static:
-            std::cout << "Router : Would respond with static backend" << std::endl;
+            http_stream.setErrorResponse("200", "Would call static backend");
             // backend = new StaticBackend(root, http_stream);
             break;
         case _cgi:
-            std::cout << "Router : Would respond with cgi backend" << std::endl;
+            http_stream.setErrorResponse("200", "Would respond with cgi backend");
             // backend = new CGIBackend(args, root, reactor, http_stream);
             break;
         case _dir_index:
-            std::cout << "Router : Would respond with dir backend" << std::endl;
+            http_stream.setErrorResponse("200", "Would respond with dir backend");
             // backend = new StaticBackend(root, http_stream);
             break;
         case _upload:
-            std::cout << "Router : Would respond with upload backend" << std::endl;
+            http_stream.setErrorResponse("200", "Would respond with upload backend");
             // backend = new UploadBackend(root, http_stream, http_stream.request_body());
             break;
         }
@@ -68,7 +71,7 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
     catch (std::bad_alloc &e)
     {
         std::cerr << "[ERROR] Backend creation has failed : " << e.what() << std::endl;
-        // http_stream.setHTTPStatus("500", "Internal Server Error");
+        http_stream.setHTTPStatus("500", "Internal Server Error");
     }
     return (backend);
 }
@@ -79,40 +82,40 @@ void Router::setPort(int port) { _port = port; }
 
 bool Router::validateRequest(HTTPStream &http_stream)
 {
-    const std::string http_version = http_stream.request.getHTTPVersion();
+    const std::string http_version = http_stream.request.http_version;
 
     if (http_version == "HTTP/1.0" || http_version == "HTTP/1.1")
     {
         std::cout << "Router : Setting http version to " << http_version << std::endl;
-        // response.setHTTPVersion(http_version);
+        http_stream.response.setHTTPVersion(http_version);
         if (http_version == "HTTP/1.1")
         {
             if (http_stream.request.peekHeader("host").empty())
             {
-                std::cout << "Router : No Host header found (mandatory for HTTP/1.1) - Error 400"
-                          << std::endl;
-                // http_stream.setHTTPStatus("400", "Bad Request");
-                // response.addHeader("Connection", "close");
+                http_stream.setErrorResponse(
+                    "400", "Router : No Host header found (mandatory for HTTP/1.1)");
+                http_stream.setHTTPStatus("400", "Bad Request");
+                http_stream.response.addHeader("Connection", "close");
                 return (false);
             }
             if (http_stream.request.peekHeader("connection") != "close")
             {
-                // response.addHeader("Connection", "keep-alive");
+                http_stream.response.addHeader("Connection", "keep-alive");
             }
         }
     }
     else if (!http_version.empty()) // Empty is HTTP/0.9
     {
         std::cout << "Router : Unrecognized http version, fall back to 1.1 " << std::endl;
-        // response.setHTTPVersion("HTTP/1.1");
-        std::cout << "Router : http version not recognized - Error 505" << std::endl;
-        // http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
+        http_stream.response.setHTTPVersion("HTTP/1.1");
+        http_stream.setErrorResponse("505", "Router : http version not recognized");
+        http_stream.setHTTPStatus("505", "HTTP Version Not Supported");
         return (false);
     }
-    if (http_stream.request.getURI().empty())
+    if (http_stream.request.URI.empty())
     {
-        std::cout << "Router : URI is empty - Error 400" << std::endl;
-        // http_stream.setHTTPStatus("400", "Bad Request");
+        http_stream.setErrorResponse("400", "Router : URI is empty");
+        http_stream.setHTTPStatus("400", "Bad Request");
         return (false);
     }
     return (true);
@@ -132,10 +135,9 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
             std::cout << "Router : fallback to default server" << std::endl;
             return (&it->second);
         }
-        std::cout
-            << "Router : No corresponding server found (and no default server set) : error 404 "
-            << std::endl;
-        // http_stream.setHTTPStatus("404", "Not Found");
+        http_stream.setErrorResponse(
+            "404", "Router : No corresponding server found (and no default server set)");
+        http_stream.setHTTPStatus("404", "Not Found");
         return (NULL);
     }
     return (&it->second);
@@ -201,12 +203,12 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
                                 HTTPStream &http_stream, bool force)
 {
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
-        matching_redirect = ruleset.redirects.find(http_stream.request.getURI());
-    if (!force && find(ruleset.accepted_methods, http_stream.request.getMethod()) ==
+        matching_redirect = ruleset.redirects.find(http_stream.request.URI);
+    if (!force && find(ruleset.accepted_methods, http_stream.request.method) ==
                       ruleset.accepted_methods.end())
     {
-        std::cout << "Router : Method not accepted - Error 405" << std::endl;
-        // http_stream.setHTTPStatus("405", "Method Not Allowed");
+        http_stream.setErrorResponse("405", "Router : Method not accepted");
+        http_stream.setHTTPStatus("405", "Method Not Allowed");
         return (NULL);
     }
     if (!force && matching_redirect != ruleset.redirects.end())
@@ -214,21 +216,23 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         switch (matching_redirect->second.second)
         {
         case _temporary:
-            std::cout << "Router : Temporary redirect to " << matching_redirect->second.first
-                      << std::endl;
+            http_stream.setHTTPStatus("200", "Ok");
+            http_stream.setErrorResponse("200", "Temporary redirect to " +
+                                                    matching_redirect->second.first);
             // http_stream.setHTTPStatus("307", "Temporary Redirect");
             // response.bodyAppend(get_html_error("307", "Temporary Redirect"));
             break;
         case _permanent:
-            std::cout << "Router : Permanent redirect to " << matching_redirect->second.first
-                      << std::endl;
+            http_stream.setHTTPStatus("200", "Ok");
+            http_stream.setErrorResponse("200", "Permanent redirect to " +
+                                                    matching_redirect->second.first);
             // http_stream.setHTTPStatus("301", "Moved Permanently");
             // response.bodyAppend(get_html_error("301", "Moved Permanently"));
         }
         // response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
-    if (fileType(http_stream.request.getURI(), ruleset.root) == _dir)
+    if (fileType(http_stream.request.URI, ruleset.root) == _dir)
     {
         if (!ruleset.index_pages.empty())
         {
@@ -238,9 +242,9 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             {
                 if (fileType("/" + *it, ruleset.root) == _file)
                 {
-                    http_stream.request.setURI("/" + *it);
-                    std::cout << "Router : Index page matched : " << *it << std::endl;
-                    return (NULL);
+                    http_stream.request.URI = "/" + *it;
+                    http_stream.setHTTPStatus("200", "Ok");
+                    get_html_error("200", "Index page matched" + *it);
                     // return (getBackend(_static, std::vector<std::string>(), ruleset.root,
                     // reactor,
                     //                    http_stream));
@@ -249,22 +253,23 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         }
         if (ruleset.list_directories == _true)
         {
-            std::cout << "Router : Would serve generated directory listing with static backend"
-                      << std::endl;
+            http_stream.setHTTPStatus("200", "Ok");
+            http_stream.setErrorResponse(
+                "200", "Would serve generated directory listing with static backend");
             return (NULL);
             // return (getBackend(_dir_index, std::vector<std::string>(), ruleset.root, reactor,
             //                    http_stream));
         }
-        std::cout << "Router : No good response for directory request - Error 403" << std::endl;
-        // http_stream.setHTTPStatus("403", "Forbidden");
+        get_html_error("403", "No good response for directory request");
+        http_stream.setHTTPStatus("403", "Forbidden");
         return (NULL);
     }
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >::
-        const_iterator it = ruleset.get_corresponding_router(http_stream.request.getURI());
+        const_iterator it = ruleset.get_corresponding_router(http_stream.request.URI);
     if (it != ruleset.backend_rules.end())
         return (
             getBackend(it->second.first, it->second.second, ruleset.root, reactor, http_stream));
-    if (http_stream.request.getMethod() == "POST" && ruleset.file_upload == _true)
+    if (http_stream.request.method == "POST" && ruleset.file_upload == _true)
         return (
             getBackend(_upload, std::vector<std::string>(), ruleset.root, reactor, http_stream));
     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor, http_stream));
@@ -275,14 +280,14 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
 {
     RouterRuleset ruleset;
 
-    // response.setHTTPVersion("HTTP/1.1");
+    http_stream.response.setHTTPVersion("HTTP/1.1");
     RouterNode const *serv = getServerNode(http_stream.request.peekHeader("host"), http_stream);
     if (!serv)
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset = defineRuleset(http_stream.request.getURI(), *serv, ruleset);
-    // http_stream.status_pages = ruleset.status_pages;
+    ruleset                  = defineRuleset(http_stream.request.URI, *serv, ruleset);
+    http_stream.status_pages = ruleset.status_pages;
     return (defineBackend(ruleset, reactor, http_stream, force));
 }
 
