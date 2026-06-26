@@ -9,9 +9,9 @@ class MimeType
 
   public:
     static std::map<std::string, std::string> mime_type;
-    static bool                               IsValidExtension(const std::string &ext);
     static void                               ParseConfig(const char *file);
     static std::string                        getType(std::string const &URI);
+    static void setType(std::string const &key, std::string const &value);
 
   private:
     MimeType();
