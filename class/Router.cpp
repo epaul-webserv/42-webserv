@@ -184,20 +184,6 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
     return (ruleset);
 }
 
-// static std::vector<std::string>::const_iterator find(std::vector<std::string> const &vec,
-//                                                      std::string const              &to_find)
-// {
-//     std::vector<std::string>::const_iterator it;
-//     std::vector<std::string>::const_iterator ite = vec.end();
-//
-//     for (it = vec.begin(); it != ite; ++it)
-//     {
-//         if (to_find == *it)
-//             return (it);
-//     }
-//     return (it);
-// }
-
 bool    suffix_match(std::string const &URI, std::vector<std::string> const &array)
 {
     std::string                                        rev_URI(URI.rbegin(), URI.rend());
