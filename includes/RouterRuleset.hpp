@@ -18,7 +18,7 @@ struct RouterRuleset
     std::map<std::string, std::string>                              status_pages;
     std::vector<std::string>                                        index_pages;
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >
-                             backend_rules;
+                                                     backend_rules;
     std::map<std::string, std::vector<std::string> > method_map;
 };
 

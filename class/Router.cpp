@@ -5,9 +5,9 @@
 #include "UploadBackend.hpp"
 #include "html_generator.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <sys/stat.h>
-#include <algorithm>
 
 t_file_type Router::fileType(std::string const &path, std::string const &root)
 {
@@ -184,16 +184,15 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
     return (ruleset);
 }
 
-bool    suffix_match(std::string const &URI, std::vector<std::string> const &array)
+bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
 {
-    std::string                                        rev_URI(URI.rbegin(), URI.rend());
+    std::string                              rev_URI(URI.rbegin(), URI.rend());
     std::vector<std::string>::const_iterator match;
     std::vector<std::string>::const_iterator ite = array.end();
-    size_t                                             n = 1;
-    std::string                                         cmp;
+    size_t                                   n   = 1;
+    std::string                              cmp;
 
-    for (cmp = rev_URI.substr(0, n); n < URI.size();
-         cmp = rev_URI.substr(0, ++n))
+    for (cmp = rev_URI.substr(0, n); n < URI.size(); cmp = rev_URI.substr(0, ++n))
     {
         if (std::find(array.begin(), array.end(), cmp) != ite)
             return (true);
@@ -206,16 +205,17 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
 {
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
         matching_redirect = ruleset.redirects.find(http_stream.request.URI);
-    if (!force && ruleset.method_map.find(http_stream.request.method) ==
-                      ruleset.method_map.end())
+    if (!force && ruleset.method_map.find(http_stream.request.method) == ruleset.method_map.end())
     {
         http_stream.setErrorResponse("405", "Method Not Allowed");
         return (NULL);
     }
     if (!force)
     {
-        const std::vector<std::string> accepted_filetypes = ruleset.method_map.at(http_stream.request.method);
-        if (!accepted_filetypes.empty() && !suffix_match(http_stream.request.rewrited_URI, accepted_filetypes))
+        const std::vector<std::string> accepted_filetypes =
+            ruleset.method_map.at(http_stream.request.method);
+        if (!accepted_filetypes.empty() &&
+            !suffix_match(http_stream.request.rewrited_URI, accepted_filetypes))
         {
             http_stream.setErrorResponse("405", "Method Not Allowed");
             return (NULL);
