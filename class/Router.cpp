@@ -262,6 +262,11 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
                     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
                                        http_stream));
                 }
+                if (ruleset.list_directories == _false)
+                {
+                    http_stream.setErrorResponse("404", "Not Found");
+                    return (NULL);
+                }
             }
         }
         if (ruleset.list_directories == _true)
