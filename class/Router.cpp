@@ -256,7 +256,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             std::vector<std::string>::const_iterator ite = ruleset.index_pages.end();
             for (it = ruleset.index_pages.begin(); it != ite; ++it)
             {
-                if (fileType("/" + *it, ruleset.root) == _file)
+                if (fileType(http_stream.request.rewrited_URI + "/" + *it, ruleset.root) == _file)
                 {
                     http_stream.request.rewrited_URI = "/" + *it;
                     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
