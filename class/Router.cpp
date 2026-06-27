@@ -161,9 +161,9 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
 {
     RouterNode const *matching_sub_node = NULL;
 
-    if (serv.list_directories)
+    if (serv.list_directories != _inherit)
         ruleset.list_directories = serv.list_directories;
-    if (serv.file_upload)
+    if (serv.file_upload != _inherit)
         ruleset.file_upload = serv.file_upload;
     if (!serv.method_map.empty())
         ruleset.method_map = serv.method_map;
