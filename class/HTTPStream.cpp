@@ -174,15 +174,18 @@ async::Future::Poll HTTPStream::readHeaders()
 
 async::Future::Poll HTTPStream::keepAlive()
 {
-    this->request.clear();
     this->response.clear();
+    this->request.clear();
     this->status_pages.clear();
+    this->_override_response = false;
+    this->_rerun             = false;
+    this->_saved_status.clear();
+    this->_saved_msg.clear();
     this->_status = _fetching_request;
     delete this->_backend;
     this->_backend            = NULL;
     this->_headers_status     = _initializing_headers;
     this->_headers_sent_bytes = 0;
-    this->_override_response  = false;
     return (this->poll());
 }
 
@@ -290,7 +293,7 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
     return (Ready);
 }
 
-HTTPStream::~HTTPStream() {}
+HTTPStream::~HTTPStream() { delete _backend; }
 
 HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 {
