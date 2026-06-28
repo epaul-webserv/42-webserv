@@ -334,6 +334,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
     try
     {
         toml::parse(fd, toml_root);
+        close(fd);
     }
     catch (const toml::Parser::ParsingError &e)
     {
