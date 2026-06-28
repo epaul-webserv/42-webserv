@@ -28,6 +28,8 @@ void Request::clear()
 {
     this->method.clear();
     this->URI.clear();
+    this->rewrote_URI.clear();
+    this->query_string.clear();
     this->http_version.clear();
     this->headers.clear();
 }
@@ -36,6 +38,8 @@ void Request::prepareNextRead()
 {
     this->method.clear();
     this->URI.clear();
+    this->rewrote_URI.clear();
+    this->query_string.clear();
     this->http_version.clear();
     this->headers.clear();
 }
