@@ -71,6 +71,8 @@ class Acceptor : public async::Future
                 std::cout << host << ":" << port << " left\n";
                 std::cerr << "Error " << host << ":" << port << ": " << e.what() << " (os error "
                           << e.errrno() << ")\n";
+                clients.erase(clients.begin() + i);
+                continue;
             }
             if (poll == Future::Ready)
             {
