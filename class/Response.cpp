@@ -27,6 +27,7 @@ void Response::clear()
     this->sent_bytes     = 0;
     this->http_version.clear();
     this->http_status.clear();
+    this->http_msg.clear();
     this->send_buf.clear();
     bzero(&this->sb, sizeof(this->sb));
 }
