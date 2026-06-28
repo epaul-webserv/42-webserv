@@ -108,7 +108,6 @@ async::Future::Poll HTTPStream::readFirstLine()
     if (request.method.empty())
         return (Ready);
     get_next_word(line, request.URI);
-    request.rewrited_URI = request.URI;
     get_next_word(line, request.http_version);
     _status = _fetching_headers;
     if (!decode_url(request.URI))
@@ -122,6 +121,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         request.query_string = request.URI.substr(request.URI.find('?'));
         request.URI          = request.URI.substr(0, request.URI.find('?'));
     }
+    request.rewrote_URI = request.URI;
     if (request.http_version.empty())
         return (Ready);
     return (this->readHeaders());
