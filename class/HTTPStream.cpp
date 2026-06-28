@@ -232,11 +232,11 @@ bool HTTPStream::setStatusResponse()
         status_pages.find(response.http_status);
     if (it != status_pages.end())
     {
-        request.URI          = it->second;
-        request.rewrited_URI = it->second;
-        request.method       = "GET";
-        _saved_status        = response.http_status;
-        _saved_msg           = response.http_msg;
+        request.URI         = it->second;
+        request.rewrote_URI = it->second;
+        request.method      = "GET";
+        _saved_status       = response.http_status;
+        _saved_msg          = response.http_msg;
         response.clear();
         delete _backend;
         _backend           = _router->resolve(*_reactor, *this, true);

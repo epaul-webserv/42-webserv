@@ -215,7 +215,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         const std::vector<std::string> accepted_filetypes =
             ruleset.method_map.at(http_stream.request.method);
         if (!accepted_filetypes.empty() &&
-            !suffix_match(http_stream.request.rewrited_URI, accepted_filetypes))
+            !suffix_match(http_stream.request.rewrote_URI, accepted_filetypes))
         {
             http_stream.setErrorResponse("405", "Method Not Allowed");
             return (NULL);
@@ -234,7 +234,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         http_stream.response.addHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
-    if (fileType(http_stream.request.rewrited_URI, ruleset.root) == _dir)
+    if (fileType(http_stream.request.rewrote_URI, ruleset.root) == _dir)
     {
         if (!ruleset.index_pages.empty())
         {
@@ -242,9 +242,9 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             std::vector<std::string>::const_iterator ite = ruleset.index_pages.end();
             for (it = ruleset.index_pages.begin(); it != ite; ++it)
             {
-                if (fileType(http_stream.request.rewrited_URI + "/" + *it, ruleset.root) == _file)
+                if (fileType(http_stream.request.rewrote_URI + "/" + *it, ruleset.root) == _file)
                 {
-                    http_stream.request.rewrited_URI = "/" + *it;
+                    http_stream.request.rewrote_URI = "/" + *it;
                     return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
                                        http_stream));
                 }
@@ -285,7 +285,7 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset = defineRuleset(http_stream.request.rewrited_URI, *serv, ruleset);
+    ruleset = defineRuleset(http_stream.request.rewrote_URI, *serv, ruleset);
     if (force)
         ruleset.root = "";
     http_stream.status_pages = ruleset.status_pages;

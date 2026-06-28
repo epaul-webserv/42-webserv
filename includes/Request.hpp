@@ -44,7 +44,7 @@ class Request
 
     std::string                        method;
     std::string                        URI;
-    std::string                        rewrited_URI;
+    std::string                        rewrote_URI;
     std::string                        query_string;
     std::string                        http_version;
     std::map<std::string, std::string> headers;
