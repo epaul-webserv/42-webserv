@@ -119,6 +119,5 @@ std::string get_html_dir(std::string const &path, std::string const &root)
         throw(std::runtime_error("Error while opening directory"));
     html = fill_blanks(dir, fdstream, path, root);
     closedir(dir);
-    close(fd);
     return (html);
 }
