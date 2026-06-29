@@ -8,7 +8,7 @@
 
 CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &root,
                        async::Reactor &reactor, HTTPStream &stream)
-    : _root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream),
+    : _root(root), _reactor(reactor), _args(args), _cgi_in(NULL), _cgi_out(NULL), stream(stream),
       response_body(NULL), _cgi_pid(0), _body_read_buf_len(0), _body_read_buf_index(0),
       _client_body_sent(false), _response_headers_read_done(false), _status_set(false),
       _process_done(false), _content_length(-1), _status(_init), client_body_reader(NULL),
@@ -19,8 +19,8 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &
 
 CGIBackend::~CGIBackend(void)
 {
-    if (_cgi_io != NULL)
-        delete _cgi_io;
+    delete _cgi_in;
+    delete _cgi_out;
     delete client_body_reader;
     if (_cgi_pid > 0)
     {
@@ -235,10 +235,17 @@ void CGIBackend::init()
         env_char.push_back(const_cast<char *>(env_vector[i].c_str()));
     env_char.push_back(NULL);
 
-    int sv[2]; // sv[0] is for parent, sv[1] is for child
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0)
+    int parent_to_cgi[2];
+    int cgi_to_parent[2];
+
+    if (pipe(parent_to_cgi) < 0 || pipe(cgi_to_parent) < 0)
     {
-        std::cerr << "CGI Error: socketpair creation failed." << std::endl;
+        std::cerr << "CGI Error: pipe creation failed." << std::endl;
+        if (parent_to_cgi[0] >= 0)
+        {
+            close(parent_to_cgi[0]);
+            close(parent_to_cgi[1]);
+        }
         stream.setErrorResponse("500", "Internal Server Error");
         _send_header_and_abort = true;
         return;
@@ -249,8 +256,10 @@ void CGIBackend::init()
     if (_cgi_pid < 0)
     {
         std::cerr << "CGI Error: fork failed." << std::endl;
-        close(sv[0]);
-        close(sv[1]);
+        close(parent_to_cgi[0]);
+        close(parent_to_cgi[1]);
+        close(cgi_to_parent[0]);
+        close(cgi_to_parent[1]);
         stream.setErrorResponse("500", "Internal Server Error");
         _send_header_and_abort = true;
         return;
@@ -258,12 +267,15 @@ void CGIBackend::init()
 
     if (_cgi_pid == 0)
     {
-        // FIXME: check return values
-        dup2(sv[1], STDIN_FILENO);
-        dup2(sv[1], STDOUT_FILENO);
+        // Child reads from parent_to_cgi's read end, writes to cgi_to_parent's write end
+        dup2(parent_to_cgi[0], STDIN_FILENO);
+        dup2(cgi_to_parent[1], STDOUT_FILENO);
 
-        close(sv[0]);
-        close(sv[1]);
+        // Close all pipe copies in the child
+        close(parent_to_cgi[0]);
+        close(parent_to_cgi[1]);
+        close(cgi_to_parent[0]);
+        close(cgi_to_parent[1]);
 
         std::vector<char *> argv;
         argv.reserve(_args.size() + 2);
@@ -278,17 +290,20 @@ void CGIBackend::init()
         }
 
         execve(argv[0], &argv[0], env_char.data());
-        std::cerr << "CGI Error: execve failed for " << argv[0] << ", " << argv[1] << ", "
-                  << argv[2] << std::endl;
+        std::cerr << "CGI Error: execve failed for " << argv[0] << std::endl;
         std::exit(1);
     }
-    close(sv[1]);
+
+    // Parent Process: close unused ends
+    close(parent_to_cgi[0]); // Parent won't read from here
+    close(cgi_to_parent[1]); // Parent won't write to here
 
     std::string content_len = stream.request.peekHeader("content-length");
     if (content_len == "")
     {
         _body_len         = 0;
         _client_body_sent = true;
+        close(parent_to_cgi[1]); // No body to send, close write end immediately
     }
     else
     {
@@ -296,14 +311,20 @@ void CGIBackend::init()
         _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
         client_body_reader = stream.request_body();
         if (client_body_reader == NULL)
+        {
             _client_body_sent = true;
+            close(parent_to_cgi[1]);
+        }
     }
-    _cgi_io = new async::BufIo<>(_reactor, sv[0]);
+
+    // Initialize separate asynchronous IO handlers for reading and writing
+    _cgi_in  = new async::BufIo<>(_reactor, cgi_to_parent[0]);
+    _cgi_out = _client_body_sent ? NULL : new async::BufIo<>(_reactor, parent_to_cgi[1]);
 }
 
 void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 {
-    while (!_client_body_sent)
+    while (!_client_body_sent && _cgi_out != NULL)
     {
         if (_body_read_buf_index == _body_read_buf_len)
         {
@@ -313,9 +334,11 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
             _body_read_buf_index = 0;
             if (_body_read_buf_len == 0)
             {
-                if (_cgi_io->poll_flush_write() == Pending)
+                if (_cgi_out->poll_flush_write() == Pending)
                     return;
                 _client_body_sent = true;
+                delete _cgi_out; // Safely close the pipe to notify CGI of EOF
+                _cgi_out = NULL;
                 return;
             }
         }
@@ -324,7 +347,7 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
             size_t                    write_written;
             container::Slice<uint8_t> buff(&_body_read_buf[_body_read_buf_index],
                                            _body_read_buf_len - _body_read_buf_index);
-            if (_cgi_io->poll_write(buff, write_written) == Pending)
+            if (_cgi_out->poll_write(buff, write_written) == Pending)
                 return;
             _body_read_buf_index += write_written;
         }
@@ -335,9 +358,9 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 
 void CGIBackend::read_cgi_headers() throw(async::OsError)
 {
-    if (!_response_headers_read_done)
+    if (!_response_headers_read_done && _cgi_in != NULL)
     {
-        while (_cgi_io->poll_read_line(header_line) == Ready)
+        while (_cgi_in->poll_read_line(header_line) == Ready)
         {
             if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
             {
@@ -396,14 +419,14 @@ async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
 
 void CGIBackend::send_body() throw(async::OsError)
 {
-    if (_response_headers_read_done && response_body)
+    if (_response_headers_read_done && response_body && _cgi_in != NULL)
     {
         while (!_response_body_sent)
         {
             if (_response_buf_index == _response_buf_len)
             {
                 container::Slice<uint8_t> buff(_response_buf, 4096);
-                if (_cgi_io->poll_read(buff, _response_buf_len) == Pending)
+                if (_cgi_in->poll_read(buff, _response_buf_len) == Pending)
                     return;
                 _response_buf_index = 0;
                 if (_response_buf_len == 0)

@@ -368,9 +368,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-        //     this->response.headers["Connection"] != "close")
-        //     return (this->keepAlive(), Future::Pending);
+        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
+            this->response.headers["Connection"] != "close")
+            return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
     return (Ready);
