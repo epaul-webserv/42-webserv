@@ -11,16 +11,18 @@
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
                        socklen_t addr_len, Router &router)
     : addr(addr), addr_len(addr_len), _router(&router), _override_response(false), _rerun(false),
-      _broken_connection(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
-      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd)
+      _broken_connection(false), _keep_connection(false), _status(_fetching_request),
+      _reactor(&reactor), _backend(NULL), _max_size(-1), _headers_status(_initializing_headers),
+      _headers_sent_bytes(0), buf_io(reactor, fd)
 {
 }
 
 HTTPStream::HTTPStream(HTTPStream const &other)
     : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
       _override_response(other._override_response), _rerun(other._rerun),
-      _broken_connection(other._broken_connection), _status(other._status),
-      _reactor(other._reactor), _backend(other._backend), _headers_status(other._headers_status),
+      _broken_connection(other._broken_connection), _keep_connection(other._keep_connection),
+      _status(other._status), _reactor(other._reactor), _backend(other._backend),
+      _max_size(other._max_size), _headers_status(other._headers_status),
       _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
 {
     (void)addr;
@@ -252,6 +254,8 @@ bool HTTPStream::setStatusResponse()
 
 void HTTPStream::setBrokenConnection() { _broken_connection = true; }
 
+void HTTPStream::keepConnection() { _keep_connection = true; }
+
 async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
 {
     if (this->_headers_status == _initializing_headers)
@@ -330,13 +334,39 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             if (this->sendHeaders() == Pending)
                 return Pending;
         }
-        if (_backend && _backend->poll() == Pending)
-            return (Pending);
+        try
+        {
+            if (_backend && _backend->poll() == Pending)
+                return (Pending);
+        }
+        catch (std::runtime_error &e)
+        {
+            std::cerr << e.what() << std::endl;
+            setErrorResponse("413", "Request Entity Too Large");
+            if (this->sendHeaders() == Pending)
+                return Pending;
+            return (Ready);
+        }
+        catch (IRequestBody::BadReadException &e)
+        {
+            setErrorResponse("413", "Request Entity Too Large");
+            if (this->sendHeaders() == Pending)
+                return Pending;
+            return (Ready);
+        }
         if (_rerun)
         {
             _rerun = false;
             if (_backend && _backend->poll() == Pending)
                 return (Pending);
+        }
+        if (this->_keep_connection)
+        {
+            this->_headers_status = _initializing_headers;
+            this->response.clear();
+            this->_headers_sent_bytes = 0;
+            this->_keep_connection    = false;
+            return (Future::Pending);
         }
         // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
         //     this->response.headers["Connection"] != "close")
@@ -350,11 +380,14 @@ IRequestBody *HTTPStream::request_body()
 {
     if (!request.peekHeader("Content-Length").empty())
     {
-        char *end;
-        return (new PlainRequestBody(
-            buf_io, std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10)));
+        char  *end;
+        size_t content_length = std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10);
+
+        return (new PlainRequestBody(buf_io, content_length));
     }
-    return (new ChunkedRequestBody(buf_io));
+    request.headers["content-length"] = "";
+    return (new ChunkedRequestBody(buf_io, 10,
+                                   request.headers["content-length"])); // TODO: set max_size
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
@@ -375,8 +408,11 @@ async::Future::Poll HTTPStream::poll_send_headers(size_t content_length, IRespon
     std::ostringstream oss;
 
     this->response.headers.erase("Transfer-Encoding");
-    oss << content_length;
-    this->response.addHeader("Content-Length", oss.str());
+    if (content_length)
+    {
+        oss << content_length;
+        this->response.addHeader("Content-Length", oss.str());
+    }
     if (this->sendHeaders() == Pending)
         return (Pending);
     if (response.content_length || content_length == 0)

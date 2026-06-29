@@ -17,8 +17,8 @@ class UploadBackend : public ABackend
     t_file_status       openFile(std::string const &URI);
     async::Future::Poll writeFile();
 
-    Poll setResponse() throw(async::OsError);
-    Poll poll() throw(async::OsError);
+    Poll setResponse() throw(async::OsError, std::exception);
+    Poll poll() throw(async::OsError, std::exception);
 
   private:
     UploadBackend();
@@ -31,6 +31,8 @@ class UploadBackend : public ABackend
     IRequestBody  *_request_body;
     std::ofstream  _ofile;
     uint8_t        _file_buf[4096];
+    bool           _too_big;
+    bool           _continue_sent;
 };
 
 #endif

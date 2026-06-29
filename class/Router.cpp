@@ -175,6 +175,7 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
         ruleset.index_pages = serv.index_pages;
     ruleset.backend_rules.insert(ruleset.backend_rules.end(), serv.backend_rules.begin(),
                                  serv.backend_rules.end());
+    ruleset.max_ressource_size = serv.max_ressource_size;
     if (ruleset.redirects.find(URI) != ruleset.redirects.end())
         return (ruleset);
     if (!serv.sub_nodes.empty())
@@ -203,6 +204,18 @@ bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
 ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
                                 HTTPStream &http_stream, bool force)
 {
+    if (ruleset.max_ressource_size != -1 &&
+        !http_stream.request.peekHeader("Content-Length").empty())
+    {
+        char  *end;
+        size_t content_length =
+            std::strtoul(http_stream.request.peekHeader("Content-Length").c_str(), &end, 10);
+        if (content_length > static_cast<size_t>(ruleset.max_ressource_size))
+        {
+            http_stream.setErrorResponse("413", "Request Entity Too Large");
+            return (NULL);
+        }
+    }
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
         matching_redirect = ruleset.redirects.find(http_stream.request.URI);
     if (!force && ruleset.method_map.find(http_stream.request.method) == ruleset.method_map.end())

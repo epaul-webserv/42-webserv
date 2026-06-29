@@ -15,7 +15,7 @@ class PlainRequestBody : public IRequestBody
     PlainRequestBody(async::BufIo<> &io, size_t const &to_read);
     ~PlainRequestBody();
     bool                fail();
-    async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s) throw(async::OsError);
+    async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s);
 };
 
 #endif

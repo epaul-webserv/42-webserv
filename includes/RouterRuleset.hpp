@@ -3,9 +3,14 @@
 #include "RouterNode.hpp"
 #include "webserv.hpp"
 
+#include <sys/types.h>
+
 struct RouterRuleset
 {
-    RouterRuleset() : list_directories(_false), file_upload(_false), root(DEFAULT_ROOT) {}
+    RouterRuleset()
+        : list_directories(_false), file_upload(_false), root(DEFAULT_ROOT), max_ressource_size(-1)
+    {
+    }
 
     std::vector<std::pair<std::string,
                           std::pair<t_backend_type, std::vector<std::string> > > >::const_iterator
@@ -20,6 +25,7 @@ struct RouterRuleset
     std::vector<std::pair<std::string, std::pair<t_backend_type, std::vector<std::string> > > >
                                                      backend_rules;
     std::map<std::string, std::vector<std::string> > method_map;
+    ssize_t                                          max_ressource_size;
 };
 
 #endif

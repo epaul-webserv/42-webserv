@@ -9,8 +9,7 @@ PlainRequestBody::~PlainRequestBody() {}
 
 bool PlainRequestBody::fail() { return (_fail); };
 
-async::Future::Poll PlainRequestBody::poll_read(container::Slice<uint8_t> &buf,
-                                                size_t                    &s) throw(async::OsError)
+async::Future::Poll PlainRequestBody::poll_read(container::Slice<uint8_t> &buf, size_t &s)
 {
     if (_fail || _to_read == _read)
     {
@@ -22,7 +21,10 @@ async::Future::Poll PlainRequestBody::poll_read(container::Slice<uint8_t> &buf,
     if (io.poll_read(tmp, s) == async::Future::Pending)
         return (async::Future::Pending);
     if (!s && _read != _to_read)
+    {
         _fail = true;
+        throw(BadReadException());
+    }
     _read += s;
     return async::Future::Ready;
 }

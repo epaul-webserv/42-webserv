@@ -23,7 +23,8 @@ enum e_switch
 struct RouterNode
 {
     RouterNode()
-        : list_directories(_inherit), file_upload(_inherit), location("/"), root(DEFAULT_ROOT)
+        : list_directories(_inherit), file_upload(_inherit), location("/"), root(DEFAULT_ROOT),
+          max_ressource_size(-1)
     {
     }
     RouterNode(std::string const &location)
@@ -48,6 +49,7 @@ struct RouterNode
                        // arguments first one being the absolute path to the executable if
     // applicable)
     std::map<std::string, std::vector<std::string> > method_map;
+    ssize_t                                          max_ressource_size;
 };
 
 #endif

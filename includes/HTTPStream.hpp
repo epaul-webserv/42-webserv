@@ -46,6 +46,7 @@ class HTTPStream : public async::Future
     void                setHTTPStatus(std::string const &status, std::string const &message);
     void                setErrorResponse(std::string const &status, std::string const &message);
     void                setBrokenConnection();
+    void                keepConnection();
     bool                setStatusResponse();
     IRequestBody       *request_body();
     async::Future::Poll poll_send_headers(IResponseBody *&b);
@@ -69,11 +70,13 @@ class HTTPStream : public async::Future
     bool                                _override_response;
     bool                                _rerun;
     bool                                _broken_connection;
+    bool                                _keep_connection;
     std::string                         _saved_status;
     std::string                         _saved_msg;
     stream_status                       _status;
     async::Reactor                     *_reactor;
     ABackend                           *_backend;
+    ssize_t                             _max_size;
     headers_status                      _headers_status;
     size_t                              _headers_sent_bytes;
     async::BufIo<4096>                  buf_io;
