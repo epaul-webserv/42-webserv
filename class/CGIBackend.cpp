@@ -43,13 +43,12 @@ async::Future::Poll CGIBackend::poll() throw(async::OsError)
     if (set_body_writer() == Ready)
         return Ready;
     send_body();
-    if (_process_done && _response_body_sent)
+    if (_response_body_sent)
     {
         if (response_body->poll_end() == Pending)
             return Pending;
         return Ready;
     }
-
     return Pending;
 }
 
