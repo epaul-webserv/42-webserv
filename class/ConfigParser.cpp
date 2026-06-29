@@ -127,12 +127,16 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
     {
         loc_node.list_directories = get_switch_value(dir_it->second.as_bool());
     }
+    else
+        loc_node.list_directories = _inherit;
 
     toml::Toml::const_iterator up_it = loc_table.find("file_upload");
     if (up_it != loc_table.end())
     {
         loc_node.file_upload = get_switch_value(up_it->second.as_bool());
     }
+    else
+        loc_node.file_upload = _inherit;
 
     toml::Toml::const_iterator map_lookup = loc_table.find("method_map");
     if (map_lookup != loc_table.end() && map_lookup->second.type() == toml::Datum::Array)
