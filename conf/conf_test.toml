@@ -22,8 +22,8 @@ mime_config = ["conf/mime_types.toml"]
 	]
 
 [[listeners.server.location]]
-	path = "/" # defaults to "/"
-	root = ""  # no default must be set
+	path = "/"                         # defaults to "/"
+	root = "/home/bl4st/Documents/www" # no default must be set
 	# status_pages = [
 	# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
 	# 	{ status = 404, target = "/var/www/html/404.php" },
