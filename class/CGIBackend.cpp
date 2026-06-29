@@ -168,7 +168,6 @@ bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_n
         return false;
     }
 
-    // 2. Check if the target file exists and has Read (R_OK) permission
     if (access(script_name, R_OK) != 0)
     {
         std::cerr << "Error: Target file is not readable or does not exist.\n";
@@ -267,11 +266,9 @@ void CGIBackend::init()
 
     if (_cgi_pid == 0)
     {
-        // Child reads from parent_to_cgi's read end, writes to cgi_to_parent's write end
         dup2(parent_to_cgi[0], STDIN_FILENO);
         dup2(cgi_to_parent[1], STDOUT_FILENO);
 
-        // Close all pipe copies in the child
         close(parent_to_cgi[0]);
         close(parent_to_cgi[1]);
         close(cgi_to_parent[0]);
@@ -294,16 +291,15 @@ void CGIBackend::init()
         std::exit(1);
     }
 
-    // Parent Process: close unused ends
-    close(parent_to_cgi[0]); // Parent won't read from here
-    close(cgi_to_parent[1]); // Parent won't write to here
+    close(parent_to_cgi[0]);
+    close(cgi_to_parent[1]);
 
     std::string content_len = stream.request.peekHeader("content-length");
     if (content_len == "")
     {
         _body_len         = 0;
         _client_body_sent = true;
-        close(parent_to_cgi[1]); // No body to send, close write end immediately
+        close(parent_to_cgi[1]);
     }
     else
     {
@@ -317,7 +313,6 @@ void CGIBackend::init()
         }
     }
 
-    // Initialize separate asynchronous IO handlers for reading and writing
     _cgi_in  = new async::BufIo<>(_reactor, cgi_to_parent[0]);
     _cgi_out = _client_body_sent ? NULL : new async::BufIo<>(_reactor, parent_to_cgi[1]);
 }
@@ -337,7 +332,7 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
                 if (_cgi_out->poll_flush_write() == Pending)
                     return;
                 _client_body_sent = true;
-                delete _cgi_out; // Safely close the pipe to notify CGI of EOF
+                delete _cgi_out;
                 _cgi_out = NULL;
                 return;
             }
