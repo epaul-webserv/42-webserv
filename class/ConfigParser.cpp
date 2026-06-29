@@ -333,10 +333,8 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
     }
     catch (const toml::Parser::ParsingError &e)
     {
-        close(fd);
         throw ConfigParser::ConfigError("Invalid TOML file: " + std::string(e.what()));
     }
-    close(fd);
 
     toml::Toml::const_iterator mime_lookup = toml_root.find("mime_config");
     if (mime_lookup != toml_root.end())

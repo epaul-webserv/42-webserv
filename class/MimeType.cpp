@@ -29,10 +29,8 @@ void MimeType::ParseConfig(const char *filepath)
     }
     catch (const toml::Parser::ParsingError &e)
     {
-        close(fd);
         throw ConfigParser::ConfigError("Invalid TOML file: " + std::string(e.what()));
     }
-    close(fd);
 
     toml::Toml::const_iterator it = toml_root.find("mime_types");
     if (it == toml_root.end() || it->second.type() != toml::Datum::Array)
