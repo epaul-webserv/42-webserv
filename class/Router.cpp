@@ -81,6 +81,10 @@ int Router::getPort() { return _port; }
 
 void Router::setPort(int port) { _port = port; }
 
+int Router::getBacklogSize() { return _backlog_size; }
+
+void Router::setBacklogSize(int backlog_size) { _backlog_size = backlog_size; }
+
 bool Router::validateRequest(HTTPStream &http_stream)
 {
     const std::string http_version = http_stream.request.http_version;

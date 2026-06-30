@@ -455,6 +455,18 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
                 server_name_key = name_it->second.as_string();
             }
 
+            toml::Toml::const_iterator backlog_it = server_table.find("baclkog_size");
+            if (backlog_it != server_table.end())
+            {
+                int backlogSize = backlog_it->second.as_int64();
+                if (backlogSize < 1)
+                    throw ConfigParser::ConfigError("backlog_size must be greater than 0");
+                else
+                    router.setBacklogSize(backlogSize);
+            }
+            else
+                router.setBacklogSize(100);
+
             // Since the server table now acts exactly like a root location node
             // and contains sub-locations, we pass it right into parseLocationNode!
             RouterNode server_root_node = parseLocationNode(server_table);

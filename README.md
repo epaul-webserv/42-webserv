@@ -29,10 +29,11 @@ The configuration is written in **TOML** and is composed of:
 ```text
 Configuration
 ├── mime_config
-├── mime_config
 ├── listeners[]
 │   ├── listen
 │   └── server
+│       ├── server_name // first node only
+│       ├── backlog_size // first node only
 │       ├── root
 │       ├── path
 │       ├── index
@@ -42,14 +43,10 @@ Configuration
 │       ├── status_pages
 │       ├── directory_listing
 │       ├── file_upload
-│       └── location[]
-│           ├── path
+│       └── location[] // defines sub-locations
 │           ├── root
-│           ├── index
-│           ├── method_map
-│           ├── backends
-│           ├── redirects
-│           └── status_pages
+│           ├── [...]
+│           └── location[]
 ```
 
 ---
@@ -260,8 +257,6 @@ An empty list:
 
 means the method is allowed on every file.
 
-If the entire `method_map` is empty, no extension restriction is applied.
-
 ---
 
 ## Status Pages
@@ -383,6 +378,8 @@ Server
 
 | Field               | Default      |
 | ------------------- | ------------ |
+| `server_name`       | empty (all)  |
+| `backlog_size`      | 100          |
 | `path`              | `/`          |
 | `directory_listing` | `false`      |
 | `file_upload`       | `false`      |
