@@ -39,6 +39,24 @@ mime_config = ["conf/mime_types.toml"]
 	# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
 	# 	{ status = 404, target = "/var/www/html/404.php" },
 	# ] # can be empty
+	method_map = [{ GET = [] }, { POST = [] }] # can be emptys
+	# index = ["index.html", "index.php"]                                            # can be empty
+	backends = [
+		[
+			".toto",
+			"cgi",
+			[
+				"/home/bl4st/Documents/www/cgi_tester.toto",
+			],
+		],
+		[
+			"py",
+			"cgi",
+			[
+				"/bin/python3",
+			],
+		],
+	]
 
 	redirects = [
 		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
