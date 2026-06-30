@@ -5,65 +5,6 @@
 #include <async>
 #include <vector>
 
-namespace async
-{
-template <size_t N1, size_t N2> class CopyBufIoToBufIo : public Future
-{
-  private:
-    BufIo<N1>                &from;
-    BufIo<N2>                &to;
-    bool                      read_done;
-    container::Slice<uint8_t> buf;
-    size_t                    total;
-    size_t                    read;
-    CopyBufIoToBufIo();
-    CopyBufIoToBufIo(const CopyBufIoToBufIo &other);
-    CopyBufIoToBufIo &operator=(const CopyBufIoToBufIo &other);
-
-  public:
-    CopyBufIoToBufIo(BufIo<N1> &from, BufIo<N2> &to, size_t total)
-        : from(from), to(to), read_done(false), total(total), read(0)
-    {
-    }
-    Future::Poll poll() throw(OsError)
-    {
-        for (;;)
-            if (read_done)
-            {
-                if (buf.len() == 0)
-                {
-                    return to.poll_flush_write();
-                }
-                size_t s;
-                if (to.poll_write(buf, s) == Future::Pending)
-                    return Future::Pending;
-                from.consume(s);
-                buf = buf.slice(s, buf.len());
-            }
-            else
-            {
-                if (buf.len() == 0)
-                {
-                    if (from.poll_fill_buf(buf) == Future::Pending)
-                        return Future::Pending;
-                    read += buf.len();
-                    if (buf.len() == 0 || read >= total)
-                        read_done = true;
-                }
-                else
-                {
-                    size_t s;
-                    if (to.poll_write(buf, s) == Future::Pending)
-                        return Future::Pending;
-                    from.consume(s);
-                    buf = buf.slice(s, buf.len());
-                }
-            }
-    }
-    ~CopyBufIoToBufIo() {}
-};
-} // namespace async
-
 #include "HTTPStream.hpp"
 
 class CGIBackend : public ABackend

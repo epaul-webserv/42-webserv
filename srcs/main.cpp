@@ -17,11 +17,11 @@
 
 class Acceptor : public async::Future
 {
-    async::Io               accept;
-    async::Reactor         &reactor;
-    std::vector<HTTPStream> clients;
-    int                     sfd;
-    Router                  router;
+    async::Io                 accept;
+    async::Reactor           &reactor;
+    std::vector<HTTPStream *> clients;
+    int                       sfd;
+    Router                    router;
 
   public:
     Acceptor(async::Reactor &reactor, int fd, Router router)
@@ -49,19 +49,19 @@ class Acceptor : public async::Future
                 exit(EXIT_FAILURE);
             }
             std::cout << host << ":" << port << " is connected\n";
-            clients.push_back(HTTPStream(reactor, fd, addr, addr_len, router));
+            clients.push_back(new HTTPStream(reactor, fd, addr, addr_len, router));
         }
         for (size_t i = 0; i < clients.size(); i++)
         {
             Poll poll;
             try
             {
-                poll = clients[i].poll();
+                poll = clients[i]->poll();
             }
             catch (async::OsError &e)
             {
                 int s =
-                    getnameinfo((struct sockaddr *)&clients[i].addr, clients[i].addr_len, host,
+                    getnameinfo((struct sockaddr *)&clients[i]->addr, clients[i]->addr_len, host,
                                 sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
                 if (s != 0)
                 {
@@ -71,13 +71,14 @@ class Acceptor : public async::Future
                 std::cout << host << ":" << port << " left\n";
                 std::cerr << "Error " << host << ":" << port << ": " << e.what() << " (os error "
                           << e.errrno() << ")\n";
+                delete clients[i];
                 clients.erase(clients.begin() + i);
                 continue;
             }
             if (poll == Future::Ready)
             {
-                int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&clients[i].addr),
-                                    clients[i].addr_len, host, sizeof(host), port, sizeof(port),
+                int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&clients[i]->addr),
+                                    clients[i]->addr_len, host, sizeof(host), port, sizeof(port),
                                     NI_NUMERICHOST | NI_NUMERICSERV);
                 if (s != 0)
                 {
@@ -85,6 +86,7 @@ class Acceptor : public async::Future
                     exit(EXIT_FAILURE);
                 }
                 std::cout << host << ":" << port << " left\n";
+                delete clients[i];
                 clients.erase(clients.begin() + i);
             }
         }

@@ -354,7 +354,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
             }
             else
             {
-                if (stream.request.http_version != "")
+                if (stream.request.http_version != "HTTP/0.9")
                 {
                     std::string key, value;
                     if (parse_cgi_header(header_line, key, value))

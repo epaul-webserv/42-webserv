@@ -138,17 +138,17 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
     else
         loc_node.file_upload = _inherit;
 
-    toml::Toml::const_iterator siz_it = loc_table.find("max_ressource_size");
+    toml::Toml::const_iterator siz_it = loc_table.find("max_resource_size");
     if (siz_it != loc_table.end())
     {
-        loc_node.max_ressource_size = siz_it->second.as_int64();
-        if (loc_node.max_ressource_size < -1)
+        loc_node.max_resource_size = siz_it->second.as_int64();
+        if (loc_node.max_resource_size < -1)
             throw ConfigParser::ConfigError(
-                "Max Ressource size must be greater or equal to 0, it can be set to -1 or left "
-                "unspecified for unrestricted ressource sized");
+                "Max Resource size must be greater or equal to 0, it can be set to -1 or left "
+                "unspecified for unrestricted resource sized");
     }
     else
-        loc_node.max_ressource_size = -2;
+        loc_node.max_resource_size = -2;
 
     toml::Toml::const_iterator map_lookup = loc_table.find("method_map");
     if (map_lookup != loc_table.end() && map_lookup->second.type() == toml::Datum::Array)

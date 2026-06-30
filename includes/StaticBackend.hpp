@@ -31,7 +31,7 @@ class StaticBackend : public ABackend
     bool           _response_set;
     size_t         _body_written;
     std::string    root;
-    HTTPStream    &http_stream;
+    HTTPStream    *http_stream;
     IResponseBody *_response_body;
     std::ifstream  _ifile;
 };

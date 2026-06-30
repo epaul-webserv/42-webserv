@@ -10,23 +10,25 @@
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
                        socklen_t addr_len, Router &router)
-    : addr(addr), addr_len(addr_len), _router(&router), _override_response(false), _rerun(false),
-      _broken_connection(false), _keep_connection(false), _status(_fetching_request),
-      _reactor(&reactor), _backend(NULL), _max_size(-1), _headers_status(_initializing_headers),
-      _headers_sent_bytes(0), buf_io(reactor, fd)
+    : addr(addr), addr_len(addr_len), _router(&router), _max_resource_size(-1),
+      _override_response(false), _rerun(false), _broken_connection(false), _keep_connection(false),
+      _body_read(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
+      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd)
 {
 }
 
-HTTPStream::HTTPStream(HTTPStream const &other)
-    : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
-      _override_response(other._override_response), _rerun(other._rerun),
-      _broken_connection(other._broken_connection), _keep_connection(other._keep_connection),
-      _status(other._status), _reactor(other._reactor), _backend(other._backend),
-      _max_size(other._max_size), _headers_status(other._headers_status),
-      _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
-{
-    (void)addr;
-}
+// HTTPStream::HTTPStream(HTTPStream const &other)
+//     : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
+//       _max_resource_size(other._max_resource_size), _override_response(other._override_response),
+//       _rerun(other._rerun), _broken_connection(other._broken_connection),
+//       _keep_connection(other._keep_connection), _body_read(), _status(other._status),
+//       _reactor(other._reactor), _backend(other._backend), _headers_status(other._headers_status),
+//       _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
+// {
+//     (void)addr;
+// }
+
+HTTPStream::~HTTPStream() { delete _backend; }
 
 async::Future::Poll HTTPStream::readRequest()
 {
@@ -95,22 +97,21 @@ static std::string get_end_of_line(std::vector<uint8_t> &line)
 
 async::Future::Poll HTTPStream::readFirstLine()
 {
-    std::vector<uint8_t> line;
-    if (buf_io.poll_read_line(line) == Pending)
+    if (buf_io.poll_read_line(_header_line) == Pending)
         return (Pending);
-    if ((line.size() == 1 || line.size() == 2) && *(line.end() - 1) == '\n')
+    if ((_header_line.size() == 1 || _header_line.size() == 2) && *(_header_line.end() - 1) == '\n')
     {
         setErrorResponse("400", "Bad Request");
         _status = _processing_response;
         return (Ready);
     }
-    if (line.empty())
+    if (_header_line.empty())
         return (Ready);
-    get_next_word(line, request.method);
+    get_next_word(_header_line, request.method);
     if (request.method.empty())
         return (Ready);
-    get_next_word(line, request.URI);
-    get_next_word(line, request.http_version);
+    get_next_word(_header_line, request.URI);
+    get_next_word(_header_line, request.http_version);
     _status = _fetching_headers;
     if (!decode_url(request.URI))
     {
@@ -125,31 +126,33 @@ async::Future::Poll HTTPStream::readFirstLine()
     }
     request.rewrote_URI = request.URI;
     if (request.http_version.empty())
+    {
+        request.http_version = "HTTP/0.9";
         return (Ready);
+    }
     return (this->readHeaders());
 }
 
 async::Future::Poll HTTPStream::readHeaders()
 {
-    std::vector<uint8_t> line;
-
     while (true)
     {
-        if (buf_io.poll_read_line(line) == Pending)
+        if (buf_io.poll_read_line(_header_line) == Pending)
             return (Pending);
-        if (line.empty())
+        if (_header_line.empty())
             break;
-        std::vector<uint8_t>::iterator ite = line.end();
-        if ((line.size() == 2 && line[0] == '\r') || (line.size() == 1 && line[0] == '\n'))
+        std::vector<uint8_t>::iterator ite = _header_line.end();
+        if ((_header_line.size() == 2 && _header_line[0] == '\r') ||
+            (_header_line.size() == 1 && _header_line[0] == '\n'))
         {
             if (!_current_header.first.empty())
                 request.headers[to_lower(_current_header.first)] = _current_header.second;
             break;
         }
-        if (line[0] == ' ' || line[0] == '\t')
+        if (_header_line[0] == ' ' || _header_line[0] == '\t')
         {
-            _current_header.second.append(get_end_of_line(line));
-            line.clear();
+            _current_header.second.append(get_end_of_line(_header_line));
+            _header_line.clear();
             continue;
         }
         if (!_current_header.first.empty())
@@ -158,19 +161,47 @@ async::Future::Poll HTTPStream::readHeaders()
             _current_header.first.clear();
             _current_header.second.clear();
         }
-        std::vector<uint8_t>::iterator it = std::find(line.begin(), line.end(), ':');
-        _current_header.first             = get_next_word(line, ':');
+        std::vector<uint8_t>::iterator it =
+            std::find(_header_line.begin(), _header_line.end(), ':');
+        _current_header.first = get_next_word(_header_line, ':');
         if (_current_header.first.find(':') == std::string::npos)
         {
             _current_header.first.clear();
-            line.clear();
+            _header_line.clear();
             continue;
         }
         _current_header.first = _current_header.first.substr(0, _current_header.first.find(':'));
         if (it != ite)
-            _current_header.second = get_end_of_line(line);
-        line.clear();
+            _current_header.second = get_end_of_line(_header_line);
+        _header_line.clear();
     }
+    return (Ready);
+}
+
+async::Future::Poll HTTPStream::consume_body()
+{
+    IRequestBody             *body = request_body();
+    uint8_t                   buf[4096];
+    container::Slice<uint8_t> sl(buf, 4096);
+    size_t                    s = 1;
+
+    if (!body)
+        return (Ready);
+    while (s)
+    {
+        try
+        {
+            if (body->poll_read(sl, s) == Pending)
+                return (Pending);
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << "Error while reading body : " << e.what() << std::endl;
+            _body_read = true;
+            return (Ready);
+        }
+    }
+    _body_read = true;
     return (Ready);
 }
 
@@ -270,11 +301,12 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
             setHTTPStatus(_saved_status, _saved_msg);
         }
         this->headersAddBase();
-        if (!request.http_version.empty())
+        if (request.http_version != "HTTP/0.9")
             response.send_buf = std::vector<uint8_t>(response.head.c_str(),
                                                      response.head.c_str() + response.head.size());
-        response.send_buf.insert(response.send_buf.end(), response.body.begin(),
-                                 response.body.end());
+        if (request.method != "HEAD")
+            response.send_buf.insert(response.send_buf.end(), response.body.begin(),
+                                     response.body.end());
         std::cerr << request.method << " " << request.URI << " " << response.getHTTPVersion()
                   << " - " << response.getHTTPStatus() << std::endl;
         this->_headers_status = _sending_headers;
@@ -296,8 +328,6 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
     }
     return (Ready);
 }
-
-HTTPStream::~HTTPStream() { delete _backend; }
 
 HTTPStream &HTTPStream::operator=(HTTPStream const &other)
 {
@@ -331,6 +361,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     {
         if (_backend == NULL)
         {
+            if (!_body_read && consume_body() == Pending)
+                return Pending;
             if (this->sendHeaders() == Pending)
                 return Pending;
         }
@@ -378,6 +410,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 
 IRequestBody *HTTPStream::request_body()
 {
+    if (request.method == "HEAD")
+        return (NULL);
     if (!request.peekHeader("Content-Length").empty())
     {
         char  *end;
@@ -386,8 +420,12 @@ IRequestBody *HTTPStream::request_body()
         return (new PlainRequestBody(buf_io, content_length));
     }
     request.headers["content-length"] = "";
-    return (new ChunkedRequestBody(buf_io, 10,
-                                   request.headers["content-length"])); // TODO: set max_size
+    if (request.peekHeader("Transfer-Encoding") == "chunked")
+    {
+        return (new ChunkedRequestBody(buf_io, _max_resource_size,
+                                       request.headers["content-length"])); // TODO: set max_size
+    }
+    return (NULL);
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
@@ -403,12 +441,12 @@ async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
     return async::Future::Ready;
 }
 
-async::Future::Poll HTTPStream::poll_send_headers(size_t content_length, IResponseBody *&b)
+async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IResponseBody *&b)
 {
     std::ostringstream oss;
 
     this->response.headers.erase("Transfer-Encoding");
-    if (content_length)
+    if (content_length != -1)
     {
         oss << content_length;
         this->response.addHeader("Content-Length", oss.str());

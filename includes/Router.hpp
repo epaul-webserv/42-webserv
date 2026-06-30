@@ -23,7 +23,6 @@ class Router
     Router          &operator=(Router const &Router);
     ABackend        *resolve(async::Reactor &reactor, HTTPStream &http_stream, bool force) const;
     void             addServ(std::string const &domain, RouterNode const &node);
-    void             printServers() const;
     static ABackend *getBackend(t_backend_type const           &backend_type,
                                 std::vector<std::string> const &args, std::string const &root,
                                 async::Reactor &reactor, HTTPStream &http_stream);
@@ -31,14 +30,18 @@ class Router
     void             setPort(int port);
 
   private:
-    static bool              validateRequest(HTTPStream &http_stream);
-    RouterNode const        *getServerNode(std::string const &host, HTTPStream &http_stream) const;
-    static RouterNode const *matchSubPath(std::string                             &URI,
-                                          std::map<std::string, RouterNode> const &sub_nodes);
-    static RouterRuleset     defineRuleset(std::string &URI, RouterNode const &serv,
-                                           RouterRuleset &ruleset);
-    static ABackend         *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
-                                           HTTPStream &http_stream, bool force);
+    static bool       validateRequest(HTTPStream &http_stream);
+    RouterNode const *getServerNode(std::string const &host, HTTPStream &http_stream) const;
+    static bool       matchSubPath(std::string const                       &URI,
+                                   std::map<std::string, RouterNode>       &matching_nodes,
+                                   std::map<std::string, RouterNode> const &sub_nodes);
+    static RouterNode const                       *
+    matchSubPath_2(std::string &URI, std::string const &method,
+                                         std::map<std::string, RouterNode> const &matching_nodes);
+    static RouterRuleset *defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
+                                        RouterRuleset &ruleset);
+    static ABackend      *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
+                                        HTTPStream &http_stream, bool force);
 
     std::map<std::string, RouterNode>
         _servers; // Servers identified by domain[:port(if other than 80)]

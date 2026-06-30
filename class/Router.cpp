@@ -100,7 +100,7 @@ bool Router::validateRequest(HTTPStream &http_stream)
                 http_stream.response.addHeader("Connection", "keep-alive");
         }
     }
-    else if (!http_version.empty()) // Empty is HTTP/0.9
+    else if (http_version != "HTTP/0.9")
     {
         http_stream.response.setHTTPVersion("HTTP/1.1");
         http_stream.setErrorResponse("505", "HTTP Version Not Supported");
@@ -134,30 +134,46 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
     return (&it->second);
 }
 
-RouterNode const *Router::matchSubPath(std::string                             &URI,
-                                       std::map<std::string, RouterNode> const &sub_nodes)
+bool Router::matchSubPath(std::string const &URI, std::map<std::string, RouterNode> &matching_nodes,
+                          std::map<std::string, RouterNode> const &sub_nodes)
 {
     std::map<std::string, RouterNode>::const_iterator it;
-    std::string                                       copy = URI;
-    while (!copy.empty())
+    std::string                                       cpy = URI;
+
+    while (!cpy.empty())
     {
-        it = sub_nodes.find(copy);
+        it = sub_nodes.find(cpy);
         if (it != sub_nodes.end())
+            matching_nodes[it->first] = it->second;
+        size_t pos = cpy.find_last_of('/');
+        if (!pos)
+            break;
+        cpy = cpy.substr(0, pos);
+    }
+    if (matching_nodes.empty())
+        return (false);
+    return (true);
+}
+
+RouterNode const *Router::matchSubPath_2(std::string &URI, std::string const &method,
+                                         std::map<std::string, RouterNode> const &matching_nodes)
+{
+    std::map<std::string, RouterNode>::const_iterator it;
+    std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
+
+    for (it = matching_nodes.begin(); it != ite; ++it)
+    {
+        if (it->second.method_map.find(method) != it->second.method_map.end())
         {
-            std::cout << it->first.size() << std::endl;
             URI = URI.substr(it->first.size());
             return (&it->second);
         }
-        size_t pos = copy.find_last_of('/');
-        if (!pos)
-            return (NULL);
-        copy = copy.substr(0, pos);
     }
     return (NULL);
 }
 
-RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
-                                    RouterRuleset &ruleset)
+RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
+                                     RouterRuleset &ruleset)
 {
     RouterNode const *matching_sub_node = NULL;
 
@@ -175,14 +191,24 @@ RouterRuleset Router::defineRuleset(std::string &URI, RouterNode const &serv,
         ruleset.index_pages = serv.index_pages;
     ruleset.backend_rules.insert(ruleset.backend_rules.end(), serv.backend_rules.begin(),
                                  serv.backend_rules.end());
-    ruleset.max_ressource_size = serv.max_ressource_size;
-    if (ruleset.redirects.find(URI) != ruleset.redirects.end())
-        return (ruleset);
-    if (!serv.sub_nodes.empty())
-        matching_sub_node = matchSubPath(URI, serv.sub_nodes);
+    if (ruleset.max_resource_size != -1)
+        ruleset.max_resource_size = serv.max_resource_size;
+    if (ruleset.redirects.find(http_stream.request.URI) != ruleset.redirects.end())
+        return (&ruleset);
+    std::map<std::string, RouterNode> rn;
+    if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes))
+    {
+        matching_sub_node =
+            matchSubPath_2(http_stream.request.rewrote_URI, http_stream.request.method, rn);
+        if (!matching_sub_node)
+        {
+            http_stream.setErrorResponse("405", "Method Not Allowed");
+            return (NULL);
+        }
+    }
     if (matching_sub_node)
-        return (defineRuleset(URI, *matching_sub_node, ruleset));
-    return (ruleset);
+        return (defineRuleset(http_stream, *matching_sub_node, ruleset));
+    return (&ruleset);
 }
 
 bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
@@ -204,18 +230,19 @@ bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
 ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
                                 HTTPStream &http_stream, bool force)
 {
-    if (ruleset.max_ressource_size != -1 &&
+    if (ruleset.max_resource_size != -1 &&
         !http_stream.request.peekHeader("Content-Length").empty())
     {
         char  *end;
         size_t content_length =
             std::strtoul(http_stream.request.peekHeader("Content-Length").c_str(), &end, 10);
-        if (content_length > static_cast<size_t>(ruleset.max_ressource_size))
+        if (content_length > static_cast<size_t>(ruleset.max_resource_size))
         {
             http_stream.setErrorResponse("413", "Request Entity Too Large");
             return (NULL);
         }
     }
+    http_stream._max_resource_size = ruleset.max_resource_size;
     const std::map<std::string, std::pair<std::string, e_redirect_type> >::const_iterator
         matching_redirect = ruleset.redirects.find(http_stream.request.URI);
     if (!force && ruleset.method_map.find(http_stream.request.method) == ruleset.method_map.end())
@@ -298,7 +325,11 @@ ABackend *Router::resolve(async::Reactor &reactor, HTTPStream &http_stream, bool
         return (NULL);
     if (!force && !validateRequest(http_stream))
         return (NULL);
-    ruleset = defineRuleset(http_stream.request.rewrote_URI, *serv, ruleset);
+    if (!defineRuleset(http_stream, *serv, ruleset))
+    {
+        http_stream.setErrorResponse("405", "Method Nod Allowed");
+        return (NULL);
+    }
     if (force)
         ruleset.root = "";
     http_stream.status_pages = ruleset.status_pages;

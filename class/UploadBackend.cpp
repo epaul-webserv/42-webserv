@@ -71,7 +71,7 @@ async::Future::Poll UploadBackend::setResponse() throw(async::OsError, std::exce
             return (Pending);
         }
         // http_stream.response.addHeader("Content-Length", "0");
-        http_stream.response.addHeader("Connection", "close");
+        // http_stream.response.addHeader("Connection", "close");
         http_stream.setHTTPStatus("201", "Created");
         return (Ready);
     }
@@ -100,7 +100,8 @@ async::Future::Poll UploadBackend::setResponse() throw(async::OsError, std::exce
                 break;
             }
             // http_stream.response.addHeader("Content-Length", "0");
-            http_stream.response.addHeader("Connection", "close");
+            // http_stream.response.addHeader("Connection", "close");
+            http_stream.response.addHeader("Location", http_stream.request.URI);
             http_stream.setHTTPStatus("201", "Created");
             break;
         default:
@@ -116,7 +117,7 @@ async::Future::Poll UploadBackend::poll() throw(async::OsError, std::exception)
 {
     if (this->setResponse() == Pending)
         return (Pending);
-    if (http_stream.poll_send_headers(0, _response_body) == Pending)
+    if (http_stream.poll_send_headers(-1, _response_body) == Pending)
         return (Pending);
     _continue_sent = true;
     return (Ready);
