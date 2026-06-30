@@ -3,6 +3,7 @@ mime_config = ["conf/mime_types.toml"]
 	listen = { domain = "localhost", port = 33000 } # must be unique ?
 
 [listeners.server]
+	# can be empty	method_map = [{ GET = [] }, { POST = [] }] # can be empty	# status_pages = [	server_name = "localhost:33000"    # defaults to "";
 	backends = [
 		[
 			"php",
@@ -31,7 +32,7 @@ mime_config = ["conf/mime_types.toml"]
 		] },
 		{ POST = [
 		] },
-	] # can be empty                                # can be empty	method_map = [{ GET = [] }, { POST = [] }] # can be empty	# status_pages = [	server_name = "localhost:33000"    # defaults to "";
+	] # can be empty                                
 	directory_listing = false # defaults to false
 	file_upload = false # defaults to false
 	path = "/" # defaults to "/"
@@ -39,24 +40,7 @@ mime_config = ["conf/mime_types.toml"]
 	# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
 	# 	{ status = 404, target = "/var/www/html/404.php" },
 	# ] # can be empty
-	method_map = [{ GET = [] }, { POST = [] }] # can be emptys
 	# index = ["index.html", "index.php"]                                            # can be empty
-	backends = [
-		[
-			".toto",
-			"cgi",
-			[
-				"/home/bl4st/Documents/www/cgi_tester.toto",
-			],
-		],
-		[
-			"py",
-			"cgi",
-			[
-				"/bin/python3",
-			],
-		],
-	]
 
 	redirects = [
 		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
