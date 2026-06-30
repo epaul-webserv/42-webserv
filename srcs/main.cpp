@@ -186,7 +186,7 @@ int main(int ac, char **av)
                     continue;
                 }
 
-                if (listen(sfd, 100) < 0)
+                if (listen(sfd, router.getBacklogSize()) < 0)
                 {
                     std::cerr << "listen: " << strerror(errno) << "\n";
                     close(sfd);

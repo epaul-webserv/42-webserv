@@ -30,6 +30,9 @@ class Router
     int              getPort();
     void             setPort(int port);
 
+    int  getBacklogSize();
+    void setBacklogSize(int backlog_size);
+
   private:
     static bool              validateRequest(HTTPStream &http_stream);
     RouterNode const        *getServerNode(std::string const &host, HTTPStream &http_stream) const;
@@ -43,6 +46,7 @@ class Router
     std::map<std::string, RouterNode>
         _servers; // Servers identified by domain[:port(if other than 80)]
     int _port;
+    int _backlog_size;
 };
 
 #endif
