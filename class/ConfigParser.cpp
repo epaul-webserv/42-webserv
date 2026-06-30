@@ -411,6 +411,8 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
             {
                 domain = dom_it->second.as_string();
             }
+            else
+                throw ConfigParser::ConfigError("missing domain");
 
             toml::Toml::const_iterator port_it = listen_table.find("port");
             if (port_it != listen_table.end())
@@ -425,6 +427,8 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
                 ss << port_nb;
                 port = ss.str();
             }
+            else
+                throw ConfigParser::ConfigError("missing port");
         }
         else
             throw ConfigParser::ConfigError("listen key missing in listener block");
@@ -442,9 +446,10 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
 
         // 2. Parse the server block inside this listener
         toml::Toml::const_iterator server_lookup = listener_table.find("server");
-        if (server_lookup != listener_table.end() &&
-            server_lookup->second.type() == toml::Datum::Table)
+        if (server_lookup != listener_table.end())
         {
+            if (server_lookup->second.type() != toml::Datum::Table)
+                throw ConfigParser::ConfigError("server block must be a table");
             const toml::Toml &server_table = server_lookup->second.as_table();
 
             // Extract server_name for Router identification
@@ -462,5 +467,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
             // Add this complete virtual server tree structure straight to the router mapping
             router.addServ(server_name_key, server_root_node);
         }
+        else
+            throw ConfigParser::ConfigError("Missing server block");
     }
 }
