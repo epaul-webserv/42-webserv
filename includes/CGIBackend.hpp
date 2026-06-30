@@ -20,6 +20,7 @@ class CGIBackend : public ABackend
   private:
     enum status
     {
+        _getting_request_body,
         _init,
         _processing
     };
@@ -31,7 +32,8 @@ class CGIBackend : public ABackend
     void parse_cgi_status_value(const std::string &status_value, std::string &status_code,
                                 std::string &status_message);
     bool check_files_validity(const char *cgi_name, const char *script_name);
-    void init();
+    async::Future::Poll get_body();
+    void                init();
     async::Future::Poll copy_to_cgi() throw(async::OsError);
     void                check_process_status();
     void                send_client_body_to_cgi() throw(async::OsError);
@@ -45,7 +47,6 @@ class CGIBackend : public ABackend
     async::BufIo<>          *_cgi_io;
     int                      _socket_fd;
     HTTPStream              &stream;
-    size_t                   _body_len;
     std::string              headers;
     IResponseBody           *response_body;
 
@@ -64,6 +65,7 @@ class CGIBackend : public ABackend
     status               _status;
     IRequestBody        *client_body_reader;
     std::vector<uint8_t> header_line;
+    std::vector<uint8_t> request_body;
 
     uint8_t _response_buf[4096];
     size_t  _response_buf_len;

@@ -11,10 +11,11 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &
     : _root(root), _reactor(reactor), _args(args), _cgi_io(NULL), stream(stream),
       response_body(NULL), _cgi_pid(0), _body_read_buf_len(0), _body_read_buf_index(0),
       _client_body_sent(false), _response_headers_read_done(false), _status_set(false),
-      _process_done(false), _content_length(-1), _status(_init), client_body_reader(NULL),
-      _response_buf_len(0), _response_buf_index(0), _response_body_sent(false),
-      _send_header_and_abort(false)
+      _process_done(false), _content_length(-1), _status(_getting_request_body),
+      client_body_reader(NULL), _response_buf_len(0), _response_buf_index(0),
+      _response_body_sent(false), _send_header_and_abort(false)
 {
+    client_body_reader = stream.request_body();
 }
 
 CGIBackend::~CGIBackend(void)
@@ -31,6 +32,13 @@ CGIBackend::~CGIBackend(void)
 
 async::Future::Poll CGIBackend::poll() throw(async::OsError)
 {
+    if (_status == _getting_request_body)
+    {
+        if (get_body() == Pending)
+            return Pending;
+        _status = _init;
+    }
+
     if (_status == _init)
         init();
     check_process_status();
@@ -179,6 +187,43 @@ bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_n
     return true;
 }
 
+async::Future::Poll CGIBackend::get_body()
+{
+    if (client_body_reader == NULL)
+    {
+        _status = _init;
+        return Ready;
+    }
+    size_t                    s;
+    container::Slice<uint8_t> buff(_body_read_buf, sizeof(_body_read_buf));
+    while (client_body_reader->poll_read(buff, s) == Ready)
+    {
+        if (s == 0)
+            return Ready;
+        request_body.insert(request_body.end(), buff.begin(), buff.begin() + s);
+    }
+    return Pending;
+
+    // std::string content_len = stream.request.peekHeader("content-length");
+    // if (content_len == "")
+    // {
+    //     _body_len = 0;
+    //     shutdown(_socket_fd, SHUT_WR);
+    //     _client_body_sent = true;
+    // }
+    // else
+    // {
+    //     char *ptr;
+    //     _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
+    //     client_body_reader = stream.request_body();
+    //     if (client_body_reader == NULL)
+    //     {
+    //         shutdown(_socket_fd, SHUT_WR);
+    //         _client_body_sent = true;
+    //     }
+    // }
+}
+
 #include "string_overload.hpp"
 // The request has been routed towards the cgi, we start the program and setup
 // the io to process it
@@ -216,10 +261,16 @@ void CGIBackend::init()
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
 
     // std::string encoding = request.peekHeader("transfer-encoding");
-    std::string length = stream.request.peekHeader("content-length");
-    if (!length.empty())
+
+    if (request_body.size() > 0)
     {
-        env_vector.push_back("CONTENT_LENGTH=" + length);
+        env_vector.push_back("CONTENT_LENGTH=" + request_body.size());
+        if (stream.request.peekHeader("content-type").empty())
+        {
+            stream.setErrorResponse("400", "Bad Request");
+            _send_header_and_abort = true;
+            return;
+        }
         env_vector.push_back("CONTENT_TYPE=" + stream.request.peekHeader("content-type"));
     }
 
@@ -285,24 +336,12 @@ void CGIBackend::init()
     close(sv[1]);
     _socket_fd = sv[0];
 
-    std::string content_len = stream.request.peekHeader("content-length");
-    if (content_len == "")
+    if (request_body.size() == 0)
     {
-        _body_len = 0;
         shutdown(_socket_fd, SHUT_WR);
         _client_body_sent = true;
     }
-    else
-    {
-        char *ptr;
-        _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
-        client_body_reader = stream.request_body();
-        if (client_body_reader == NULL)
-        {
-            shutdown(_socket_fd, SHUT_WR);
-            _client_body_sent = true;
-        }
-    }
+
     _cgi_io = new async::BufIo<>(_reactor, sv[0]);
 }
 
