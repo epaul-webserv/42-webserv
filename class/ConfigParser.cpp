@@ -148,7 +148,7 @@ static RouterNode parseLocationNode(const toml::Toml &loc_table)
                 "unspecified for unrestricted ressource sized");
     }
     else
-        loc_node.max_ressource_size = -1;
+        loc_node.max_ressource_size = -2;
 
     toml::Toml::const_iterator map_lookup = loc_table.find("method_map");
     if (map_lookup != loc_table.end() && map_lookup->second.type() == toml::Datum::Array)
