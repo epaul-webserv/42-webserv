@@ -264,7 +264,7 @@ void CGIBackend::init()
 
     if (request_body.size() > 0)
     {
-        env_vector.push_back("CONTENT_LENGTH=" + request_body.size());
+        env_vector.push_back("CONTENT_LENGTH=" + toString(request_body.size()));
         if (stream.request.peekHeader("content-type").empty())
         {
             stream.setErrorResponse("400", "Bad Request");
@@ -349,29 +349,22 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 {
     while (!_client_body_sent)
     {
-        if (_body_read_buf_index == _body_read_buf_len)
-        {
-            container::Slice<uint8_t> buff(_body_read_buf, 4096);
-            if (client_body_reader->poll_read(buff, _body_read_buf_len) == Pending)
-                return;
-            _body_read_buf_index = 0;
-            if (_body_read_buf_len == 0)
-            {
-                if (_cgi_io->poll_flush() == Pending)
-                    return;
-                shutdown(_socket_fd, SHUT_WR);
-                _client_body_sent = true;
-                return;
-            }
-        }
-        if (_body_read_buf_index < _body_read_buf_len)
+        if (_body_read_buf_index < request_body.size())
         {
             size_t                    write_written;
-            container::Slice<uint8_t> buff(&_body_read_buf[_body_read_buf_index],
-                                           _body_read_buf_len - _body_read_buf_index);
+            container::Slice<uint8_t> buff(&request_body[_body_read_buf_index],
+                                           request_body.size() - _body_read_buf_index);
             if (_cgi_io->poll_write(buff, write_written) == Pending)
                 return;
             _body_read_buf_index += write_written;
+        }
+        else
+        {
+            if (_cgi_io->poll_flush() == Pending)
+                return;
+            shutdown(_socket_fd, SHUT_WR);
+            _client_body_sent = true;
+            return;
         }
     }
 }
