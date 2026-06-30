@@ -101,8 +101,7 @@ async::Future::Poll ChunkedRequestBody::fill_buf()
                 if (_max_size >= 0 && _content_length > static_cast<size_t>(_max_size))
                 {
                     _fail = true;
-                    // throw(TooLargeException());
-                    throw(std::runtime_error("test"));
+                    throw(TooLargeException());
                 }
             }
         }
@@ -119,8 +118,6 @@ async::Future::Poll ChunkedRequestBody::poll_read(container::Slice<uint8_t> &buf
         return (call_written = 0, async::Future::Ready);
     if (!_end && fill_buf() == async::Future::Pending)
         return (async::Future::Pending);
-    if (_fail)
-        return (call_written = 0, async::Future::Ready);
     size_t amt = std::min(_sl.len(), _content_length - _buf_read);
     std::copy(&_body[_buf_read], &_body[_buf_read + amt], buf.begin());
     _buf_read += amt;

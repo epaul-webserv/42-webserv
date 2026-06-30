@@ -35,9 +35,9 @@ class Router
     static bool       matchSubPath(std::string const                            &URI,
                                    std::multimap<std::string, RouterNode>       &matching_nodes,
                                    std::multimap<std::string, RouterNode> const &sub_nodes);
-    static RouterNode const *
+    static RouterNode const                       *
     matchSubPath_2(std::string &URI, std::string const &method,
-                   std::multimap<std::string, RouterNode> const &matching_nodes);
+                                         std::multimap<std::string, RouterNode> const &matching_nodes);
     static RouterRuleset *defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
                                         RouterRuleset &ruleset);
     static ABackend      *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,

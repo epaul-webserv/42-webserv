@@ -101,12 +101,16 @@ async::Future::Poll HTTPStream::readFirstLine()
         return (Pending);
     if ((_header_line.size() == 1 || _header_line.size() == 2) && *(_header_line.end() - 1) == '\n')
     {
+        request.http_version = "HTTP/0.9";
         setErrorResponse("400", "Bad Request");
         _status = _processing_response;
         return (Ready);
     }
     if (_header_line.empty())
+    {
+        request.http_version = "HTTP/0.9";
         return (Ready);
+    }
     get_next_word(_header_line, request.method);
     if (request.method.empty())
         return (Ready);
@@ -328,20 +332,20 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
     }
     return (Ready);
 }
-
-HTTPStream &HTTPStream::operator=(HTTPStream const &other)
-{
-    if (this != &other)
-    {
-        addr     = other.addr;
-        addr_len = other.addr_len;
-        buf_io   = other.buf_io;
-        _status  = other._status;
-        _reactor = other._reactor;
-        request  = other.request;
-    }
-    return (*this);
-}
+//
+// HTTPStream &HTTPStream::operator=(HTTPStream const &other)
+// {
+//     if (this != &other)
+//     {
+//         addr     = other.addr;
+//         addr_len = other.addr_len;
+//         buf_io   = other.buf_io;
+//         _status  = other._status;
+//         _reactor = other._reactor;
+//         request  = other.request;
+//     }
+//     return (*this);
+// }
 
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
@@ -400,9 +404,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-            this->response.headers["Connection"] != "close")
-            return (this->keepAlive(), Future::Pending);
+        // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
+        //     this->response.headers["Connection"] != "close")
+        //     return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
     return (Ready);
