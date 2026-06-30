@@ -323,7 +323,7 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
                 return (Pending);
             _headers_sent_bytes += s;
         }
-        if (this->buf_io.poll_flush_write() == Pending)
+        if (this->buf_io.poll_flush() == Pending)
             return Pending;
     }
     return (Ready);

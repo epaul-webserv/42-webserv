@@ -318,7 +318,7 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
             _body_read_buf_index = 0;
             if (_body_read_buf_len == 0)
             {
-                if (_cgi_io->poll_flush_write() == Pending)
+                if (_cgi_io->poll_flush() == Pending)
                     return;
                 shutdown(_socket_fd, SHUT_WR);
                 _client_body_sent = true;

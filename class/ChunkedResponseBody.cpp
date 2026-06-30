@@ -69,7 +69,7 @@ async::Future::Poll ChunkedResponseBody::poll_end() throw(async::OsError)
     if (_last_chunk.len() > 0 && io.poll_write(_last_chunk, s) == async::Future::Pending)
         return (async::Future::Pending);
     _last_chunk = _last_chunk.slice(s, _last_chunk.len());
-    if (_last_chunk.len() == 0 && io.poll_flush_write() == async::Future::Pending)
+    if (_last_chunk.len() == 0 && io.poll_flush() == async::Future::Pending)
         return (async::Future::Pending);
     return (async::Future::Ready);
 }
