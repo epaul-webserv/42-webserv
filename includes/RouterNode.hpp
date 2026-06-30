@@ -54,8 +54,8 @@ struct RouterNode
     e_switch    file_upload;
     std::string location;
     std::string root; // path to the root of the files to serve, inactive if empty
-    std::map<std::string, RouterNode> sub_nodes; // relative (to active node URI) URI of a sub path,
-                                                 // leading to another rule subset
+    std::multimap<std::string, RouterNode> sub_nodes; // relative (to active node URI) URI of a sub
+                                                      // path, leading to another rule subset
     std::map<std::string, std::pair<std::string, e_redirect_type> >
         redirects; // URI to redirect, new location and type of redirection
     std::map<std::string, std::string> status_pages; // status, relative (to applicable root) path

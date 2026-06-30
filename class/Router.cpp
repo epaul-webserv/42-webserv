@@ -134,8 +134,9 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
     return (&it->second);
 }
 
-bool Router::matchSubPath(std::string const &URI, std::map<std::string, RouterNode> &matching_nodes,
-                          std::map<std::string, RouterNode> const &sub_nodes)
+bool Router::matchSubPath(std::string const                            &URI,
+                          std::multimap<std::string, RouterNode>       &matching_nodes,
+                          std::multimap<std::string, RouterNode> const &sub_nodes)
 {
     std::map<std::string, RouterNode>::const_iterator it;
     std::string                                       cpy = URI;
@@ -144,7 +145,7 @@ bool Router::matchSubPath(std::string const &URI, std::map<std::string, RouterNo
     {
         it = sub_nodes.find(cpy);
         if (it != sub_nodes.end())
-            matching_nodes[it->first] = it->second;
+            matching_nodes.insert(std::pair<const std::string, RouterNode>(it->first, it->second));
         size_t pos = cpy.find_last_of('/');
         if (!pos)
             break;
@@ -155,8 +156,9 @@ bool Router::matchSubPath(std::string const &URI, std::map<std::string, RouterNo
     return (true);
 }
 
-RouterNode const *Router::matchSubPath_2(std::string &URI, std::string const &method,
-                                         std::map<std::string, RouterNode> const &matching_nodes)
+RouterNode const *
+Router::matchSubPath_2(std::string &URI, std::string const &method,
+                       std::multimap<std::string, RouterNode> const &matching_nodes)
 {
     std::map<std::string, RouterNode>::const_iterator it;
     std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
@@ -195,7 +197,7 @@ RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &
         ruleset.max_resource_size = serv.max_resource_size;
     if (ruleset.redirects.find(http_stream.request.URI) != ruleset.redirects.end())
         return (&ruleset);
-    std::map<std::string, RouterNode> rn;
+    std::multimap<std::string, RouterNode> rn;
     if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes))
     {
         matching_sub_node =
