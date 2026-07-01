@@ -30,8 +30,9 @@ async::Future::Poll ChunkedResponseBody::poll_write(container::Slice<uint8_t> bu
     size_t written_bytes;
     _buf[_header_size + _chunk_filled]     = '\r';
     _buf[_header_size + _chunk_filled + 1] = '\n';
-    if (io.poll_write(container::Slice<uint8_t>(&_buf[0], _chunk_filled + _header_size + 2),
-                      written_bytes) == async::Future::Pending)
+    if (io.poll_write(
+            container::Slice<uint8_t>(&_buf[_chunk_written], _chunk_filled + _header_size + 2),
+            written_bytes) == async::Future::Pending)
         return (async::Future::Pending);
     _chunk_written += written_bytes - _header_size - 2;
     if (_chunk_written == _chunk_filled)
@@ -48,23 +49,25 @@ async::Future::Poll ChunkedResponseBody::poll_end() throw(async::OsError)
 {
     size_t s = 0;
 
-    while (_chunk_written < _chunk_filled)
+    if (!_last_write)
     {
         std::ostringstream oss;
-        size_t             to_deduct = 0;
-
         oss << std::hex << _chunk_filled - _chunk_written << "\r\n";
-        to_deduct += oss.str().size();
         oss.write(
-            reinterpret_cast<const std::ostream::char_type *>(&_buf[_header_size + _chunk_filled]),
+            reinterpret_cast<const std::ostream::char_type *>(&_buf[_header_size + _chunk_written]),
             _chunk_filled - _chunk_written);
         oss << "\r\n";
-        to_deduct += 2;
-        if (io.poll_write(container::Slice<uint8_t>(
-                              reinterpret_cast<unsigned char *>(&oss.str()[0]), oss.str().size()),
-                          s) == async::Future::Pending)
+        std::copy(oss.str().c_str(), oss.str().c_str() + oss.str().size(), &_buf[0]);
+        _chunk_filled  = oss.str().size();
+        _chunk_written = 0;
+        _last_write    = true;
+    }
+    while (_chunk_written < _chunk_filled)
+    {
+        if (io.poll_write(container::Slice<uint8_t>(&_buf[_chunk_written], _chunk_filled), s) ==
+            async::Future::Pending)
             return (async::Future::Pending);
-        _chunk_written += s - to_deduct;
+        _chunk_written += s;
         if (_chunk_written == _chunk_filled)
         {
             _chunk_filled  = 0;

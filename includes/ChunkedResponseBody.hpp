@@ -12,6 +12,7 @@ class ChunkedResponseBody : public IResponseBody
     std::vector<uint8_t>      _buf;
     unsigned int              _reserved;
     unsigned int              _header_size;
+    bool                      _last_write;
 
   public:
     ChunkedResponseBody(async::BufIo<65535> &io);
