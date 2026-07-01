@@ -433,6 +433,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
                             stream.response.addHeader(key, value);
                     }
                 }
+                // TODO: add error when badly formatter header
             }
             header_line.clear();
         }
