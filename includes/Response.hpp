@@ -34,26 +34,30 @@ class Response
     ~Response();
 
     void               clear();
+    void               headersAddBase();
     void               headAppend(std::string const &resp);
     void               bodyAppend(std::string const &resp);
     void               addHeader(std::string const &key, std::string const &value);
+    void               eraseHeader(std::string const &key);
     std::string const &getHTTPVersion() const;
     std::string const &getHTTPStatus() const;
     std::string        getIp();
     void               setHTTPVersion(std::string const &new_http_version);
-    ;
 
-    t_send_status                      send_status;
-    std::string                        head;
-    std::string                        body;
+    t_send_status send_status;
+    std::string   head;
+    std::string   body;
+
     std::map<std::string, std::string> headers;
-    size_t                             content_length;
-    size_t                             sent_bytes;
-    std::string                        http_version;
-    std::string                        http_status;
-    std::string                        http_msg;
-    std::vector<uint8_t>               send_buf;
-    struct stat                        sb;
+
+  public:
+    size_t               content_length;
+    size_t               sent_bytes;
+    std::string          http_version;
+    std::string          http_status;
+    std::string          http_msg;
+    std::vector<uint8_t> send_buf;
+    struct stat          sb;
 };
 
 #endif

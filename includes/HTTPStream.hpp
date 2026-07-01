@@ -63,7 +63,6 @@ class HTTPStream : public async::Future
   private:
     HTTPStream();
     HTTPStream(HTTPStream const &other);
-    void headersAddBase();
     Poll sendHeaders() throw(async::OsError);
 
     container::RingBuf<uint8_t, 65535> buf;

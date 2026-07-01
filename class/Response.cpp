@@ -1,6 +1,9 @@
 #include "Response.hpp"
+#include "Date.hpp"
+#include "string_overload.hpp"
 #include "webserv.hpp"
 #include <fcntl.h>
+#include <sstream>
 #include <strings.h>
 
 Response::Response() : send_status(_first_step), content_length(0), sent_bytes(0), sb()
@@ -32,6 +35,30 @@ void Response::clear()
     bzero(&this->sb, sizeof(this->sb));
 }
 
+void Response::headersAddBase()
+{
+    std::ostringstream _head;
+
+    if (http_version == "HTTP/0.9")
+        return;
+    _head << http_version + " " + http_status + " " + http_msg << "\r\n";
+    _head << "Server: " << PROGNAME << "\r\n";
+    _head << "Date: " << Date().str() << "\r\n";
+    if (content_length)
+    {
+        std::ostringstream tmp;
+        tmp << content_length;
+        eraseHeader("transfer-encoding");
+        addHeader("content-length", tmp.str());
+    }
+    addHeader("connection", "close"); // TODO: remove
+    std::map<std::string, std::string>::const_iterator ite = headers.end();
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != ite; ++it)
+        _head << it->first << ": " << it->second << "\r\n";
+    head.insert(0, _head.str());
+    head.append("\r\n");
+}
+
 void Response::headAppend(std::string const &content)
 {
     if (content.empty())
@@ -43,8 +70,10 @@ void Response::headAppend(std::string const &content)
 
 void Response::addHeader(std::string const &key, std::string const &value)
 {
-    this->headers[key] = value;
+    this->headers[to_lower(key)] = value;
 }
+
+void Response::eraseHeader(std::string const &key) { this->headers.erase(to_lower(key)); }
 
 std::string const &Response::getHTTPVersion() const { return (this->http_version); }
 

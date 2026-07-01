@@ -226,30 +226,6 @@ async::Future::Poll HTTPStream::keepAlive()
     return (this->poll());
 }
 
-void HTTPStream::headersAddBase()
-{
-    std::ostringstream head;
-
-    if (request.http_version == "HTTP/0.9")
-        return;
-    head << request.http_version + " " + response.http_status + " " + response.http_msg << "\r\n";
-    head << "Server: " << PROGNAME << "\r\n";
-    head << "Date: " << Date().str() << "\r\n";
-    if (response.content_length)
-    {
-        std::ostringstream tmp;
-        tmp << response.content_length;
-        response.headers["Content-Length"] = tmp.str();
-    }
-    response.headers["Connection"]                         = "close"; // TODO: remove
-    std::map<std::string, std::string>::const_iterator ite = response.headers.end();
-    for (std::map<std::string, std::string>::const_iterator it = response.headers.begin();
-         it != ite; ++it)
-        head << it->first << ": " << it->second << "\r\n";
-    response.head.insert(0, head.str());
-    response.head.append("\r\n");
-}
-
 /// @brief Sets the response's status and sets the body if an associated file is set in the
 /// configuration or in case of error (3XX, 4XX, 5XX)
 void HTTPStream::setHTTPStatus(std::string const &status, std::string const &message)
@@ -262,7 +238,7 @@ void HTTPStream::setErrorResponse(std::string const &status, std::string const &
 {
     setHTTPStatus(status, message);
     response.bodyAppend(get_html_error(response.http_status, response.http_msg));
-    response.addHeader("Content-Type", "text/html");
+    response.addHeader("content-type", "text/html");
 }
 
 bool HTTPStream::setStatusResponse()
@@ -305,7 +281,7 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
                 setErrorResponse(_saved_status, _saved_msg);
             setHTTPStatus(_saved_status, _saved_msg);
         }
-        this->headersAddBase();
+        this->response.headersAddBase();
         if (request.http_version != "HTTP/0.9")
             response.send_buf = std::vector<uint8_t>(response.head.c_str(),
                                                      response.head.c_str() + response.head.size());
@@ -406,7 +382,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             return (Future::Pending);
         }
         // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-        //     this->response.headers["Connection"] != "close")
+        //     this->response.headers["connection"] != "close")
         //     return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
@@ -435,8 +411,8 @@ IRequestBody *HTTPStream::request_body()
 
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
 {
-    this->response.headers.erase("Content-Length");
-    response.addHeader("Transfer-Encoding", "chunked");
+    this->response.eraseHeader("Content-Length");
+    response.addHeader("transfer-encoding", "chunked");
     if (this->sendHeaders() == Pending)
         return (Pending);
     if (response.content_length)
@@ -450,7 +426,7 @@ async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IRespo
 {
     std::ostringstream oss;
 
-    this->response.headers.erase("Transfer-Encoding");
+    this->response.eraseHeader("transfer-encoding");
     if (content_length != -1)
     {
         oss << content_length;

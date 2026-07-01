@@ -47,6 +47,8 @@ async::Future::Poll CGIBackend::poll() throw(async::OsError)
 
     send_client_body_to_cgi();
     read_cgi_headers();
+    if (_send_header_and_abort)
+        return stream.poll_send_headers(response_body);
 
     if (set_body_writer() == Ready)
         return Ready;
@@ -397,6 +399,12 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
     {
         while (_cgi_io->poll_read_line(header_line) == Ready)
         {
+            if (header_line.empty())
+            {
+                stream.setErrorResponse("500", "Internal Server Error");
+                _send_header_and_abort = true;
+                return;
+            }
             if ((header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n') ||
                 (header_line.size() == 1 && header_line[0] == '\n'))
             {
