@@ -275,6 +275,25 @@ void CGIBackend::init()
         env_vector.push_back("CONTENT_TYPE=" + stream.request.peekHeader("content-type"));
     }
 
+    for (std::map<std::string, std::string>::const_iterator it = stream.request.headers.begin();
+         it != stream.request.headers.end(); ++it)
+    {
+        std::string header_name = it->first;
+        std::string header_val  = it->second;
+        if (header_name == "content-type" || header_name == "content-length")
+            continue;
+        if (header_name == "authorization" || header_name == "connection")
+            continue;
+        for (size_t i = 0; i < header_name.length(); ++i)
+        {
+            if (header_name[i] == '-')
+                header_name[i] = '_';
+            else
+                header_name[i] = std::toupper(static_cast<unsigned char>(header_name[i]));
+        }
+        env_vector.push_back("HTTP_" + header_name + "=" + header_val);
+    }
+
     env_vector.push_back("AUTH_TYPE=");
     env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
     env_vector.push_back("REMOTE_ADDR=localhost");
