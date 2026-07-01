@@ -1,6 +1,6 @@
 #include "PlainRequestBody.hpp"
 
-PlainRequestBody::PlainRequestBody(async::BufIo<> &io, size_t const &to_read)
+PlainRequestBody::PlainRequestBody(async::BufIo<65535> &io, size_t const &to_read)
     : _fail(false), io(io), _to_read(to_read), _read(0)
 {
 }

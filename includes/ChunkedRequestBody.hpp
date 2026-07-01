@@ -7,8 +7,8 @@
 class ChunkedRequestBody : public IRequestBody
 {
   private:
-    async::BufIo<>           &io;
-    uint8_t                   _buf[4097];
+    async::BufIo<65535>      &io;
+    uint8_t                   _buf[65535];
     container::Slice<uint8_t> _sl;
     bool                      _fail;
     bool                      _end;
@@ -23,7 +23,8 @@ class ChunkedRequestBody : public IRequestBody
     std::string               _reminder;
 
   public:
-    ChunkedRequestBody(async::BufIo<> &io, ssize_t max_size, std::string &content_length_header);
+    ChunkedRequestBody(async::BufIo<65535> &io, ssize_t max_size,
+                       std::string &content_length_header);
     ~ChunkedRequestBody();
     bool                fail();
     async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &call_written);

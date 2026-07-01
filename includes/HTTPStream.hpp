@@ -66,7 +66,7 @@ class HTTPStream : public async::Future
     void headersAddBase();
     Poll sendHeaders() throw(async::OsError);
 
-    container::RingBuf<uint8_t, 4096> buf;
+    container::RingBuf<uint8_t, 65535> buf;
 
   private:
     bool                                _override_response;
@@ -82,7 +82,7 @@ class HTTPStream : public async::Future
     headers_status                      _headers_status;
     std::vector<uint8_t>                _header_line;
     size_t                              _headers_sent_bytes;
-    async::BufIo<4096>                  buf_io;
+    async::BufIo<65535>                 buf_io;
     std::pair<std::string, std::string> _current_header;
 };
 

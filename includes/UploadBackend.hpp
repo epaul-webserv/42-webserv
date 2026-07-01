@@ -30,7 +30,7 @@ class UploadBackend : public ABackend
     IResponseBody *_response_body;
     IRequestBody  *_request_body;
     std::ofstream  _ofile;
-    uint8_t        _file_buf[4096];
+    uint8_t        _file_buf[65535];
     bool           _too_big;
     bool           _continue_sent;
 };

@@ -397,7 +397,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
         const toml::Toml &listener_table = *lit;
         std::string       domain         = "localhost";
         std::string       port           = "80";
-        int64_t           port_nb;
+        int64_t           port_nb        = 80;
 
         // 1. Parse listen block
         toml::Toml::const_iterator listen_lookup = listener_table.find("listen");

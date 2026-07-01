@@ -262,7 +262,7 @@ void CGIBackend::init()
 
     // std::string encoding = request.peekHeader("transfer-encoding");
 
-    if (request_body.size() > 0)
+    if (!request_body.empty())
     {
         env_vector.push_back("CONTENT_LENGTH=" + toString(request_body.size()));
         if (stream.request.peekHeader("content-type").empty())

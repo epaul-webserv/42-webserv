@@ -1,7 +1,7 @@
 #include "ChunkedRequestBody.hpp"
 #include <sstream>
 
-ChunkedRequestBody::ChunkedRequestBody(async::BufIo<> &io, ssize_t max_size,
+ChunkedRequestBody::ChunkedRequestBody(async::BufIo<65535> &io, ssize_t max_size,
                                        std::string &content_length_header)
     : io(io), _buf(), _sl(_buf, sizeof(_buf) - 1), _fail(false), _end(false), _chunk_read(0),
       _chunk_to_read(0), _buf_read(0), _buf_write(0), _max_size(max_size), _content_length(0),
@@ -118,7 +118,7 @@ async::Future::Poll ChunkedRequestBody::poll_read(container::Slice<uint8_t> &buf
         return (call_written = 0, async::Future::Ready);
     if (!_end && fill_buf() == async::Future::Pending)
         return (async::Future::Pending);
-    size_t amt = std::min(_sl.len(), _content_length - _buf_read);
+    size_t amt = std::min(buf.len(), _content_length - _buf_read);
     std::copy(&_body[_buf_read], &_body[_buf_read + amt], buf.begin());
     _buf_read += amt;
     call_written = amt;

@@ -241,6 +241,7 @@ void HTTPStream::headersAddBase()
         tmp << response.content_length;
         response.headers["Content-Length"] = tmp.str();
     }
+    response.headers["Connection"]                         = "close"; // TODO: remove
     std::map<std::string, std::string>::const_iterator ite = response.headers.end();
     for (std::map<std::string, std::string>::const_iterator it = response.headers.begin();
          it != ite; ++it)

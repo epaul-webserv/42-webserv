@@ -87,8 +87,7 @@ async::Future::Poll StaticBackend::setBodyWriter() throw(async::OsError)
 {
     if (_response_body == NULL)
     {
-        if (this->_file_ok &&
-            http_stream->poll_send_headers(_sb.st_size, _response_body) == Pending)
+        if (this->_file_ok && http_stream->poll_send_headers(_response_body) == Pending)
             return Pending;
         if (!this->_file_ok && http_stream->poll_send_headers(0, _response_body) == Pending)
             return Pending;
@@ -100,13 +99,13 @@ async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
 {
     if (this->_ifile.is_open())
     {
-        uint8_t buf[4096];
+        uint8_t buf[65535];
         size_t  s;
 
         while (!this->_ifile.eof())
         {
             s = 0;
-            this->_ifile.read(reinterpret_cast<std::istream::char_type *>(buf), 4096);
+            this->_ifile.read(reinterpret_cast<std::istream::char_type *>(buf), sizeof(buf));
             if (_ifile.gcount() &&
                 _response_body->poll_write(container::Slice<uint8_t>(&buf[0], _ifile.gcount()),
                                            s) == async::Future::Pending)

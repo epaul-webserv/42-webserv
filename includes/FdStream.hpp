@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <vector>
 
-#define FDSTREAM_BUFF_SIZE 8192
+#define FDSTREAM_BUFF_SIZE 65535
 
 class FdStream
 {

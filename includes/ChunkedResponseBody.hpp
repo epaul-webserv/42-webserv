@@ -1,20 +1,20 @@
 #ifndef CHUNKEDRESPONSEBODY_HPP
 #define CHUNKEDRESPONSEBODY_HPP
-
 #include "IResponseBody.hpp"
 
 class ChunkedResponseBody : public IResponseBody
 {
   private:
-    async::BufIo<>           &io;
+    async::BufIo<65535>      &io;
     size_t                    _chunk_written;
     size_t                    _chunk_filled;
     container::Slice<uint8_t> _last_chunk;
-    size_t const              _buf_size;
     std::vector<uint8_t>      _buf;
+    unsigned int              _reserved;
+    unsigned int              _header_size;
 
   public:
-    ChunkedResponseBody(async::BufIo<> &io);
+    ChunkedResponseBody(async::BufIo<65535> &io);
     ~ChunkedResponseBody();
     async::Future::Poll poll_write(container::Slice<uint8_t> buf, size_t &s) throw(async::OsError);
     async::Future::Poll poll_end() throw(async::OsError);
