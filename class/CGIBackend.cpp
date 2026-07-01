@@ -397,7 +397,8 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
     {
         while (_cgi_io->poll_read_line(header_line) == Ready)
         {
-            if (header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n')
+            if ((header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n') ||
+                (header_line.size() == 1 && header_line[0] == '\n'))
             {
                 if (!_status_set)
                     stream.setHTTPStatus("200", "Ok");
