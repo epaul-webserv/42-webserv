@@ -16,7 +16,7 @@ bool ChunkedRequestBody::fail() { return (_fail); };
 bool ChunkedRequestBody::header_cropped()
 {
     int i;
-    for (i = _buf_read; _buf[i] && std::isxdigit(_buf[i]); ++i)
+    for (i = _buf_read; _buf[i] && (std::isxdigit(_buf[i]) || _buf[i] == '\r'); ++i)
         ;
     if (!_buf[i])
     {
@@ -65,8 +65,7 @@ async::Future::Poll ChunkedRequestBody::fill_buf()
                 }
                 char       *end;
                 std::string joined(_reminder + reinterpret_cast<const char *>(&_sl[_buf_read]));
-                _chunk_to_read = std::strtoul(joined.c_str(), &end,
-                                              16); // FIXME: ADD END CHECK
+                _chunk_to_read = std::strtoul(joined.c_str(), &end, 16);
                 _buf_read += reinterpret_cast<uint8_t *>(end) -
                              reinterpret_cast<const unsigned char *>(joined.c_str()) -
                              _reminder.size();

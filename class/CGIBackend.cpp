@@ -177,13 +177,14 @@ bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_n
     }
 
     // 2. Check if the target file exists and has Read (R_OK) permission
-    if (access(script_name, R_OK) != 0)
-    {
-        std::cerr << "Error: Target file is not readable or does not exist.\n";
-        stream.setErrorResponse("403", "Forbidden");
-        _send_header_and_abort = true;
-        return false;
-    }
+    // if (access(script_name, R_OK) != 0)
+    // {
+    //     std::cerr << "Error: Target file is not readable or does not exist.\n";
+    //     stream.setErrorResponse("403", "Forbidden");
+    //     _send_header_and_abort = true;
+    //     return false;
+    // }
+    (void)script_name;
     return true;
 }
 

@@ -18,13 +18,15 @@ ChunkedResponseBody::~ChunkedResponseBody() {}
 async::Future::Poll ChunkedResponseBody::poll_write(container::Slice<uint8_t> buf,
                                                     size_t &s) throw(async::OsError)
 {
-    size_t available_space = (_buf.size() - _reserved) - _chunk_filled;
-    s                      = std::min(buf.len(), available_space);
-    buf                    = buf.slice(0, s);
-    std::copy(buf.begin(), buf.end(), &_buf[_header_size + _chunk_filled]);
-    _chunk_filled += s;
     if (_chunk_filled < _buf.size() - _reserved)
+    {
+        size_t available_space = (_buf.size() - _reserved) - _chunk_filled;
+        s                      = std::min(buf.len(), available_space);
+        buf                    = buf.slice(0, s);
+        std::copy(buf.begin(), buf.end(), &_buf[_header_size + _chunk_filled]);
+        _chunk_filled += s;
         return (async::Future::Ready);
+    }
     size_t written_bytes;
     _buf[_header_size + _chunk_filled]     = '\r';
     _buf[_header_size + _chunk_filled + 1] = '\n';
@@ -37,6 +39,7 @@ async::Future::Poll ChunkedResponseBody::poll_write(container::Slice<uint8_t> bu
         _chunk_written = 0;
         _chunk_filled  = 0;
     }
+    s = 0;
     return (async::Future::Ready);
 }
 
