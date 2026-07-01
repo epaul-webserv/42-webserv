@@ -2,14 +2,15 @@
 #include <sstream>
 
 ChunkedResponseBody::ChunkedResponseBody(async::BufIo<65535> &io)
-    : io(io), _chunk_written(0), _chunk_filled(0),
+    : io(io), _chunk_written(0), _chunk_filled(0), _buf_filled(0), _buf_written(0),
       _last_chunk(const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>("0\r\n\r\n")), 5), _buf(),
-      _reserved(16), _header_size(0)
+      _reserved(16), _header_size(0), _last_write(false)
 {
     _buf.resize(65535);
     std::ostringstream oss;
     oss << std::hex << _buf.size() - _reserved << "\r\n";
-    _header_size = oss.str().size();
+    _header_size  = oss.str().size();
+    _chunk_filled = _header_size;
     std::copy(oss.str().c_str(), oss.str().c_str() + _header_size, &_buf[0]);
 }
 
@@ -18,27 +19,31 @@ ChunkedResponseBody::~ChunkedResponseBody() {}
 async::Future::Poll ChunkedResponseBody::poll_write(container::Slice<uint8_t> buf,
                                                     size_t &s) throw(async::OsError)
 {
-    if (_chunk_filled < _buf.size() - _reserved)
+    if (_chunk_filled < _buf.size() + _header_size - _reserved)
     {
         size_t available_space = (_buf.size() - _reserved) - _chunk_filled;
         s                      = std::min(buf.len(), available_space);
         buf                    = buf.slice(0, s);
-        std::copy(buf.begin(), buf.end(), &_buf[_header_size + _chunk_filled]);
+        std::copy(buf.begin(), buf.end(), &_buf[_chunk_filled]);
         _chunk_filled += s;
+        _buf_filled += s;
         return (async::Future::Ready);
     }
     size_t written_bytes;
-    _buf[_header_size + _chunk_filled]     = '\r';
-    _buf[_header_size + _chunk_filled + 1] = '\n';
-    if (io.poll_write(
-            container::Slice<uint8_t>(&_buf[_chunk_written], _chunk_filled + _header_size + 2),
-            written_bytes) == async::Future::Pending)
+    _buf[_buf_filled++] = '\r';
+    _buf[_buf_filled++] = '\n';
+    if (io.poll_write(container::Slice<uint8_t>(&_buf[_chunk_written], _buf_filled - _buf_written),
+                      written_bytes) == async::Future::Pending)
         return (async::Future::Pending);
-    _chunk_written += written_bytes - _header_size - 2;
-    if (_chunk_written == _chunk_filled)
+    _buf_written += written_bytes;
+    if (_buf_written > _header_size)
+        std::min(_chunk_written = _buf_written - _header_size, _buf_filled - 2);
+    if (_buf_written == _buf_filled)
     {
         _chunk_written = 0;
         _chunk_filled  = 0;
+        _buf_written   = 0;
+        _buf_filled    = 0;
     }
     s = 0;
     return (async::Future::Ready);
@@ -55,23 +60,24 @@ async::Future::Poll ChunkedResponseBody::poll_end() throw(async::OsError)
         oss << std::hex << _chunk_filled - _chunk_written << "\r\n";
         oss.write(
             reinterpret_cast<const std::ostream::char_type *>(&_buf[_header_size + _chunk_written]),
-            _chunk_filled - _chunk_written);
+            _buf_filled - _buf_written);
         oss << "\r\n";
-        std::copy(oss.str().c_str(), oss.str().c_str() + oss.str().size(), &_buf[0]);
-        _chunk_filled  = oss.str().size();
-        _chunk_written = 0;
-        _last_write    = true;
+        std::string str = oss.str();
+        std::copy(str.begin(), str.end(), &_buf[0]);
+        _buf_filled  = str.size();
+        _buf_written = 0;
+        _last_write  = true;
     }
-    while (_chunk_written < _chunk_filled)
+    while (_buf_written < _buf_filled)
     {
-        if (io.poll_write(container::Slice<uint8_t>(&_buf[_chunk_written], _chunk_filled), s) ==
+        if (io.poll_write(container::Slice<uint8_t>(&_buf[_buf_written], _buf_filled), s) ==
             async::Future::Pending)
             return (async::Future::Pending);
-        _chunk_written += s;
-        if (_chunk_written == _chunk_filled)
+        _buf_written += s;
+        if (_buf_written == _buf_filled)
         {
-            _chunk_filled  = 0;
-            _chunk_written = 0;
+            _buf_filled  = 0;
+            _buf_written = 0;
             break;
         }
     }

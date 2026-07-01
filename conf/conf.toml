@@ -1,55 +1,55 @@
 mime_config = ["conf/mime_types.toml"]
 [[listeners]]
-	listen = { domain = "localhost", port = 33000 } # must be unique ?
+listen = { domain = "localhost", port = 33000 } # must be unique ?
 
 [listeners.server]
-	server_name = "localhost:33000"    # defaults to "";
-	directory_listing = false          # defaults to false
-	file_upload = false                # defaults to false
-	max_ressource_size = 100
-	path = "/"                         # defaults to "/"
-	root = "/home/bl4st/Documents/www" # no default must be set
-	# status_pages = [
-	# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
-	# 	{ status = 404, target = "/var/www/html/404.php" },
-	# ] # can be empty
-	method_map = [{ GET = [".py", ".jpeg"] }, { POST = [] }] # can be empty
-	# index = ["index.html", "index.php"]                                            # can be empty
-	backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
+server_name = ""    # defaults to "";
+directory_listing = false          # defaults to false
+file_upload = false                # defaults to false
+max_ressource_size = 100
+path = "/"                         # defaults to "/"
+root = "/var/www/html" # no default must be set
+# status_pages = [
+# 	{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
+# 	{ status = 404, target = "/var/www/html/404.php" },
+# ] # can be empty
+method_map = [{ GET = [".py", ".jpeg"] }, { POST = [] }] # can be empty
+# index = ["index.html", "index.php"]                                            # can be empty
+backends = [["php", "cgi", ["/bin/php-cgi"]], ["py", "cgi", ["/bin/python3"]]]
 
-	redirects = [
-		{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
-		{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	]
-
-[[listeners.server.location]]
-	path = "/"                         # defaults to "/"
-	root = "/home/bl4st/Documents/www" # no default must be set
-	# status_pages = [
-	# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
-	# 	{ status = 404, target = "/var/www/html/404.php" },
-	# ] # can be empty
-	accepted_method = ["POST"] # can be empty
-	# index = ["index.html", "index.php"]                                            # can be empty
-	backends = [["php", "cgi", ["/bin/php-cgi"]]]
-
-	# redirects = [
-	# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
-	# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	# ]
+redirects = [
+    { path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
+    { path = "/toto", target = "http://toto.fr/", type = "temp" },
+]
 
 [[listeners.server.location]]
-	path = "/directory"                            # defaults to "/"
-	root = "/home/bl4st/Documents/www/YoupiBanane" # no default must be set
-	# status_pages = [
-	# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
-	# 	{ status = 404, target = "/var/www/html/404.php" },
-	# ] # can be empty
-	accepted_method = ["GET", "POST"] # can be empty
-	index = ["youpi.bad_extension"]   # can be empty
-	# backends = [["php", "cgi", ["/bin/php-cgi"]]]
+path = "/"                         # defaults to "/"
+root = "/home/bl4st/Documents/www" # no default must be set
+# status_pages = [
+# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
+# 	{ status = 404, target = "/var/www/html/404.php" },
+# ] # can be empty
+accepted_method = ["POST"] # can be empty
+# index = ["index.html", "index.php"]                                            # can be empty
+backends = [["php", "cgi", ["/bin/php-cgi"]]]
 
-	# redirects = [
-	# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
-	# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
-	# ]
+# redirects = [
+# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
+# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
+# ]
+
+[[listeners.server.location]]
+path = "/directory"                            # defaults to "/"
+root = "/home/bl4st/Documents/www/YoupiBanane" # no default must be set
+# status_pages = [
+# 	#{ status = 403, target = "/var/www/html/403.php" }, # absolute path (begins with /)
+# 	{ status = 404, target = "/var/www/html/404.php" },
+# ] # can be empty
+accepted_method = ["GET", "POST"] # can be empty
+index = ["youpi.bad_extension"]   # can be empty
+# backends = [["php", "cgi", ["/bin/php-cgi"]]]
+
+# redirects = [
+# 	{ path = "/logan", target = "http://loganmartin.fr/", type = "perm" },
+# 	{ path = "/toto", target = "http://toto.fr/", type = "temp" },
+# ]

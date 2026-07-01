@@ -17,17 +17,6 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_st
 {
 }
 
-// HTTPStream::HTTPStream(HTTPStream const &other)
-//     : request(other.request), addr(other.addr), addr_len(other.addr_len), _router(other._router),
-//       _max_resource_size(other._max_resource_size), _override_response(other._override_response),
-//       _rerun(other._rerun), _broken_connection(other._broken_connection),
-//       _keep_connection(other._keep_connection), _body_read(), _status(other._status),
-//       _reactor(other._reactor), _backend(other._backend), _headers_status(other._headers_status),
-//       _headers_sent_bytes(other._headers_sent_bytes), buf_io(other.buf_io)
-// {
-//     (void)addr;
-// }
-
 HTTPStream::~HTTPStream() { delete _backend; }
 
 async::Future::Poll HTTPStream::readRequest()
@@ -134,6 +123,16 @@ async::Future::Poll HTTPStream::readFirstLine()
         request.http_version = "HTTP/0.9";
         return (Ready);
     }
+    if ((_header_line.size() == 2 && (_header_line[0] == '\r' || _header_line[1] == '\n')) ||
+        (_header_line.size() == 1 && _header_line[0] == '\n'))
+        _header_line.clear();
+    else
+    {
+        setBrokenConnection();
+        setErrorResponse("400", "Bad Request");
+        std::cerr << "Invalid URI" << std::endl;
+        return (Ready);
+    }
     return (this->readHeaders());
 }
 
@@ -220,7 +219,8 @@ async::Future::Poll HTTPStream::keepAlive()
     this->_saved_msg.clear();
     this->_status = _fetching_request;
     delete this->_backend;
-    this->_backend            = NULL;
+    this->_backend = NULL;
+    this->_header_line.clear();
     this->_headers_status     = _initializing_headers;
     this->_headers_sent_bytes = 0;
     return (this->poll());
@@ -381,9 +381,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-        //     this->response.headers["connection"] != "close")
-        //     return (this->keepAlive(), Future::Pending);
+        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
+            this->response.headers["Connection"] != "close")
+            return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
     return (Ready);

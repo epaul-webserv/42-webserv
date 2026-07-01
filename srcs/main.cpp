@@ -68,7 +68,6 @@ class Acceptor : public async::Future
                     std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
                     exit(EXIT_FAILURE);
                 }
-                std::cout << host << ":" << port << " left\n";
                 std::cerr << "Error " << host << ":" << port << ": " << e.what() << " (os error "
                           << e.errrno() << ")\n";
                 delete clients[i];

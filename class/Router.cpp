@@ -124,10 +124,7 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
     {
         it = this->_servers.find("");
         if (it != this->_servers.end())
-        {
-            std::cout << "Router : fallback to default server" << std::endl;
             return (&it->second);
-        }
         http_stream.setErrorResponse("404", "Not Found");
         return (NULL);
     }
