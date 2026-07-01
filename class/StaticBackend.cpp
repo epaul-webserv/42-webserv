@@ -110,7 +110,10 @@ async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
             if (_ifile.gcount() &&
                 _response_body->poll_write(container::Slice<uint8_t>(&buf[0], _ifile.gcount()),
                                            s) == async::Future::Pending)
+            {
+                _ifile.seekg(-_ifile.gcount(), std::ios::cur);
                 return (Pending);
+            }
             if (!_ifile.gcount())
             {
                 if (this->_response_body->poll_end() == Pending)
