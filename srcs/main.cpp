@@ -157,9 +157,9 @@ int main(int ac, char **av)
 
     for (it = router_map.begin(); it != router_map.end(); ++it)
     {
-        struct addrinfo *ai       = it->first;
-        Router          &router   = it->second;
-        int              bound_fd = -1;
+        struct addrinfo *ai     = it->first;
+        Router          &router = it->second;
+        bool             found  = false;
 
         for (struct addrinfo *rp = ai; rp != NULL; rp = rp->ai_next)
         {
@@ -173,42 +173,41 @@ int main(int ac, char **av)
                 close(sfd);
                 continue;
             }
-            if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+            if (bind(sfd, rp->ai_addr, rp->ai_addrlen) != 0)
             {
-                bound_fd = sfd;
-                char host[1024];
-                char port[32];
-                s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
-                                NI_NUMERICHOST | NI_NUMERICSERV);
-                if (s != 0)
-                {
-                    std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
-                    close(sfd);
-                    continue;
-                }
-
-                if (listen(sfd, 100) < 0)
-                {
-                    std::cerr << "listen: " << strerror(errno) << "\n";
-                    close(sfd);
-                    continue;
-                }
-
-                std::cout << "Listening on " << host << ":" << port << "\n";
-                break;
+                close(sfd);
+                continue;
             }
-            close(sfd);
+            char host[1024];
+            char port[32];
+            s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
+                            NI_NUMERICHOST | NI_NUMERICSERV);
+            if (s != 0)
+            {
+                std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
+                close(sfd);
+                continue;
+            }
+
+            if (listen(sfd, 100) < 0)
+            {
+                std::cerr << "listen: " << strerror(errno) << "\n";
+                close(sfd);
+                continue;
+            }
+            std::cout << "Listening on " << host << ":" << port << "\n";
+            found = true;
+            acceptors.push_back(new Acceptor(reactor, sfd, router));
         }
 
-        if (bound_fd == -1)
+        if (!found)
         {
-            std::cerr << "Could not bind to any address\n";
+            std::cerr << "No valid candidate for address\n";
             freeaddrinfo(ai);
             continue;
         }
 
-        sockets.push_back(bound_fd);
-        acceptors.push_back(new Acceptor(reactor, bound_fd, router));
+        sockets.push_back(sfd);
         freeaddrinfo(ai);
     }
 
