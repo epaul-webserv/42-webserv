@@ -1,4 +1,5 @@
 #include <cerrno>
+#include <csignal>
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -20,15 +21,13 @@ class Acceptor : public async::Future
     async::Io                 accept;
     async::Reactor           &reactor;
     std::vector<HTTPStream *> clients;
-    int                       sfd;
     Router                    router;
 
   public:
     Acceptor(async::Reactor &reactor, int fd, Router router)
-        : accept(reactor, fd), reactor(reactor), sfd(fd), router(router)
+        : accept(reactor, fd), reactor(reactor), router(router)
     {
     }
-    ~Acceptor() { shutdown(sfd, SHUT_RDWR); }
 
     Future::Poll poll() throw(async::OsError)
     {
@@ -114,6 +113,9 @@ class MultiAcceptor : public async::Future
 
     Future::Poll poll() throw(async::OsError)
     {
+        int received_signals = async::received_signals();
+        if ((received_signals & SIGINT) != 0)
+            return Ready;
         for (size_t i = 0; i < acceptors.size(); ++i)
         {
             acceptors[i]->poll();
@@ -124,7 +126,7 @@ class MultiAcceptor : public async::Future
 
 int main(int ac, char **av)
 {
-
+    async::register_signal(SIGINT);
     // TODO: router_map keys must bee freed with freeaddrinfo when exiting teh program
     std::map<struct addrinfo *, Router> router_map;
 
@@ -219,11 +221,4 @@ int main(int ac, char **av)
 
     MultiAcceptor multi_acceptor(acceptors);
     reactor.run(multi_acceptor);
-
-    for (size_t i = 0; i < sockets.size(); ++i)
-    {
-        shutdown(sockets[i], SHUT_RDWR);
-        close(sockets[i]);
-    }
-    // close(socketpoll); We would like to close the epoll_create1 fd
 }
