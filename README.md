@@ -432,7 +432,7 @@ mime_config = ["conf/mime_types.toml"]
 	file_upload = false
 	path = "/"
 	root = "/var/www/html"
-	method_map = [{ GET = [] }]                    
+	method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]                   
 	backends = [
 		[
 			"php",
@@ -461,7 +461,7 @@ mime_config = ["conf/mime_types.toml"]
 	path = "/"
 	root = "/home/user/goinfre/webserv"
 	file_upload = true
-	method_map = [{ POST = [".bla"] }]
+	method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
 	backends = [[".bla", "cgi", ["/home/user/goinfre/webserv/cgi_tester"]]]
 
 [[listeners.server.location]]

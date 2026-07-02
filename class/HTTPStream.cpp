@@ -249,7 +249,7 @@ void HTTPStream::setHTTPStatus(std::string const &status, std::string const &mes
 void HTTPStream::setErrorResponse(std::string const &status, std::string const &message)
 {
     setHTTPStatus(status, message);
-    response.bodyAppend(get_html_error(response.http_status, response.http_msg));
+    response.bodySet(get_html_error(response.http_status, response.http_msg));
     response.addHeader("content-type", "text/html");
 }
 

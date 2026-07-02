@@ -88,4 +88,10 @@ void Response::bodyAppend(std::string const &content)
     this->content_length += content.size();
 }
 
+void Response::bodySet(std::string const &content)
+{
+    this->body           = content;
+    this->content_length = content.size();
+}
+
 std::string const &Response::getHTTPStatus() const { return (this->http_status); }

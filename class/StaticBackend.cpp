@@ -32,7 +32,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
         switch (Router::fileType(http_stream->request.rewrote_URI, root))
         {
         case _dir:
-            http_stream->response.bodyAppend(get_html_dir(http_stream->request.rewrote_URI, root));
+            http_stream->response.bodySet(get_html_dir(http_stream->request.rewrote_URI, root));
             http_stream->response.addHeader("Content-Type", "text/html");
             http_stream->setHTTPStatus("200", "Ok");
             return Ready;

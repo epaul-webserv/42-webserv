@@ -37,6 +37,7 @@ class Response
     void               headersAddBase();
     void               headAppend(std::string const &resp);
     void               bodyAppend(std::string const &resp);
+    void               bodySet(std::string const &resp);
     void               addHeader(std::string const &key, std::string const &value);
     void               eraseHeader(std::string const &key);
     std::string const &getHTTPVersion() const;
