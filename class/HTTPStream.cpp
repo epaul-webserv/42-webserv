@@ -423,8 +423,7 @@ IRequestBody *HTTPStream::request_body()
     request.headers["content-length"] = "";
     if (request.peekHeader("Transfer-Encoding") == "chunked")
     {
-        _request_body =
-            new ChunkedRequestBody(buf_io, _max_resource_size, request.headers["content-length"]);
+        _request_body = new ChunkedRequestBody<65535>(buf_io, _max_resource_size);
         return (_request_body);
     }
     return (NULL);

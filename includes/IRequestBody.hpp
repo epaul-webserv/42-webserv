@@ -8,7 +8,6 @@ class IRequestBody
 {
   public:
     virtual async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s) = 0;
-    virtual bool                fail()                                               = 0;
     virtual ~IRequestBody();
 
     class TooLargeException : public std::exception
