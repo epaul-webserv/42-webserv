@@ -369,7 +369,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
         }
         catch (IRequestBody::BadReadException &e)
         {
-            setErrorResponse("413", "Request Entity Too Large");
+            setErrorResponse("413", "Bad body");
             if (this->sendHeaders() == Pending)
                 return Pending;
             return (Ready);
@@ -441,7 +441,7 @@ async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IRespo
     }
     if (this->sendHeaders() == Pending)
         return (Pending);
-    if (response.content_length || content_length == 0)
+    if (response.content_length || content_length <= 0)
         b = NULL;
     else
         b = new PlainResponseBody(buf_io);

@@ -5,7 +5,7 @@ ChunkedRequestBody::ChunkedRequestBody(async::BufIo<65535> &io, ssize_t max_size
                                        std::string &content_length_header)
     : io(io), _buf(), _sl(_buf, sizeof(_buf) - 1), _fail(false), _end(false), _chunk_read(0),
       _chunk_to_read(0), _buf_read(0), _buf_write(0), _max_size(max_size), _content_length(0),
-      _header(content_length_header)
+      _header(content_length_header), _read_trailers(false)
 {
 }
 
@@ -20,10 +20,27 @@ bool ChunkedRequestBody::header_cropped()
         ;
     if (!_buf[i])
     {
-        _reminder.assign(_buf + _buf_read, _buf + i);
+        _reminder.insert(_reminder.end(), _buf + _buf_read, _buf + i);
         return (true);
     }
     return (false);
+}
+
+async::Future::Poll ChunkedRequestBody::consume_trailers()
+{
+    if (_trailer.size() == 1 && _trailer[0] == '\n')
+    {
+        _end = true;
+        return (async::Future::Ready);
+    }
+    if (_trailer.size() == 2 && _trailer[0] == '\r' && _trailer[1] == '\n')
+    {
+        _end = true;
+        return (async::Future::Ready);
+    }
+    // if (_trailer.empty() || _trailer[_trailer.size() - 1] != '\n')
+    //     throw(BadReadException());
+    return (async::Future::Pending);
 }
 
 async::Future::Poll ChunkedRequestBody::fill_buf()
@@ -32,21 +49,39 @@ async::Future::Poll ChunkedRequestBody::fill_buf()
         return (async::Future::Ready);
     for (;;)
     {
-        if (io.poll_read(_sl, _buf_write) == async::Future::Pending)
-            return (async::Future::Pending);
-        _sl[_buf_write] = '\0';
-        _buf_read       = 0;
-        if (_buf_write == 0)
+        if (_read_trailers)
         {
-            if (_chunk_read != _chunk_to_read)
+            if (io.poll_read_line(_trailer) == async::Future::Pending)
+                return (async::Future::Pending);
+        }
+        else
+        {
+            if (_chunk_to_read == 0)
+                _sl.set_len(1);
+            else
+                _sl.set_len(_chunk_to_read - _chunk_read);
+            if (io.poll_read(_sl, _buf_write) == async::Future::Pending)
+                return (async::Future::Pending);
+            _sl[_buf_write] = '\0';
+            _buf_read       = 0;
+            if (_buf_write == 0)
             {
-                _fail = true;
-                throw(BadReadException());
+                if (_chunk_read != _chunk_to_read)
+                {
+                    _fail = true;
+                    throw(BadReadException());
+                }
+                break;
             }
-            break;
         }
         while (_buf_read < _buf_write)
         {
+            if (_read_trailers)
+            {
+                if (consume_trailers() == async::Future::Ready)
+                    return (async::Future::Ready);
+                break;
+            }
             if (_chunk_read >= _chunk_to_read)
             {
                 if (_reminder.empty() && _sl[_buf_read] == '\r')
@@ -81,13 +116,15 @@ async::Future::Poll ChunkedRequestBody::fill_buf()
                 _reminder.clear();
                 if (_chunk_to_read == 0)
                 {
-                    _buf_read = 0;
-                    _end      = true;
-                    _body.insert(_body.end(), 0);
+                    _buf_read      = 0;
+                    _read_trailers = true;
+                    // _end = true;
+                    _body.insert(_body.end(), '\0');
                     std::ostringstream oss;
                     oss << _content_length;
                     _header = oss.str();
-                    return (async::Future::Ready);
+                    break;
+                    // return (async::Future::Ready);
                 }
             }
             if (_chunk_read < _chunk_to_read)
@@ -102,6 +139,8 @@ async::Future::Poll ChunkedRequestBody::fill_buf()
                     _fail = true;
                     throw(TooLargeException());
                 }
+                if (_chunk_read >= _chunk_to_read)
+                    _chunk_to_read = 0;
             }
         }
     }

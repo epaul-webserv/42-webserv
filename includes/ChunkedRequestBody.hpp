@@ -19,8 +19,10 @@ class ChunkedRequestBody : public IRequestBody
     ssize_t                   _max_size;
     size_t                    _content_length;
     std::vector<uint8_t>      _body;
+    std::vector<uint8_t>      _trailer;
     std::string              &_header;
     std::string               _reminder;
+    bool                      _read_trailers;
 
   public:
     ChunkedRequestBody(async::BufIo<65535> &io, ssize_t max_size,
@@ -30,6 +32,7 @@ class ChunkedRequestBody : public IRequestBody
     async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &call_written);
     async::Future::Poll fill_buf();
     bool                header_cropped();
+    async::Future::Poll consume_trailers();
 };
 
 #endif
