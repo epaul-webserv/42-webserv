@@ -295,13 +295,15 @@ void CGIBackend::init()
         }
         env_vector.push_back("HTTP_" + header_name + "=" + header_val);
     }
-
+    // Really ?
     env_vector.push_back("AUTH_TYPE=");
     env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
-    env_vector.push_back("REMOTE_ADDR=localhost");
-    env_vector.push_back("REMOTE_HOST=");
-    env_vector.push_back("REMOTE_IDENT=");
-    env_vector.push_back("REDIRECT_STATUS=1");
+    env_vector.push_back("REMOTE_ADDR=" + stream._host_str);
+    // ill just use the numeric addr
+    env_vector.push_back("REMOTE_HOST=" + stream._host_str);
+    // env_vector.push_back("REMOTE_IDENT=");
+
+    env_vector.push_back("REDIRECT_STATUS=");
 
     std::vector<char *> env_char;
     for (size_t i = 0; i < env_vector.size(); i++)
@@ -399,12 +401,6 @@ void CGIBackend::read_cgi_headers()
     {
         while (_cgi_io->poll_read_line(header_line) == Ready)
         {
-            if (header_line.empty())
-            {
-                stream.setErrorResponse("500", "Internal Server Error");
-                _send_header_and_abort = true;
-                return;
-            }
             if ((header_line.size() == 2 && header_line[0] == '\r' && header_line[1] == '\n') ||
                 (header_line.size() == 1 && header_line[0] == '\n'))
             {
@@ -432,8 +428,13 @@ void CGIBackend::read_cgi_headers()
                         else
                             stream.response.addHeader(key, value);
                     }
+                    else
+                    {
+                        stream.setErrorResponse("500", "Internal Server Error");
+                        _send_header_and_abort = true;
+                        return;
+                    }
                 }
-                // TODO: add error when badly formatter header
             }
             header_line.clear();
         }
