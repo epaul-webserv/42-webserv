@@ -117,7 +117,6 @@ bool Router::validateRequest(HTTPStream &http_stream)
 RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &http_stream) const
 {
     std::map<std::string, RouterNode>::const_iterator it;
-    (void)http_stream;
 
     it = this->_servers.find(host);
     if (it == this->_servers.end())
@@ -135,8 +134,7 @@ bool Router::matchSubPath(std::string const                            &URI,
                           std::multimap<std::string, RouterNode>       &matching_nodes,
                           std::multimap<std::string, RouterNode> const &sub_nodes)
 {
-    std::map<std::string, RouterNode>::const_iterator it;
-    std::string                                       cpy = URI;
+    std::string cpy = URI;
 
     while (!cpy.empty())
     {
@@ -145,13 +143,32 @@ bool Router::matchSubPath(std::string const                            &URI,
             range = sub_nodes.equal_range(cpy);
         matching_nodes.insert(range.first, range.second);
         size_t pos = cpy.find_last_of('/');
-        if (!pos)
+        if (!pos || pos == std::string::npos)
             break;
         cpy = cpy.substr(0, pos);
     }
+    std::pair<std::multimap<std::string, RouterNode>::const_iterator,
+              std::multimap<std::string, RouterNode>::const_iterator>
+        range = sub_nodes.equal_range("/");
+    matching_nodes.insert(range.first, range.second);
     if (matching_nodes.empty())
         return (false);
     return (true);
+}
+
+bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
+{
+    std::string                              rev_URI(URI.rbegin(), URI.rend());
+    std::vector<std::string>::const_iterator ite = array.end();
+    size_t                                   n   = 1;
+    std::string                              cmp;
+
+    for (cmp = rev_URI.substr(0, n); n <= URI.size(); cmp = rev_URI.substr(0, ++n))
+    {
+        if (std::find(array.begin(), array.end(), cmp) != ite)
+            return (true);
+    }
+    return (false);
 }
 
 RouterNode const *
@@ -160,16 +177,35 @@ Router::matchSubPath_2(std::string &URI, std::string const &method,
 {
     std::map<std::string, RouterNode>::const_iterator it;
     std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
+    std::vector<std::string>                          suffixes;
+    RouterNode const                                 *ret = NULL;
+    int                                               to_substract;
 
     for (it = matching_nodes.begin(); it != ite; ++it)
     {
-        if (it->second.method_map.find(method) != it->second.method_map.end())
+        std::pair<std::map<std::string, std::vector<std::string> >::const_iterator,
+                  std::map<std::string, std::vector<std::string> >::const_iterator>
+            range = it->second.method_map.equal_range(method);
+        if (range.first == range.second)
+            continue;
+        while (range.first != range.second)
         {
-            URI = URI.substr(it->first.size());
-            return (&it->second);
+            if (suffix_match(URI, range.first->second))
+            {
+                URI = URI.substr(it->first.size());
+                return (&it->second);
+            }
+            if (range.first->second.empty())
+            {
+                to_substract = it->first.size();
+                ret          = &it->second;
+            }
+            ++range.first;
         }
     }
-    return (NULL);
+    if (ret && to_substract > 1)
+        URI = URI.substr(to_substract);
+    return (ret);
 }
 
 RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
@@ -209,22 +245,6 @@ RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &
     if (matching_sub_node)
         return (defineRuleset(http_stream, *matching_sub_node, ruleset));
     return (&ruleset);
-}
-
-bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
-{
-    std::string                              rev_URI(URI.rbegin(), URI.rend());
-    std::vector<std::string>::const_iterator match;
-    std::vector<std::string>::const_iterator ite = array.end();
-    size_t                                   n   = 1;
-    std::string                              cmp;
-
-    for (cmp = rev_URI.substr(0, n); n < URI.size(); cmp = rev_URI.substr(0, ++n))
-    {
-        if (std::find(array.begin(), array.end(), cmp) != ite)
-            return (true);
-    }
-    return (false);
 }
 
 ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
