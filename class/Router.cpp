@@ -178,8 +178,8 @@ Router::matchSubPath_2(std::string &URI, std::string const &method,
     std::map<std::string, RouterNode>::const_iterator it;
     std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
     std::vector<std::string>                          suffixes;
-    RouterNode const                                 *ret = NULL;
-    int                                               to_substract;
+    RouterNode const                                 *ret          = NULL;
+    int                                               to_substract = 0;
 
     for (it = matching_nodes.begin(); it != ite; ++it)
     {
@@ -192,7 +192,8 @@ Router::matchSubPath_2(std::string &URI, std::string const &method,
         {
             if (suffix_match(URI, range.first->second))
             {
-                URI = URI.substr(it->first.size());
+                if (it->first.size() > 1)
+                    URI = URI.substr(it->first.size());
                 return (&it->second);
             }
             if (range.first->second.empty())

@@ -214,16 +214,22 @@ async::Future::Poll HTTPStream::keepAlive()
     this->response.clear();
     this->request.clear();
     this->status_pages.clear();
+    this->_max_resource_size = -1;
     this->_override_response = false;
     this->_rerun             = false;
+    this->_broken_connection = false;
+    this->_keep_connection   = false;
+    this->_body_read         = false;
     this->_saved_status.clear();
     this->_saved_msg.clear();
     this->_status = _fetching_request;
     delete this->_backend;
-    this->_backend = NULL;
+    this->_backend        = NULL;
+    this->_headers_status = _initializing_headers;
     this->_header_line.clear();
-    this->_headers_status     = _initializing_headers;
     this->_headers_sent_bytes = 0;
+    this->_current_header.first.clear();
+    this->_current_header.second.clear();
     return (this->poll());
 }
 
@@ -382,9 +388,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-        //     this->response.headers["Connection"] != "close")
-        //     return (this->keepAlive(), Future::Pending);
+        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
+            this->response.headers["Connection"] != "close")
+            return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
     return (Ready);

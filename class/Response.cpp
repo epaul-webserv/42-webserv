@@ -51,7 +51,7 @@ void Response::headersAddBase()
         eraseHeader("transfer-encoding");
         addHeader("content-length", tmp.str());
     }
-    addHeader("connection", "close"); // TODO: remove
+    // addHeader("connection", "close"); // TODO: remove
     std::map<std::string, std::string>::const_iterator ite = headers.end();
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != ite; ++it)
         _head << it->first << ": " << it->second << "\r\n";
