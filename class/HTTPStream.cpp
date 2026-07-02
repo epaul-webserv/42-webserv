@@ -116,7 +116,7 @@ async::Future::Poll HTTPStream::readFirstLine()
     }
     if (request.URI.find('?') != std::string::npos)
     {
-        request.query_string = request.URI.substr(request.URI.find('?'));
+        request.query_string = request.URI.substr(request.URI.find('?') + 1);
         request.URI          = request.URI.substr(0, request.URI.find('?'));
     }
     request.rewrote_URI = request.URI;

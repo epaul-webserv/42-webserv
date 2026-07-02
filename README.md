@@ -29,7 +29,6 @@ The configuration is written in **TOML** and is composed of:
 ```text
 Configuration
 ├── mime_config
-├── mime_config
 ├── listeners[]
 │   ├── listen
 │   └── server
@@ -191,14 +190,18 @@ false
 ```toml
 backends = [
     [
-        "php",
+        ".php",
         "cgi",
         [
             "/bin/php-cgi"
         ]
     ],
+	[
+        ".html",
+        "static"
+    ],
     [
-        "py",
+        ".py",
         "cgi",
         [
             "/bin/python3"
@@ -207,7 +210,11 @@ backends = [
 ]
 ```
 
-Defines interpreters associated with file extensions.
+Defines interpreters associated with suffixes.
+
+Possible backend types are:
+- static
+- cgi
 
 Each backend entry has the format:
 
@@ -215,7 +222,7 @@ Each backend entry has the format:
 [
     extension,
     backend_type,
-    [
+    [ # only required for cgi
         executable,
         optional arguments...
     ]
@@ -226,8 +233,8 @@ Example:
 
 | Extension | Backend | Executable                 |
 | --------- | ------- | -------------------------- |
-| `php`     | `cgi`   | `/bin/php-cgi`             |
-| `py`      | `cgi`   | `/bin/python3`             |
+| `.php`     | `cgi`   | `/bin/php-cgi`             |
+| `.py`      | `cgi`   | `/bin/python3`             |
 | `.toto`   | `cgi`   | `/path/to/cgi_tester.toto` |
 
 ---
@@ -260,8 +267,6 @@ An empty list:
 ```
 
 means the method is allowed on every file.
-
-If the entire `method_map` is empty, no extension restriction is applied.
 
 ---
 
@@ -491,4 +496,6 @@ mime_config = ["conf/mime_types.toml"]
 	method_map = [{ POST = ["post_body"] }]
 
 ```
+
+# Examples
 

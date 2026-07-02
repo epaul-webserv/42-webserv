@@ -77,4 +77,11 @@ fclean : clean
 
 re : fclean all
 
+HOST = localhost
+PORT = 33000
+
+.PHONY: run-samples
+run-samples :
+	for f in samples/valid/*; do cat $f | nc -N $(HOST) $(PORT); done
+
 -include $(DEPS)
