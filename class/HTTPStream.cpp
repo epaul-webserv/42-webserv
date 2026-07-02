@@ -13,7 +13,8 @@ HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_st
     : addr(addr), addr_len(addr_len), _router(&router), _host_str(host_str), _max_resource_size(-1),
       _override_response(false), _rerun(false), _broken_connection(false), _keep_connection(false),
       _body_read(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
-      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd)
+      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd),
+      _request_body(NULL)
 {
 }
 
@@ -185,18 +186,18 @@ async::Future::Poll HTTPStream::readHeaders()
 
 async::Future::Poll HTTPStream::consume_body()
 {
-    IRequestBody             *body = request_body();
     uint8_t                   buf[4096];
     container::Slice<uint8_t> sl(buf, 4096);
     size_t                    s = 1;
 
-    if (!body)
+    request_body();
+    if (!_request_body)
         return (Ready);
     while (s)
     {
         try
         {
-            if (body->poll_read(sl, s) == Pending)
+            if (_request_body->poll_read(sl, s) == Pending)
                 return (Pending);
         }
         catch (std::exception &e)
@@ -206,7 +207,7 @@ async::Future::Poll HTTPStream::consume_body()
             return (Ready);
         }
     }
-    delete body;
+    delete _request_body;
     _request_body = NULL;
     _body_read    = true;
     return (Ready);
@@ -369,6 +370,10 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
         {
             std::cerr << e.what() << std::endl;
             setErrorResponse("413", "Request Entity Too Large");
+            _body_read = true;
+            setBrokenConnection();
+            delete this->_backend;
+            this->_backend = NULL;
             if (this->sendHeaders() == Pending)
                 return Pending;
             return (Ready);
