@@ -191,7 +191,7 @@ RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &
         ruleset.index_pages = serv.index_pages;
     ruleset.backend_rules.insert(ruleset.backend_rules.end(), serv.backend_rules.begin(),
                                  serv.backend_rules.end());
-    if (ruleset.max_resource_size != -1)
+    if (serv.max_resource_size != -2)
         ruleset.max_resource_size = serv.max_resource_size;
     if (ruleset.redirects.find(http_stream.request.URI) != ruleset.redirects.end())
         return (&ruleset);

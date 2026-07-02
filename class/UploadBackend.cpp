@@ -56,7 +56,7 @@ async::Future::Poll UploadBackend::writeFile()
     return (Ready);
 }
 
-async::Future::Poll UploadBackend::setResponse() throw(async::OsError, std::exception)
+async::Future::Poll UploadBackend::setResponse()
 {
     if (_ofile.is_open())
     {
@@ -113,7 +113,7 @@ async::Future::Poll UploadBackend::setResponse() throw(async::OsError, std::exce
     return Ready;
 }
 
-async::Future::Poll UploadBackend::poll() throw(async::OsError, std::exception)
+async::Future::Poll UploadBackend::poll()
 {
     if (this->setResponse() == Pending)
         return (Pending);

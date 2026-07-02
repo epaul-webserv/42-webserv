@@ -15,7 +15,7 @@ class CGIBackend : public ABackend
     ~CGIBackend(void);
 
     // This must be called once Ready has been sent
-    Poll poll() throw(async::OsError);
+    Poll poll();
 
   private:
     enum status
@@ -34,12 +34,12 @@ class CGIBackend : public ABackend
     bool check_files_validity(const char *cgi_name, const char *script_name);
     async::Future::Poll get_body();
     void                init();
-    async::Future::Poll copy_to_cgi() throw(async::OsError);
+    async::Future::Poll copy_to_cgi();
     void                check_process_status();
-    void                send_client_body_to_cgi() throw(async::OsError);
-    void                read_cgi_headers() throw(async::OsError);
-    async::Future::Poll set_body_writer() throw(async::OsError);
-    void                send_body() throw(async::OsError);
+    void                send_client_body_to_cgi();
+    void                read_cgi_headers();
+    async::Future::Poll set_body_writer();
+    void                send_body();
 
     std::string const        _root;
     async::Reactor          &_reactor;

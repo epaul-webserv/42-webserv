@@ -17,8 +17,8 @@ class UploadBackend : public ABackend
     t_file_status       openFile(std::string const &URI);
     async::Future::Poll writeFile();
 
-    Poll setResponse() throw(async::OsError, std::exception);
-    Poll poll() throw(async::OsError, std::exception);
+    Poll setResponse();
+    Poll poll();
 
   private:
     UploadBackend();

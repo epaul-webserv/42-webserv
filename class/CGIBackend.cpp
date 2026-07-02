@@ -30,7 +30,7 @@ CGIBackend::~CGIBackend(void)
     }
 }
 
-async::Future::Poll CGIBackend::poll() throw(async::OsError)
+async::Future::Poll CGIBackend::poll()
 {
     if (_status == _getting_request_body)
     {
@@ -367,7 +367,7 @@ void CGIBackend::init()
     _cgi_io = new async::BufIo<>(_reactor, sv[0]);
 }
 
-void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
+void CGIBackend::send_client_body_to_cgi()
 {
     while (!_client_body_sent)
     {
@@ -393,7 +393,7 @@ void CGIBackend::send_client_body_to_cgi() throw(async::OsError)
 
 #include "string_overload.hpp"
 
-void CGIBackend::read_cgi_headers() throw(async::OsError)
+void CGIBackend::read_cgi_headers()
 {
     if (!_response_headers_read_done)
     {
@@ -440,7 +440,7 @@ void CGIBackend::read_cgi_headers() throw(async::OsError)
     }
 }
 
-async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
+async::Future::Poll CGIBackend::set_body_writer()
 {
     if (_response_headers_read_done && response_body == NULL)
     {
@@ -462,7 +462,7 @@ async::Future::Poll CGIBackend::set_body_writer() throw(async::OsError)
     return Pending;
 }
 
-void CGIBackend::send_body() throw(async::OsError)
+void CGIBackend::send_body()
 {
     if (_response_headers_read_done && response_body)
     {

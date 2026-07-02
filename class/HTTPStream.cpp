@@ -148,6 +148,7 @@ async::Future::Poll HTTPStream::readHeaders()
         if ((_header_line.size() == 2 && _header_line[0] == '\r') ||
             (_header_line.size() == 1 && _header_line[0] == '\n'))
         {
+            _header_line.clear();
             if (!_current_header.first.empty())
                 request.headers[to_lower(_current_header.first)] = _current_header.second;
             break;
@@ -352,7 +353,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             if (_backend && _backend->poll() == Pending)
                 return (Pending);
         }
-        catch (std::runtime_error &e)
+        catch (IRequestBody::TooLargeException &e)
         {
             std::cerr << e.what() << std::endl;
             setErrorResponse("413", "Request Entity Too Large");
@@ -381,9 +382,9 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-            this->response.headers["Connection"] != "close")
-            return (this->keepAlive(), Future::Pending);
+        // if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
+        //     this->response.headers["Connection"] != "close")
+        //     return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
     return (Ready);
