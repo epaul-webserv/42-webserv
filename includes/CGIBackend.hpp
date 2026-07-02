@@ -52,7 +52,7 @@ class CGIBackend : public ABackend
 
     int _cgi_pid;
 
-    uint8_t _body_read_buf[4096];
+    uint8_t _body_read_buf[65535];
     size_t  _body_read_buf_len;
     size_t  _body_read_buf_index;
     bool    _client_body_sent;
@@ -62,10 +62,12 @@ class CGIBackend : public ABackend
     bool    _process_done;
     ssize_t _content_length;
 
-    status               _status;
-    IRequestBody        *client_body_reader;
-    std::vector<uint8_t> header_line;
-    std::vector<uint8_t> request_body;
+    status                                       _status;
+    IRequestBody                                *client_body_reader;
+    std::vector<uint8_t>                         header_line;
+    std::vector<std::vector<uint8_t> >           request_body;
+    std::vector<std::vector<uint8_t> >::iterator request_body_it;
+    size_t                                       request_body_size;
 
     uint8_t _response_buf[4096];
     size_t  _response_buf_len;

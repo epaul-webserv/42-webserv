@@ -31,7 +31,8 @@ template <size_t N> class ChunkedRequestBody : public IRequestBody
 
   public:
     ChunkedRequestBody(async::BufIo<N> &io, ssize_t max_size)
-        : io(io), max_size(max_size), read_total(0), step(CHUNK_SIZE), chunk_size(0), chunk_read(0)
+        : io(io), max_size(max_size), read_total(0), current_chunk_size(0), step(CHUNK_SIZE),
+          chunk_size(0), chunk_read(0)
     {
     }
     ~ChunkedRequestBody() {}
@@ -49,7 +50,9 @@ template <size_t N> class ChunkedRequestBody : public IRequestBody
 
     async::Future::Poll poll_read(container::Slice<uint8_t> &buf, size_t &s)
     {
-        container::Slice<uint8_t> b;
+        container::Slice<uint8_t>           b;
+        container::Slice<uint8_t>::iterator it;
+
         for (;;)
         {
 
@@ -60,22 +63,27 @@ template <size_t N> class ChunkedRequestBody : public IRequestBody
             case CHUNK_SIZE:
                 if (b.len() == 0)
                     throw std::runtime_error("unexpected EOF");
-                for (container::Slice<uint8_t>::iterator it = b.begin(); it != b.end(); it++)
+                for (it = b.begin(); it != b.end(); it++)
                 {
                     int x = from_hex(*it);
                     if (x < 0)
                     {
                         io.consume(it - b.begin());
                         step = CHUNK_SIZE_CRLF;
+                        current_chunk_size += chunk_size;
+                        if (max_size >= 0 && current_chunk_size < max_size)
+                            throw TooLargeException();
                         break;
                     }
                     chunk_size = chunk_size * 16 + x;
                 }
+                if (it == b.end())
+                    io.consume(b.len());
                 break;
             case CHUNK_SIZE_CRLF:
                 if (b.len() == 0)
                     throw std::runtime_error("unexpected EOF");
-                for (container::Slice<uint8_t>::iterator it = b.begin(); it != b.end(); it++)
+                for (it = b.begin(); it != b.end(); it++)
                 {
                     // FIXME: we accept a bit more the `chunk-ext`
                     if (*it == '\n')
@@ -92,20 +100,20 @@ template <size_t N> class ChunkedRequestBody : public IRequestBody
                         break;
                     }
                 }
+                if (it == b.end())
+                    io.consume(b.len());
                 break;
             case CHUNK_DATA:
                 if (b.len() == 0)
                     throw std::runtime_error("unexpected EOF");
                 s = b.len();
                 if (s >= chunk_size - chunk_read)
-                {
-                    // end of chunk reached
-                    s    = chunk_size - chunk_read;
-                    step = CHUNK_DATA_CR;
-                }
+                    s = chunk_size - chunk_read;
                 s = std::min(s, buf.len());
                 std::copy(b.begin(), b.begin() + s, buf.begin());
                 chunk_read += s;
+                if (chunk_size == chunk_read)
+                    step = CHUNK_DATA_CR;
                 io.consume(s);
                 return async::Future::Ready;
             case CHUNK_DATA_CR:

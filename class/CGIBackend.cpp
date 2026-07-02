@@ -12,7 +12,7 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &
       response_body(NULL), _cgi_pid(0), _body_read_buf_len(0), _body_read_buf_index(0),
       _client_body_sent(false), _response_headers_read_done(false), _status_set(false),
       _process_done(false), _content_length(-1), _status(_getting_request_body),
-      client_body_reader(NULL), _response_buf_len(0), _response_buf_index(0),
+      client_body_reader(NULL), request_body_size(0), _response_buf_len(0), _response_buf_index(0),
       _response_body_sent(false), _send_header_and_abort(false)
 {
     client_body_reader = stream.request_body();
@@ -202,8 +202,13 @@ async::Future::Poll CGIBackend::get_body()
     while (client_body_reader->poll_read(buff, s) == Ready)
     {
         if (s == 0)
+        {
+            request_body_it = request_body.begin();
+
             return Ready;
-        request_body.insert(request_body.end(), buff.begin(), buff.begin() + s);
+        }
+        request_body.push_back(std::vector<uint8_t>(buff.begin(), buff.begin() + s));
+        request_body_size += s;
     }
     return Pending;
 
@@ -265,9 +270,9 @@ void CGIBackend::init()
 
     // std::string encoding = request.peekHeader("transfer-encoding");
 
-    if (!request_body.empty())
+    if (request_body_size != 0)
     {
-        env_vector.push_back("CONTENT_LENGTH=" + toString(request_body.size()));
+        env_vector.push_back("CONTENT_LENGTH=" + toString(request_body_size));
         if (stream.request.peekHeader("content-type").empty())
         {
             stream.setErrorResponse("400", "Bad Request");
@@ -360,7 +365,7 @@ void CGIBackend::init()
     close(sv[1]);
     _socket_fd = sv[0];
 
-    if (request_body.size() == 0)
+    if (request_body_size == 0)
     {
         shutdown(_socket_fd, SHUT_WR);
         _client_body_sent = true;
@@ -373,14 +378,22 @@ void CGIBackend::send_client_body_to_cgi()
 {
     while (!_client_body_sent)
     {
-        if (_body_read_buf_index < request_body.size())
+        if (request_body_it != request_body.end())
         {
-            size_t                    write_written;
-            container::Slice<uint8_t> buff(&request_body[_body_read_buf_index],
-                                           request_body.size() - _body_read_buf_index);
-            if (_cgi_io->poll_write(buff, write_written) == Pending)
-                return;
-            _body_read_buf_index += write_written;
+            if (_body_read_buf_index < request_body_it->size())
+            {
+                size_t                    write_written;
+                container::Slice<uint8_t> buff(&(*request_body_it)[_body_read_buf_index],
+                                               request_body_it->size() - _body_read_buf_index);
+                if (_cgi_io->poll_write(buff, write_written) == Pending)
+                    return;
+                _body_read_buf_index += write_written;
+            }
+            else
+            {
+                ++request_body_it;
+                _body_read_buf_index = 0;
+            }
         }
         else
         {
@@ -471,7 +484,7 @@ void CGIBackend::send_body()
         {
             if (_response_buf_index == _response_buf_len)
             {
-                container::Slice<uint8_t> buff(_response_buf, 4096);
+                container::Slice<uint8_t> buff(_response_buf, sizeof(_response_buf));
                 if (_cgi_io->poll_read(buff, _response_buf_len) == Pending)
                     return;
                 _response_buf_index = 0;
