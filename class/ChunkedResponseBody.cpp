@@ -9,9 +9,10 @@ ChunkedResponseBody::ChunkedResponseBody(async::BufIo<65535> &io)
     _buf.resize(65535);
     std::ostringstream oss;
     oss << std::hex << _buf.size() - _reserved << "\r\n";
-    _header_size = oss.str().size();
-    _buf_filled  = _header_size;
-    std::copy(oss.str().c_str(), oss.str().c_str() + _header_size, &_buf[0]);
+    _header_size    = oss.str().size();
+    _buf_filled     = _header_size;
+    std::string str = oss.str();
+    std::copy(str.begin(), str.end(), &_buf[0]);
 }
 
 ChunkedResponseBody::~ChunkedResponseBody() {}
