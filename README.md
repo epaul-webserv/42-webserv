@@ -105,20 +105,6 @@ This block defines the default behavior for requests handled by the listener.
 
 ---
 
-### `root`
-
-```toml
-root = "/home/user/www"
-```
-
-Document root of the server.
-
-All relative paths are resolved from this directory.
-
-**Required:** Yes
-
----
-
 ### `path`
 
 ```toml
@@ -134,6 +120,21 @@ Defaults to:
 ```
 
 ---
+
+### `root`
+
+```toml
+root = "/home/user/www"
+```
+
+Document root of the server.
+
+All relative paths are resolved from this directory.
+
+**Required:** Yes
+
+---
+
 
 ### `index`
 
@@ -410,3 +411,84 @@ listen = { domain = "localhost", port = 42000 }
 ```
 
 Each listener is completely independent and owns its own server configuration. This allows the same application to serve different websites, roots, or behaviors depending on the listening port or hostname.
+
+## Example Conf file
+
+Here is a configuration file matching the tester requirements
+
+```toml
+mime_config = ["conf/mime_types.toml"]
+[[listeners]]
+	listen = { domain = "0.0.0.0", port = 33000 } # must be unique ?
+
+[listeners.server]
+	server_name = ""
+	directory_listing = true
+	file_upload = false
+	path = "/"
+	root = "/var/www/html"
+	method_map = [{ GET = [] }]                    
+	backends = [
+		[
+			"php",
+			"cgi",
+			[
+				"/bin/php-cgi",
+			],
+		],
+		[
+			"py",
+			"cgi",
+			[
+				"/bin/python3",
+			],
+		],
+		[
+			".bla",
+			"cgi",
+			[
+				"/home/user/goinfre/webserv/cgi_tester",
+			],
+		],
+	]
+
+[[listeners.server.location]]
+	path = "/"
+	root = "/home/user/goinfre/webserv"
+	file_upload = true
+	method_map = [{ POST = [".bla"] }]
+	backends = [[".bla", "cgi", ["/home/user/goinfre/webserv/cgi_tester"]]]
+
+[[listeners.server.location]]
+	path = "/"
+	root = "/home/user/goinfre/webserv"
+	method_map = [{ GET = [] }]
+
+[[listeners.server.location]]
+	path = "/directory"
+	root = "/home/user/goinfre/webserv/YoupiBanane"
+	file_upload = true
+	index = ["youpi.bad_extension"]
+	backends = [["php", "cgi", ["/bin/php-cgi"]]]
+	directory_listing = false
+	method_map = [{ GET = [] }]
+
+[[listeners.server.location]]
+	path = "/directory"
+	root = "/home/user/goinfre/webserv/YoupiBanane"
+	file_upload = true
+	index = ["youpi.bad_extension"]
+	backends = [[".bla", "cgi", ["/home/user/goinfre/webserv/cgi_tester"]]]
+	directory_listing = false
+	method_map = [{ POST = [".bla"] }]
+
+[[listeners.server.location]]
+	path = "/"
+	root = "/home/user/goinfre/webserv"
+	file_upload = true
+	max_resource_size = 100
+	directory_listing = false
+	method_map = [{ POST = ["post_body"] }]
+
+```
+
