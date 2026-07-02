@@ -98,6 +98,7 @@ async::Future::Poll HTTPStream::readFirstLine()
     if (_header_line.empty())
     {
         request.http_version = "HTTP/0.9";
+        setBrokenConnection();
         return (Ready);
     }
     get_next_word(_header_line, request.method);
@@ -205,7 +206,9 @@ async::Future::Poll HTTPStream::consume_body()
             return (Ready);
         }
     }
-    _body_read = true;
+    delete body;
+    _request_body = NULL;
+    _body_read    = true;
     return (Ready);
 }
 
@@ -230,6 +233,7 @@ async::Future::Poll HTTPStream::keepAlive()
     this->_headers_sent_bytes = 0;
     this->_current_header.first.clear();
     this->_current_header.second.clear();
+    this->_request_body = NULL;
     return (this->poll());
 }
 
@@ -337,6 +341,8 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
     {
         if (readRequest() == Pending)
             return (Pending);
+        if (this->_broken_connection)
+            return (Ready);
         if (this->_status != _processing_response)
             this->_status = _getting_backend;
     }
@@ -398,20 +404,23 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
 
 IRequestBody *HTTPStream::request_body()
 {
+    if (_request_body)
+        return (_request_body);
     if (request.method == "HEAD")
         return (NULL);
     if (!request.peekHeader("Content-Length").empty())
     {
         char  *end;
         size_t content_length = std::strtol(request.peekHeader("Content-Length").c_str(), &end, 10);
-
-        return (new PlainRequestBody(buf_io, content_length));
+        _request_body         = new PlainRequestBody(buf_io, content_length);
+        return (_request_body);
     }
     request.headers["content-length"] = "";
     if (request.peekHeader("Transfer-Encoding") == "chunked")
     {
-        return (new ChunkedRequestBody(buf_io, _max_resource_size,
-                                       request.headers["content-length"])); // TODO: set max_size
+        _request_body =
+            new ChunkedRequestBody(buf_io, _max_resource_size, request.headers["content-length"]);
+        return (_request_body);
     }
     return (NULL);
 }

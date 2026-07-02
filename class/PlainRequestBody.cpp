@@ -11,7 +11,7 @@ bool PlainRequestBody::fail() { return (_fail); };
 
 async::Future::Poll PlainRequestBody::poll_read(container::Slice<uint8_t> &buf, size_t &s)
 {
-    if (_fail || _to_read == _read)
+    if (_fail || (_to_read == _read))
     {
         s = 0;
         return (async::Future::Ready);

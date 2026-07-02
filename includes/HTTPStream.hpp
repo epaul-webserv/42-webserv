@@ -84,6 +84,7 @@ class HTTPStream : public async::Future
     size_t                              _headers_sent_bytes;
     async::BufIo<65535>                 buf_io;
     std::pair<std::string, std::string> _current_header;
+    IRequestBody                       *_request_body;
 };
 
 #endif
