@@ -261,16 +261,11 @@ bool HTTPStream::setStatusResponse()
         status_pages.find(response.http_status);
     if (it != status_pages.end())
     {
+        request.method      = "GET";
         request.URI         = it->second;
         request.rewrote_URI = it->second;
-        request.method      = "GET";
-        _saved_status       = response.http_status;
-        _saved_msg          = response.http_msg;
-        response.clear();
-        delete _backend;
-        _backend           = _router->resolve(*_reactor, *this, true);
-        _override_response = true;
-        _rerun             = true;
+        _override_response  = true;
+        _rerun              = true;
         return (true);
     }
     return (false);
@@ -374,7 +369,12 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
         }
         if (_rerun)
         {
-            _rerun = false;
+            _saved_status = response.http_status;
+            _saved_msg    = response.http_msg;
+            response.clear();
+            delete _backend;
+            _backend = _router->resolve(*_reactor, *this, true);
+            _rerun   = false;
             if (_backend && _backend->poll() == Pending)
                 return (Pending);
         }
@@ -423,10 +423,10 @@ async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
     response.addHeader("transfer-encoding", "chunked");
     if (this->sendHeaders() == Pending)
         return (Pending);
-    // if (response.content_length)
-    //     b = NULL;
-    // else
-    b = new ChunkedResponseBody(buf_io);
+    if (response.content_length || _rerun)
+        b = NULL;
+    else
+        b = new ChunkedResponseBody(buf_io);
     return async::Future::Ready;
 }
 
@@ -441,7 +441,7 @@ async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IRespo
     }
     if (this->sendHeaders() == Pending)
         return (Pending);
-    if (content_length <= 0)
+    if (response.content_length || content_length <= 0 || _rerun)
         b = NULL;
     else
         b = new PlainResponseBody(buf_io);
