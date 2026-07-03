@@ -28,6 +28,12 @@ class Acceptor : public async::Future
         : accept(reactor, fd), reactor(reactor), router(router)
     {
     }
+    ~Acceptor()
+    {
+        std::vector<HTTPStream *>::const_iterator ite = clients.end();
+        for (std::vector<HTTPStream *>::const_iterator it = clients.begin(); it != ite; ++it)
+            delete *it;
+    }
 
     Future::Poll poll() throw(async::OsError)
     {
