@@ -5,3 +5,6 @@ objs
 .idea
 .vscode
 test*
+cgi_tester
+tester
+serv_root/post_body

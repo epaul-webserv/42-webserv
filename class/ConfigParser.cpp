@@ -398,7 +398,7 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
         std::string       port           = "80";
         int64_t           port_nb        = 80;
 
-        // 1. Parse listen block
+        // Listen block
         toml::Toml::const_iterator listen_lookup = listener_table.find("listen");
         if (listen_lookup != listener_table.end() &&
             listen_lookup->second.type() == toml::Datum::Table)
@@ -443,30 +443,39 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
         Router &router = router_map[ai];
         router.setPort(port_nb);
 
-        // 2. Parse the server block inside this listener
         toml::Toml::const_iterator server_lookup = listener_table.find("server");
         if (server_lookup != listener_table.end())
         {
-            if (server_lookup->second.type() != toml::Datum::Table)
-                throw ConfigParser::ConfigError("server block must be a table");
-            const toml::Toml &server_table = server_lookup->second.as_table();
+            if (server_lookup->second.type() != toml::Datum::Array)
+                throw ConfigParser::ConfigError("server block must be an array of tables");
 
-            // Extract server_name for Router identification
-            std::string                server_name_key = "";
-            toml::Toml::const_iterator name_it         = server_table.find("server_name");
-            if (name_it != server_table.end())
+            const toml::Array &server_array = server_lookup->second.as_array();
+
+            toml::Array::const_iterator server_it = server_array.begin();
+            if (server_it == server_array.end())
+                throw ConfigParser::ConfigError("Empty Server block");
+            while (server_it != server_array.end())
             {
-                server_name_key = name_it->second.as_string();
+                if (server_it->type() != toml::Datum::Table)
+                    throw ConfigParser::ConfigError(
+                        "Each element in the server array must be a table");
+
+                const toml::Toml &server_table = server_it->as_table();
+
+                std::string                server_name_key = "";
+                toml::Toml::const_iterator name_it         = server_table.find("server_name");
+                if (name_it != server_table.end())
+                {
+                    server_name_key = name_it->second.as_string();
+                }
+                RouterNode server_root_node = parseLocationNode(server_table);
+                router.addServ(server_name_key, server_root_node);
+                server_it++;
             }
-
-            // Since the server table now acts exactly like a root location node
-            // and contains sub-locations, we pass it right into parseLocationNode!
-            RouterNode server_root_node = parseLocationNode(server_table);
-
-            // Add this complete virtual server tree structure straight to the router mapping
-            router.addServ(server_name_key, server_root_node);
         }
         else
+        {
             throw ConfigParser::ConfigError("Missing server block");
+        }
     }
 }
