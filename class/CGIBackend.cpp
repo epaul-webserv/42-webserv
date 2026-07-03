@@ -267,8 +267,8 @@ void CGIBackend::init()
         std::string header_val  = it->second;
         if (header_name == "content-type" || header_name == "content-length")
             continue;
-        if (header_name == "authorization" || header_name == "connection")
-            continue;
+        // if (header_name == "authorization" || header_name == "connection")
+        //     continue;
         for (size_t i = 0; i < header_name.length(); ++i)
         {
             if (header_name[i] == '-')
