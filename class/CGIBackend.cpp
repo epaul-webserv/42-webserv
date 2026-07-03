@@ -44,12 +44,24 @@ async::Future::Poll CGIBackend::poll()
         init();
     check_process_status();
     if (_send_header_and_abort)
-        return stream.poll_send_headers(response_body);
+    {
+        if (!response_body && stream.poll_send_headers(response_body) == Pending)
+            return Pending;
+        if (response_body)
+            return (response_body->poll_end());
+        return Ready;
+    }
 
     send_client_body_to_cgi();
     read_cgi_headers();
     if (_send_header_and_abort)
-        return stream.poll_send_headers(response_body);
+    {
+        if (!response_body && stream.poll_send_headers(response_body) == Pending)
+            return Pending;
+        if (response_body)
+            return (response_body->poll_end());
+        return Ready;
+    }
 
     if (set_body_writer() == Ready)
         return Ready;
@@ -78,8 +90,7 @@ void CGIBackend::check_process_status()
                 {
                     if (!_response_headers_read_done)
                         stream.setErrorResponse("500", "Internal Server Error");
-                    else
-                        stream.setBrokenConnection();
+                    stream.setBrokenConnection();
                     _send_header_and_abort = true;
                     return;
                 }

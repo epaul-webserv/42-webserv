@@ -423,16 +423,15 @@ async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
     response.addHeader("transfer-encoding", "chunked");
     if (this->sendHeaders() == Pending)
         return (Pending);
-    if (response.content_length)
-        b = NULL;
-    else
-        b = new ChunkedResponseBody(buf_io);
+    // if (response.content_length)
+    //     b = NULL;
+    // else
+    b = new ChunkedResponseBody(buf_io);
     return async::Future::Ready;
 }
 
 async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IResponseBody *&b)
 {
-
     this->response.eraseHeader("transfer-encoding");
     if (content_length != -1)
     {
@@ -442,7 +441,7 @@ async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IRespo
     }
     if (this->sendHeaders() == Pending)
         return (Pending);
-    if (response.content_length || content_length <= 0)
+    if (content_length <= 0)
         b = NULL;
     else
         b = new PlainResponseBody(buf_io);
