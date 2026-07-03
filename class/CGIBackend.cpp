@@ -18,7 +18,7 @@ CGIBackend::CGIBackend(std::vector<std::string> const &args, std::string const &
     client_body_reader = stream.request_body();
 }
 
-CGIBackend::~CGIBackend(void)
+CGIBackend::~CGIBackend()
 {
     if (_cgi_io != NULL)
         delete _cgi_io;
@@ -169,7 +169,7 @@ void CGIBackend::parse_cgi_status_value(const std::string &status_value, std::st
     }
 }
 
-bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_name)
+bool CGIBackend::check_files_validity(const char *cgi_name)
 {
     if (access(cgi_name, X_OK) != 0)
     {
@@ -178,16 +178,6 @@ bool CGIBackend::check_files_validity(const char *cgi_name, const char *script_n
         _send_header_and_abort = true;
         return false;
     }
-
-    // 2. Check if the target file exists and has Read (R_OK) permission
-    // if (access(script_name, R_OK) != 0)
-    // {
-    //     std::cerr << "Error: Target file is not readable or does not exist.\n";
-    //     stream.setErrorResponse("403", "Forbidden");
-    //     _send_header_and_abort = true;
-    //     return false;
-    // }
-    (void)script_name;
     return true;
 }
 
@@ -207,25 +197,6 @@ async::Future::Poll CGIBackend::get_body()
         request_body.insert(request_body.end(), buff.begin(), buff.begin() + s);
     }
     return Pending;
-
-    // std::string content_len = stream.request.peekHeader("content-length");
-    // if (content_len == "")
-    // {
-    //     _body_len = 0;
-    //     shutdown(_socket_fd, SHUT_WR);
-    //     _client_body_sent = true;
-    // }
-    // else
-    // {
-    //     char *ptr;
-    //     _body_len          = std::strtoul(content_len.c_str(), &ptr, 10);
-    //     client_body_reader = stream.request_body();
-    //     if (client_body_reader == NULL)
-    //     {
-    //         shutdown(_socket_fd, SHUT_WR);
-    //         _client_body_sent = true;
-    //     }
-    // }
 }
 
 #include "string_overload.hpp"
@@ -244,7 +215,7 @@ void CGIBackend::init()
     std::string script_name      = get_file_name(stream.request.URI);
     std::string script_full_path = std::string(_root) + "/" + script_name;
 
-    if (!check_files_validity(_args[0].c_str(), script_full_path.c_str()))
+    if (!check_files_validity(_args[0].c_str()))
         return;
 
     // This is supposed to be whats after the script filename, and before the query string,

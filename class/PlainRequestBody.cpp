@@ -7,7 +7,7 @@ PlainRequestBody::PlainRequestBody(async::BufIo<65535> &io, size_t const &to_rea
 
 PlainRequestBody::~PlainRequestBody() {}
 
-bool PlainRequestBody::fail() { return (_fail); };
+bool PlainRequestBody::fail() { return (_fail); }
 
 async::Future::Poll PlainRequestBody::poll_read(container::Slice<uint8_t> &buf, size_t &s)
 {

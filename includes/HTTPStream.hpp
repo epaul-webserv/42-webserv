@@ -33,11 +33,10 @@ class HTTPStream : public async::Future
 {
   public:
     HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-               socklen_t addr_len, Router &router, std::string host_str);
+               socklen_t addr_len, Router &router, const std::string &host_str);
     async::Future::Poll readRequest();
     ~HTTPStream();
 
-    HTTPStream         &operator=(HTTPStream const &other);
     Future::Poll        poll() throw(async::OsError);
     async::Future::Poll readFirstLine();
     async::Future::Poll readHeaders();
@@ -64,7 +63,8 @@ class HTTPStream : public async::Future
   private:
     HTTPStream();
     HTTPStream(HTTPStream const &other);
-    Poll sendHeaders() throw(async::OsError);
+    HTTPStream &operator=(HTTPStream const &other);
+    Poll        sendHeaders() throw(async::OsError);
 
     container::RingBuf<uint8_t, 65535> buf;
 

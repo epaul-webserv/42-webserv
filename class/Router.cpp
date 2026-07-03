@@ -77,7 +77,7 @@ ABackend *Router::getBackend(t_backend_type const           &backend_type,
     return (backend);
 }
 
-int Router::getPort() { return _port; }
+int Router::getPort() const { return _port; }
 
 void Router::setPort(int port) { _port = port; }
 
@@ -116,9 +116,7 @@ bool Router::validateRequest(HTTPStream &http_stream)
 
 RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &http_stream) const
 {
-    std::map<std::string, RouterNode>::const_iterator it;
-
-    it = this->_servers.find(host);
+    std::map<std::string, RouterNode>::const_iterator it = this->_servers.find(host);
     if (it == this->_servers.end())
     {
         it = this->_servers.find("");
@@ -161,9 +159,8 @@ bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
     std::string                              rev_URI(URI.rbegin(), URI.rend());
     std::vector<std::string>::const_iterator ite = array.end();
     size_t                                   n   = 1;
-    std::string                              cmp;
 
-    for (cmp = rev_URI.substr(0, n); n <= URI.size(); cmp = rev_URI.substr(0, ++n))
+    for (std::string cmp = rev_URI.substr(0, n); n <= URI.size(); cmp = rev_URI.substr(0, ++n))
     {
         if (std::find(array.begin(), array.end(), cmp) != ite)
             return (true);
@@ -175,13 +172,13 @@ RouterNode const *
 Router::matchSubPath_2(std::string &URI, std::string const &method,
                        std::multimap<std::string, RouterNode> const &matching_nodes)
 {
-    std::map<std::string, RouterNode>::const_iterator it;
     std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
     std::vector<std::string>                          suffixes;
     RouterNode const                                 *ret          = NULL;
     int                                               to_substract = 0;
 
-    for (it = matching_nodes.begin(); it != ite; ++it)
+    for (std::map<std::string, RouterNode>::const_iterator it = matching_nodes.begin(); it != ite;
+         ++it)
     {
         std::pair<std::map<std::string, std::vector<std::string> >::const_iterator,
                   std::map<std::string, std::vector<std::string> >::const_iterator>
@@ -299,9 +296,9 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
     {
         if (!ruleset.index_pages.empty())
         {
-            std::vector<std::string>::const_iterator it;
             std::vector<std::string>::const_iterator ite = ruleset.index_pages.end();
-            for (it = ruleset.index_pages.begin(); it != ite; ++it)
+            for (std::vector<std::string>::const_iterator it = ruleset.index_pages.begin();
+                 it != ite; ++it)
             {
                 if (fileType(http_stream.request.rewrote_URI + "/" + *it, ruleset.root) == _file)
                 {

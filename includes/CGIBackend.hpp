@@ -12,7 +12,7 @@ class CGIBackend : public ABackend
   public:
     CGIBackend(std::vector<std::string> const &args, std::string const &root,
                async::Reactor &reactor, HTTPStream &stream);
-    ~CGIBackend(void);
+    ~CGIBackend();
 
     // This must be called once Ready has been sent
     Poll poll();
@@ -31,10 +31,9 @@ class CGIBackend : public ABackend
                           std::string &value);
     void parse_cgi_status_value(const std::string &status_value, std::string &status_code,
                                 std::string &status_message);
-    bool check_files_validity(const char *cgi_name, const char *script_name);
+    bool check_files_validity(const char *cgi_name);
     async::Future::Poll get_body();
     void                init();
-    async::Future::Poll copy_to_cgi();
     void                check_process_status();
     void                send_client_body_to_cgi();
     void                read_cgi_headers();

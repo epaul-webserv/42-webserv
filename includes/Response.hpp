@@ -42,7 +42,6 @@ class Response
     void               eraseHeader(std::string const &key);
     std::string const &getHTTPVersion() const;
     std::string const &getHTTPStatus() const;
-    std::string        getIp();
     void               setHTTPVersion(std::string const &new_http_version);
 
     t_send_status send_status;

@@ -38,7 +38,7 @@ void MimeType::ParseConfig(const char *filepath)
 
     const toml::Array &mime_array = it->second.as_array();
     for (toml::Array::const_iterator array_it = mime_array.begin(); array_it != mime_array.end();
-         array_it++)
+         ++array_it)
     {
         if (array_it->type() != toml::Datum::Table)
             continue;
@@ -67,11 +67,11 @@ void MimeType::ParseConfig(const char *filepath)
 std::string MimeType::getType(std::string const &URI)
 {
     std::string                                        rev_URI(URI.rbegin(), URI.rend());
-    std::map<std::string, std::string>::const_iterator match;
     std::map<std::string, std::string>::const_iterator ite;
     size_t                                             n = 1;
 
-    for (match = mime_type.lower_bound(rev_URI.substr(0, n)); match != ite && n < URI.size();
+    for (std::map<std::string, std::string>::const_iterator match =
+             mime_type.lower_bound(rev_URI.substr(0, n)); match != ite && n < URI.size();
          match = mime_type.lower_bound(rev_URI.substr(0, ++n)))
     {
         if (match->first.empty())

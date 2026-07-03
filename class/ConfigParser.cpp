@@ -59,7 +59,7 @@ static t_backend_type get_backend_type(const std::string &type)
 // Helper to get addrinfo* from domain and port
 static struct addrinfo *resolve_listen(const std::string &domain, const std::string &port)
 {
-    struct addrinfo  hints;
+    struct addrinfo  hints  = {};
     struct addrinfo *result = NULL;
 
     memset(&hints, 0, sizeof(hints));

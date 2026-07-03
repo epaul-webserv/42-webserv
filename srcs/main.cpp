@@ -24,7 +24,7 @@ class Acceptor : public async::Future
     Router                    router;
 
   public:
-    Acceptor(async::Reactor &reactor, int fd, Router router)
+    Acceptor(async::Reactor &reactor, int fd, const Router &router)
         : accept(reactor, fd), reactor(reactor), router(router)
     {
     }
@@ -65,9 +65,9 @@ class Acceptor : public async::Future
             }
             catch (async::OsError &e)
             {
-                int s =
-                    getnameinfo((struct sockaddr *)&clients[i]->addr, clients[i]->addr_len, host,
-                                sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+                int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&clients[i]->addr),
+                                    clients[i]->addr_len, host, sizeof(host), port, sizeof(port),
+                                    NI_NUMERICHOST | NI_NUMERICSERV);
                 if (s != 0)
                 {
                     std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
@@ -133,7 +133,6 @@ class MultiAcceptor : public async::Future
 int main(int ac, char **av)
 {
     async::register_signal(SIGINT);
-    // TODO: router_map keys must bee freed with freeaddrinfo when exiting teh program
     std::map<struct addrinfo *, Router> router_map;
 
     if (ac != 2)
@@ -153,17 +152,17 @@ int main(int ac, char **av)
         return (1);
     }
 
-    int sfd = -1, s;
+    int sfd = -1;
 
     if (router_map.size() == 0)
         return (1);
 
-    async::Reactor                                reactor;
-    std::vector<Acceptor *>                       acceptors;
-    std::vector<int>                              sockets;
-    std::map<struct addrinfo *, Router>::iterator it;
+    async::Reactor          reactor;
+    std::vector<Acceptor *> acceptors;
+    std::vector<int>        sockets;
 
-    for (it = router_map.begin(); it != router_map.end(); ++it)
+    for (std::map<struct addrinfo *, Router>::iterator it = router_map.begin();
+         it != router_map.end(); ++it)
     {
         struct addrinfo *ai     = it->first;
         Router          &router = it->second;
@@ -188,8 +187,8 @@ int main(int ac, char **av)
             }
             char host[1024];
             char port[32];
-            s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
-                            NI_NUMERICHOST | NI_NUMERICSERV);
+            int s = getnameinfo(rp->ai_addr, rp->ai_addrlen, host, sizeof(host), port, sizeof(port),
+                                NI_NUMERICHOST | NI_NUMERICSERV);
             if (s != 0)
             {
                 std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";

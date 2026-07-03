@@ -32,38 +32,9 @@ bool decode_url(std::string &URI)
             else
                 return (false);
         }
-        else // FIXME : throw an error ?
+        else
             URI[wrote++] = URI[read];
     }
     URI.resize(wrote);
     return (true);
 }
-
-// /// @brief Translates a URL-encoded string into its ASCII form
-// /// @param URI Reference to the string to transform.
-// /// @return The translated ASCII string
-// std::string decode_url(std::string const &URI)
-// {
-//     std::string result;
-//
-//     if (URI.empty())
-//         return result;
-//     for (size_t read = 0; read < URI.size(); ++read)
-//     {
-//         if (URI[read] == '%' && read + 2 < URI.size())
-//         {
-//             if (std::isxdigit(URI[read + 1]) && std::isxdigit(URI[read + 2]))
-//             {
-//                 result += decodeChar(URI[read + 1], URI[read + 2]);
-//                 read += 2;
-//             }
-//             else
-//                 result += URI[++read];
-//         }
-//         else if (URI[read] == '+')
-//             result += ' ';
-//         else
-//             result += URI[read];
-//     }
-//     return (result);
-// }

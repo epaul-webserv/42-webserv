@@ -26,7 +26,7 @@ class Router
     static ABackend *getBackend(t_backend_type const           &backend_type,
                                 std::vector<std::string> const &args, std::string const &root,
                                 async::Reactor &reactor, HTTPStream &http_stream);
-    int              getPort();
+    int              getPort() const;
     void             setPort(int port);
 
   private:

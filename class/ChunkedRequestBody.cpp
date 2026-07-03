@@ -11,11 +11,11 @@ ChunkedRequestBody::ChunkedRequestBody(async::BufIo<65535> &io, ssize_t max_size
 
 ChunkedRequestBody::~ChunkedRequestBody() {}
 
-bool ChunkedRequestBody::fail() { return (_fail); };
+bool ChunkedRequestBody::fail() { return (_fail); }
 
 bool ChunkedRequestBody::header_cropped()
 {
-    int i;
+    size_t i;
     for (i = _buf_read; _buf[i] && (std::isxdigit(_buf[i]) || _buf[i] == '\r'); ++i)
         ;
     if (!_buf[i])

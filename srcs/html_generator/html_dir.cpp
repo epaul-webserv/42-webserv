@@ -89,14 +89,13 @@ std::string fill_blanks(DIR *dir, FdStream &fdstream, std::string const &path,
                         std::string const &root)
 {
     std::string html;
-    std::string temp;
 
     while (!fdstream.eof())
     {
         html.append(fdstream.get_str_until('['));
         if (fdstream.eof())
             break;
-        temp = fdstream.get_str_until(']');
+        std::string temp = fdstream.get_str_until(']');
         if (temp == "PATH")
             html.append(path);
         else if (temp == "FILELINE")
@@ -107,17 +106,15 @@ std::string fill_blanks(DIR *dir, FdStream &fdstream, std::string const &path,
 
 std::string get_html_dir(std::string const &path, std::string const &root)
 {
-    DIR *dir;
     int  fd = open("srcs/html_generator/dir_sample.html", O_RDONLY);
     if (fd == -1)
         throw(std::runtime_error("Template is absent"));
     FdStream    fdstream(fd);
-    std::string html;
 
-    dir = opendir((root + path).c_str());
+    DIR *dir = opendir((root + path).c_str());
     if (!dir)
         throw(std::runtime_error("Error while opening directory"));
-    html = fill_blanks(dir, fdstream, path, root);
+    std::string html = fill_blanks(dir, fdstream, path, root);
     closedir(dir);
     return (html);
 }

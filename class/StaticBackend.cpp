@@ -101,11 +101,10 @@ async::Future::Poll StaticBackend::sendResponse() throw(async::OsError)
     if (this->_ifile.is_open())
     {
         uint8_t buf[65535];
-        size_t  s;
 
         while (!this->_ifile.eof())
         {
-            s = 0;
+            size_t s = 0;
             this->_ifile.read(reinterpret_cast<std::istream::char_type *>(buf), sizeof(buf));
             if (_ifile.gcount() &&
                 _response_body->poll_write(container::Slice<uint8_t>(&buf[0], _ifile.gcount()),

@@ -9,7 +9,7 @@
 #include <iostream>
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-                       socklen_t addr_len, Router &router, std::string host_str)
+                       socklen_t addr_len, Router &router, const std::string &host_str)
     : addr(addr), addr_len(addr_len), _router(&router), _host_str(host_str), _max_resource_size(-1),
       _override_response(false), _rerun(false), _broken_connection(false), _keep_connection(false),
       _body_read(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
@@ -321,20 +321,6 @@ async::Future::Poll HTTPStream::sendHeaders() throw(async::OsError)
     }
     return (Ready);
 }
-//
-// HTTPStream &HTTPStream::operator=(HTTPStream const &other)
-// {
-//     if (this != &other)
-//     {
-//         addr     = other.addr;
-//         addr_len = other.addr_len;
-//         buf_io   = other.buf_io;
-//         _status  = other._status;
-//         _reactor = other._reactor;
-//         request  = other.request;
-//     }
-//     return (*this);
-// }
 
 async::Future::Poll HTTPStream::poll() throw(async::OsError)
 {
@@ -380,6 +366,7 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
         }
         catch (IRequestBody::BadReadException &e)
         {
+            std::cerr << e.what() << std::endl;
             setErrorResponse("413", "Bad body");
             if (this->sendHeaders() == Pending)
                 return Pending;
@@ -445,11 +432,11 @@ async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
 
 async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IResponseBody *&b)
 {
-    std::ostringstream oss;
 
     this->response.eraseHeader("transfer-encoding");
     if (content_length != -1)
     {
+        std::ostringstream oss;
         oss << content_length;
         this->response.addHeader("Content-Length", oss.str());
     }
