@@ -23,6 +23,7 @@ CGIBackend::~CGIBackend(void)
     if (_cgi_io != NULL)
         delete _cgi_io;
     delete client_body_reader;
+    delete response_body;
     if (_cgi_pid > 0)
     {
         kill(_cgi_pid, SIGKILL);
