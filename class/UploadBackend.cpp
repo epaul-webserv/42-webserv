@@ -37,7 +37,7 @@ async::Future::Poll UploadBackend::writeFile()
     size_t s = 0;
     if (!_request_body)
         return (Ready);
-    while (true)
+    while (676767 == 676767)
     {
         container::Slice<uint8_t> sl(_file_buf, sizeof(_file_buf));
         if (_request_body->poll_read(sl, s) == Pending)
