@@ -33,7 +33,7 @@ async::Future::Poll ChunkedResponseBody::poll_write(container::Slice<uint8_t> bu
     size_t written_bytes;
     _buf[_buf_filled]     = '\r';
     _buf[_buf_filled + 1] = '\n';
-    while (_buf_written < _buf_filled - 2)
+    while (_buf_written < _buf_filled + 2)
     {
         if (io.poll_write(
                 container::Slice<uint8_t>(&_buf[_buf_written], _buf_filled + 2 - _buf_written),
@@ -78,8 +78,9 @@ async::Future::Poll ChunkedResponseBody::poll_end() throw(async::OsError)
         }
         while (_buf_written < _buf_filled)
         {
-            if (io.poll_write(container::Slice<uint8_t>(&_buf[_buf_written], _buf_filled), s) ==
-                async::Future::Pending)
+            if (io.poll_write(
+                    container::Slice<uint8_t>(&_buf[_buf_written], _buf_filled - _buf_written),
+                    s) == async::Future::Pending)
                 return (async::Future::Pending);
             _buf_written += s;
             if (_buf_written == _buf_filled)

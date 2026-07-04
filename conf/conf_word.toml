@@ -12,6 +12,19 @@ mime_config = ["conf/mime_types.toml"]
 	# root = "/home/bl4st/github/webserv/serv_root"
 	root = "/srv/www/wordpress"
 	# root = "/srv/www/wordpress/pma"
-	method_map = [{ GET = [] }, { POST = [] }, { DELETE = [] }]
+	method_map = [
+		{ GET = [
+		] },
+		{ POST = [
+		] },
+		{ DELETE = [
+		] },
+		{ OPTIONS = [
+		] },
+		{ PUT = [
+		] },
+		{ PATCH = [
+		] },
+	]
 	# backends = [["php", "cgi", ["/usr/bin/env", "python3", "ok.py"]]]
 	backends = [["php", "cgi", ["/bin/php-cgi"]]]
