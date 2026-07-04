@@ -233,9 +233,8 @@ void CGIBackend::init()
     if (!check_files_validity(_args[0].c_str()))
         return;
 
-    // This is supposed to be whats after the script filename, and before the query string,
-    // but Logan Martin told me to trust him, "tkt" was his explanation, it convinced me
-    env_vector.push_back("PATH_INFO=" + stream.request.query_string); // for wordpress
+    // This is supposed to be what's after the script filename, not the query string.
+    env_vector.push_back("PATH_INFO=");
     // env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
     //                      get_file_name(stream.request.URI));
     // Internal decoded URI
@@ -257,9 +256,12 @@ void CGIBackend::init()
     // protocol
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
 
-    // env_vector.push_back("DOCUMENT_URI=" + stream.request.URI);
-    // env_vector.push_back("REQUEST_URI=" + stream.request.URI + "?" +
-    // stream.request.query_string);
+    std::string request_uri = stream.request.original_URI;
+    if (request_uri.empty())
+        request_uri = stream.request.URI;
+    if (!stream.request.query_string.empty())
+        request_uri += "?" + stream.request.query_string;
+    env_vector.push_back("REQUEST_URI=" + request_uri);
 
     // std::string encoding = request.peekHeader("transfer-encoding");
 
@@ -304,7 +306,7 @@ void CGIBackend::init()
     // env_vector.push_back("REMOTE_HOST=" + stream._host_str);
     // env_vector.push_back("REMOTE_IDENT=");
 
-    env_vector.push_back("REDIRECT_STATUS=");
+    env_vector.push_back("REDIRECT_STATUS=200");
 
     std::vector<char *> env_char;
     for (size_t i = 0; i < env_vector.size(); i++)

@@ -122,6 +122,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         request.query_string = request.URI.substr(request.URI.find('?') + 1);
         request.URI          = request.URI.substr(0, request.URI.find('?'));
     }
+    request.original_URI = request.URI;
     request.rewrote_URI = request.URI;
     if (request.http_version.empty())
     {
@@ -389,8 +390,11 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
+        std::multimap<std::string, std::string>::const_iterator connection_header =
+            this->response.headers.find("connection");
         if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-            this->response.headers["Connection"] != "close")
+            (connection_header == this->response.headers.end() ||
+             connection_header->second != "close"))
             return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }

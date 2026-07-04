@@ -48,7 +48,7 @@ class Response
     std::string   head;
     std::string   body;
 
-    std::map<std::string, std::string> headers;
+    std::multimap<std::string, std::string> headers;
 
   public:
     size_t               content_length;

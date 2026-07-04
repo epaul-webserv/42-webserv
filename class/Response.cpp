@@ -13,8 +13,10 @@ Response::Response() : send_status(_first_step), content_length(0), sent_bytes(0
 
 Response::Response(Response const &Response)
     : send_status(Response.send_status), head(Response.head), body(Response.body),
-      content_length(Response.content_length), sent_bytes(Response.sent_bytes),
-      http_version(Response.http_version), http_status(Response.http_status), sb(Response.sb)
+      headers(Response.headers), content_length(Response.content_length),
+      sent_bytes(Response.sent_bytes), http_version(Response.http_version),
+      http_status(Response.http_status), http_msg(Response.http_msg), send_buf(Response.send_buf),
+      sb(Response.sb)
 {
 }
 
@@ -51,8 +53,9 @@ void Response::headersAddBase()
         eraseHeader("transfer-encoding");
         addHeader("content-length", tmp.str());
     }
-    std::map<std::string, std::string>::const_iterator ite = headers.end();
-    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != ite; ++it)
+    std::multimap<std::string, std::string>::const_iterator ite = headers.end();
+    for (std::multimap<std::string, std::string>::const_iterator it = headers.begin(); it != ite;
+         ++it)
         _head << it->first << ": " << it->second << "\r\n";
     head.insert(0, _head.str());
     head.append("\r\n");
@@ -69,7 +72,7 @@ void Response::headAppend(std::string const &content)
 
 void Response::addHeader(std::string const &key, std::string const &value)
 {
-    this->headers[to_lower(key)] = value;
+    this->headers.insert(std::make_pair(to_lower(key), value));
 }
 
 void Response::eraseHeader(std::string const &key) { this->headers.erase(to_lower(key)); }

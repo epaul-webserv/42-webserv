@@ -296,10 +296,14 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             for (std::vector<std::string>::const_iterator it = ruleset.index_pages.begin();
                  it != ite; ++it)
             {
-                if (fileType(http_stream.request.rewrote_URI + "/" + *it, ruleset.root) == _file)
+                std::string index_uri = http_stream.request.rewrote_URI;
+                if (index_uri.empty() || index_uri[index_uri.size() - 1] != '/')
+                    index_uri += "/";
+                index_uri += *it;
+                if (fileType(index_uri, ruleset.root) == _file)
                 {
-                    http_stream.request.URI         = "/" + *it;
-                    http_stream.request.rewrote_URI = "/" + *it;
+                    http_stream.request.URI         = index_uri;
+                    http_stream.request.rewrote_URI = index_uri;
                     return (defineBackend(ruleset, reactor, http_stream, force));
                 }
                 if (ruleset.list_directories == _false)

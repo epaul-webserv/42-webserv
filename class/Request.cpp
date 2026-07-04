@@ -5,8 +5,9 @@
 Request::Request() {}
 
 Request::Request(Request const &Request)
-    : method(Request.method), URI(Request.URI), http_version(Request.http_version),
-      headers(Request.headers)
+    : method(Request.method), URI(Request.URI), original_URI(Request.original_URI),
+      rewrote_URI(Request.rewrote_URI), query_string(Request.query_string),
+      http_version(Request.http_version), headers(Request.headers)
 {
 }
 
@@ -18,6 +19,9 @@ Request &Request::operator=(Request const &other)
     {
         this->method       = other.method;
         this->URI          = other.URI;
+        this->original_URI = other.original_URI;
+        this->rewrote_URI  = other.rewrote_URI;
+        this->query_string = other.query_string;
         this->http_version = other.http_version;
         this->headers      = other.headers;
     }
@@ -28,6 +32,7 @@ void Request::clear()
 {
     this->method.clear();
     this->URI.clear();
+    this->original_URI.clear();
     this->rewrote_URI.clear();
     this->query_string.clear();
     this->http_version.clear();
@@ -38,6 +43,7 @@ void Request::prepareNextRead()
 {
     this->method.clear();
     this->URI.clear();
+    this->original_URI.clear();
     this->rewrote_URI.clear();
     this->query_string.clear();
     this->http_version.clear();
