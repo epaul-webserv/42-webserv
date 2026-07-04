@@ -89,11 +89,11 @@ bool Router::validateRequest(HTTPStream &http_stream)
             if (http_stream.request.peekHeader("host").empty())
             {
                 http_stream.setErrorResponse("400", "Bad Request");
-                http_stream.response.addHeader("Connection", "close");
+                http_stream.response.setHeader("Connection", "close");
                 return (false);
             }
             if (http_stream.request.peekHeader("connection") != "close")
-                http_stream.response.addHeader("Connection", "keep-alive");
+                http_stream.response.setHeader("Connection", "keep-alive");
         }
     }
     else if (http_version != "HTTP/0.9")
@@ -285,7 +285,7 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
         case _permanent:
             http_stream.setHTTPStatus("301", "Moved Permanently");
         }
-        http_stream.response.addHeader("Location", matching_redirect->second.first);
+        http_stream.response.setHeader("Location", matching_redirect->second.first);
         return (NULL);
     }
     if (fileType(http_stream.request.rewrote_URI, ruleset.root) == _dir)

@@ -51,7 +51,7 @@ void Response::headersAddBase()
         std::ostringstream tmp;
         tmp << content_length;
         eraseHeader("transfer-encoding");
-        addHeader("content-length", tmp.str());
+        setHeader("content-length", tmp.str());
     }
     std::multimap<std::string, std::string>::const_iterator ite = headers.end();
     for (std::multimap<std::string, std::string>::const_iterator it = headers.begin(); it != ite;
@@ -73,6 +73,12 @@ void Response::headAppend(std::string const &content)
 void Response::addHeader(std::string const &key, std::string const &value)
 {
     this->headers.insert(std::make_pair(to_lower(key), value));
+}
+
+void Response::setHeader(std::string const &key, std::string const &value)
+{
+    eraseHeader(key);
+    addHeader(key, value);
 }
 
 void Response::eraseHeader(std::string const &key) { this->headers.erase(to_lower(key)); }

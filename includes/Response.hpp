@@ -39,6 +39,7 @@ class Response
     void               bodyAppend(std::string const &resp);
     void               bodySet(std::string const &resp);
     void               addHeader(std::string const &key, std::string const &value);
+    void               setHeader(std::string const &key, std::string const &value);
     void               eraseHeader(std::string const &key);
     std::string const &getHTTPVersion() const;
     std::string const &getHTTPStatus() const;

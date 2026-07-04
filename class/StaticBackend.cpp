@@ -22,7 +22,7 @@ void StaticBackend::setContentType(std::string const &URI, Response &response)
 
     if (mime_type.empty())
         mime_type = "application/octet-stream";
-    response.addHeader("Content-Type", mime_type);
+    response.setHeader("Content-Type", mime_type);
 }
 
 async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
@@ -33,7 +33,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
         {
         case _dir:
             http_stream->response.bodySet(get_html_dir(http_stream->request.rewrote_URI, root));
-            http_stream->response.addHeader("Content-Type", "text/html");
+            http_stream->response.setHeader("Content-Type", "text/html");
             http_stream->setHTTPStatus("200", "Ok");
             return Ready;
         case _no_access:
@@ -63,7 +63,7 @@ async::Future::Poll StaticBackend::setResponse() throw(async::OsError)
         switch (Router::fileType(http_stream->request.rewrote_URI, root))
         {
         case _dir:
-            http_stream->response.addHeader("Content-Type", "text/html");
+            http_stream->response.setHeader("Content-Type", "text/html");
             http_stream->setHTTPStatus("200", "Ok");
             return Ready;
         case _no_access:
@@ -177,9 +177,9 @@ t_file_status StaticBackend::openFile(std::string const &path, Response &respons
         return (_not_found);
     Date mod_date(&_sb.st_mtime);
     if (mod_date <= Date())
-        response.addHeader("Last-Modified", mod_date.str());
+        response.setHeader("Last-Modified", mod_date.str());
     else
-        response.addHeader("Last-Modified", Date().str());
+        response.setHeader("Last-Modified", Date().str());
     std::string etag = generateEtag();
     if (!conditionalGet(etag))
         return (_not_modified);
@@ -188,6 +188,6 @@ t_file_status StaticBackend::openFile(std::string const &path, Response &respons
         return (_no_permission);
     std::ostringstream oss;
     oss << this->_sb.st_size;
-    response.addHeader("Etag", etag);
+    response.setHeader("Etag", etag);
     return (_open);
 }

@@ -70,7 +70,7 @@ async::Future::Poll UploadBackend::setResponse()
             }
             return (Pending);
         }
-        http_stream.response.addHeader("Content-Length", "0");
+        http_stream.response.setHeader("Content-Length", "0");
         // http_stream.response.addHeader("Connection", "close");
         http_stream.setHTTPStatus("201", "Created");
         return (Ready);
@@ -99,9 +99,9 @@ async::Future::Poll UploadBackend::setResponse()
                 http_stream.setErrorResponse("413", "Request Entity Too Large");
                 break;
             }
-            http_stream.response.addHeader("Content-Length", "0");
+            http_stream.response.setHeader("Content-Length", "0");
             // http_stream.response.addHeader("Connection", "close");
-            http_stream.response.addHeader("Location", http_stream.request.URI);
+            http_stream.response.setHeader("Location", http_stream.request.URI);
             http_stream.setHTTPStatus("201", "Created");
             break;
         default:

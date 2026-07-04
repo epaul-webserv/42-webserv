@@ -37,11 +37,11 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
 
     if (line.empty())
         return (0);
-    while (!line.empty() && line[len] && std::isspace(line[len]))
+    while (!line.empty() && std::isspace(static_cast<unsigned char>(line[0])))
         line.erase(line.begin()), ++skipped;
     if (line.empty())
         return (skipped);
-    while (line[len] && !std::isspace(line[len]))
+    while (len < line.size() && !std::isspace(static_cast<unsigned char>(line[len])))
         ++len;
     dest = std::string(&line[0], &line[len]);
     line.erase(line.begin(), line.begin() + len);
@@ -56,11 +56,12 @@ static std::string get_next_word(std::vector<uint8_t> &line, char const &last_ch
 
     if (line.empty())
         return (dest);
-    while (!line.empty() && line[len] && std::isspace(line[len]))
+    while (!line.empty() && std::isspace(static_cast<unsigned char>(line[0])))
         line.erase(line.begin()), ++skipped;
     if (line.empty())
         return (dest);
-    while (line[len] && !std::isspace(line[len]) && (!len || line[len - 1] != last_char))
+    while (len < line.size() && !std::isspace(static_cast<unsigned char>(line[len])) &&
+           (!len || line[len - 1] != last_char))
         ++len;
     dest = std::string(&line[0], &line[len]);
     line.erase(line.begin(), line.begin() + len);
@@ -75,13 +76,13 @@ static std::string get_end_of_line(std::vector<uint8_t> &line)
 
     if (line.empty())
         return (dest);
-    while (line[len] && std::isspace(line[len]))
+    while (!line.empty() && std::isspace(static_cast<unsigned char>(line[0])))
     {
         line.erase(line.begin()), ++skipped;
         if (line.empty())
             return (dest);
     }
-    while (line[len] && line[len] != '\r' && line[len] != '\n')
+    while (len < line.size() && line[len] != '\r' && line[len] != '\n')
         ++len;
     dest = std::string(&line[0], &line[len]);
     line.erase(line.begin(), line.begin() + len);
@@ -254,7 +255,7 @@ void HTTPStream::setErrorResponse(std::string const &status, std::string const &
 {
     setHTTPStatus(status, message);
     response.bodySet(get_html_error(response.http_status, response.http_msg));
-    response.addHeader("content-type", "text/html");
+    response.setHeader("content-type", "text/html");
 }
 
 bool HTTPStream::setStatusResponse()
@@ -390,11 +391,18 @@ async::Future::Poll HTTPStream::poll() throw(async::OsError)
             this->_keep_connection    = false;
             return (Future::Pending);
         }
-        std::multimap<std::string, std::string>::const_iterator connection_header =
-            this->response.headers.find("connection");
+        bool connection_close = false;
+        std::pair<std::multimap<std::string, std::string>::const_iterator,
+                  std::multimap<std::string, std::string>::const_iterator>
+            connection_headers = this->response.headers.equal_range("connection");
+        for (std::multimap<std::string, std::string>::const_iterator it = connection_headers.first;
+             it != connection_headers.second; ++it)
+        {
+            if (it->second == "close")
+                connection_close = true;
+        }
         if (!this->_broken_connection && this->request.http_version == "HTTP/1.1" &&
-            (connection_header == this->response.headers.end() ||
-             connection_header->second != "close"))
+            !connection_close)
             return (this->keepAlive(), Future::Pending);
         return (Future::Ready);
     }
@@ -427,7 +435,7 @@ IRequestBody *HTTPStream::request_body()
 async::Future::Poll HTTPStream::poll_send_headers(IResponseBody *&b)
 {
     this->response.eraseHeader("Content-Length");
-    response.addHeader("transfer-encoding", "chunked");
+    response.setHeader("transfer-encoding", "chunked");
     if (this->sendHeaders() == Pending)
         return (Pending);
     if (response.content_length || _rerun)
@@ -444,7 +452,7 @@ async::Future::Poll HTTPStream::poll_send_headers(ssize_t content_length, IRespo
     {
         std::ostringstream oss;
         oss << content_length;
-        this->response.addHeader("Content-Length", oss.str());
+        this->response.setHeader("Content-Length", oss.str());
     }
     if (this->sendHeaders() == Pending)
         return (Pending);
