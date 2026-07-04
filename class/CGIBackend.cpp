@@ -233,37 +233,35 @@ void CGIBackend::init()
     if (!check_files_validity(_args[0].c_str()))
         return;
 
-    // This is supposed to be what's after the script filename, not the query string.
-    env_vector.push_back("PATH_INFO=");
-    // env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
-    //                      get_file_name(stream.request.URI));
-    // Internal decoded URI
-    // env_vector.push_back("PATH_TRANSLATED=" + script_full_path);
-    env_vector.push_back("DOCUMENT_ROOT=" + _root);
-    env_vector.push_back("SCRIPT_NAME=" + stream.request.rewrote_URI);
-    // Tells the cgi EXACTLY what file to run
-    env_vector.push_back("SCRIPT_FILENAME=" + _root + stream.request.rewrote_URI); // for wordpress
-    // env_vector.push_back("SCRIPT_FILENAME=" + std::string(_root) + "/" +
-    //                      get_file_name(stream.request.URI));
+    env_vector.push_back("PATH_TRANSLATED=" + std::string(_root) + "/" +
+                         get_file_name(stream.request.URI));
 
     env_vector.push_back("SERVER_ADDR=" + toString(stream.server_host));
     env_vector.push_back("SERVER_PORT=" + toString(stream.server_port));
 
-    // name of teh server on the network ?
     // env_vector.push_back("SERVER_NAME=" + std::string(PROGNAME)); // REMOVE
     // name of the program
     env_vector.push_back("SERVER_SOFTWARE=" + std::string(PROGNAME));
     // protocol
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
 
+    // TESTER
+    // env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
+    //                      get_file_name(stream.request.URI));
+    // env_vector.push_back("SCRIPT_FILENAME=" + std::string(_root) + "/" +
+    //                      get_file_name(stream.request.URI));
+
+    // WORDPRESS
+    env_vector.push_back("PATH_INFO=");
+    env_vector.push_back("SCRIPT_FILENAME=" + _root + stream.request.rewrote_URI); // for
+    env_vector.push_back("DOCUMENT_ROOT=" + _root);
+    env_vector.push_back("SCRIPT_NAME=" + stream.request.rewrote_URI);
     std::string request_uri = stream.request.original_URI;
     if (request_uri.empty())
         request_uri = stream.request.URI;
     if (!stream.request.query_string.empty())
         request_uri += "?" + stream.request.query_string;
     env_vector.push_back("REQUEST_URI=" + request_uri);
-
-    // std::string encoding = request.peekHeader("transfer-encoding");
 
     if (!request_body.empty())
     {
@@ -347,7 +345,8 @@ void CGIBackend::init()
         argv.reserve(_args.size() + 2);
         for (size_t i = 0; i < _args.size(); i++)
             argv.push_back(const_cast<char *>(_args[i].c_str()));
-        argv.push_back(const_cast<char *>(stream.request.rewrote_URI.c_str()));
+        std::string exec = _root + stream.request.rewrote_URI;
+        argv.push_back(const_cast<char *>(exec.c_str()));
         argv.push_back(NULL);
         if (chdir(_root.c_str()) != 0)
         {
