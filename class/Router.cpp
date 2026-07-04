@@ -302,9 +302,9 @@ ABackend *Router::defineBackend(RouterRuleset const &ruleset, async::Reactor &re
             {
                 if (fileType(http_stream.request.rewrote_URI + "/" + *it, ruleset.root) == _file)
                 {
+                    http_stream.request.URI         = "/" + *it;
                     http_stream.request.rewrote_URI = "/" + *it;
-                    return (getBackend(_static, std::vector<std::string>(), ruleset.root, reactor,
-                                       http_stream));
+                    return (defineBackend(ruleset, reactor, http_stream, force));
                 }
                 if (ruleset.list_directories == _false)
                 {
