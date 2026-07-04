@@ -26,8 +26,6 @@ class Router
     static ABackend *getBackend(t_backend_type const           &backend_type,
                                 std::vector<std::string> const &args, std::string const &root,
                                 async::Reactor &reactor, HTTPStream &http_stream);
-    int              getPort() const;
-    void             setPort(int port);
 
   private:
     static bool       validateRequest(HTTPStream &http_stream);
@@ -35,9 +33,9 @@ class Router
     static bool       matchSubPath(std::string const                            &URI,
                                    std::multimap<std::string, RouterNode>       &matching_nodes,
                                    std::multimap<std::string, RouterNode> const &sub_nodes);
-    static RouterNode const                       *
+    static RouterNode const *
     matchSubPath_2(std::string &URI, std::string const &method,
-                                         std::multimap<std::string, RouterNode> const &matching_nodes);
+                   std::multimap<std::string, RouterNode> const &matching_nodes);
     static RouterRuleset *defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
                                         RouterRuleset &ruleset);
     static ABackend      *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,
@@ -45,7 +43,7 @@ class Router
 
     std::map<std::string, RouterNode>
         _servers; // Servers identified by domain[:port(if other than 80)]
-    int _port;
+    // int _port;
 };
 
 #endif

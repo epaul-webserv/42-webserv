@@ -9,12 +9,15 @@
 #include <iostream>
 
 HTTPStream::HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-                       socklen_t addr_len, Router &router, const std::string &host_str)
-    : addr(addr), addr_len(addr_len), _router(&router), _host_str(host_str), _max_resource_size(-1),
-      _override_response(false), _rerun(false), _broken_connection(false), _keep_connection(false),
-      _body_read(false), _status(_fetching_request), _reactor(&reactor), _backend(NULL),
-      _headers_status(_initializing_headers), _headers_sent_bytes(0), buf_io(reactor, fd),
-      _request_body(NULL)
+                       socklen_t addr_len, Router &router, const std::string client_host,
+                       const std::string client_port, const std::string server_host,
+                       const std::string server_port)
+    : addr(addr), addr_len(addr_len), _router(&router), client_host(client_host),
+      client_port(client_port), server_host(server_host), server_port(server_port),
+      _max_resource_size(-1), _override_response(false), _rerun(false), _broken_connection(false),
+      _keep_connection(false), _body_read(false), _status(_fetching_request), _reactor(&reactor),
+      _backend(NULL), _headers_status(_initializing_headers), _headers_sent_bytes(0),
+      buf_io(reactor, fd), _request_body(NULL)
 {
 }
 

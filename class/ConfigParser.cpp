@@ -441,7 +441,6 @@ void ConfigParser::ParseConfig(std::map<struct addrinfo *, Router> &router_map,
         }
 
         Router &router = router_map[ai];
-        router.setPort(port_nb);
 
         toml::Toml::const_iterator server_lookup = listener_table.find("server");
         if (server_lookup != listener_table.end())

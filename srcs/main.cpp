@@ -22,10 +22,14 @@ class Acceptor : public async::Future
     async::Reactor           &reactor;
     std::vector<HTTPStream *> clients;
     Router                    router;
+    const std::string         server_host;
+    const std::string         server_port;
 
   public:
-    Acceptor(async::Reactor &reactor, int fd, const Router &router)
-        : accept(reactor, fd), reactor(reactor), router(router)
+    Acceptor(async::Reactor &reactor, int fd, const Router &router, std::string host,
+             std::string port)
+        : accept(reactor, fd), reactor(reactor), router(router), server_host(host),
+          server_port(port)
     {
     }
     ~Acceptor()
@@ -40,21 +44,23 @@ class Acceptor : public async::Future
         int                     fd;
         struct sockaddr_storage addr;
         socklen_t               addr_len = sizeof(addr);
-        char                    host[1024];
-        char                    port[32];
+        char                    client_host[1024];
+        char                    client_port[32];
 
         while (accept.poll_accept(reinterpret_cast<struct sockaddr *>(&addr), &addr_len, fd) ==
                Future::Ready)
         {
-            int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&addr), addr_len, host,
-                                sizeof(host), port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV);
+            int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&addr), addr_len, client_host,
+                                sizeof(client_host), client_port, sizeof(client_port),
+                                NI_NUMERICHOST | NI_NUMERICSERV);
             if (s != 0)
             {
                 std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
                 exit(EXIT_FAILURE);
             }
-            std::cout << host << ":" << port << " is connected\n";
-            clients.push_back(new HTTPStream(reactor, fd, addr, addr_len, router, host));
+            std::cout << client_host << ":" << client_port << " is connected\n";
+            clients.push_back(new HTTPStream(reactor, fd, addr, addr_len, router, client_host,
+                                             client_port, server_host, server_port));
         }
         for (size_t i = 0; i < clients.size(); i++)
         {
@@ -65,31 +71,15 @@ class Acceptor : public async::Future
             }
             catch (async::OsError &e)
             {
-                int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&clients[i]->addr),
-                                    clients[i]->addr_len, host, sizeof(host), port, sizeof(port),
-                                    NI_NUMERICHOST | NI_NUMERICSERV);
-                if (s != 0)
-                {
-                    std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
-                    exit(EXIT_FAILURE);
-                }
-                std::cerr << "Error " << host << ":" << port << ": " << e.what() << " (os error "
-                          << e.errrno() << ")\n";
+                std::cerr << "Error " << clients[i]->client_host << ":" << clients[i]->client_port
+                          << ": " << e.what() << " (os error " << e.errrno() << ")\n";
                 delete clients[i];
                 clients.erase(clients.begin() + i);
                 continue;
             }
             if (poll == Future::Ready)
             {
-                int s = getnameinfo(reinterpret_cast<struct sockaddr *>(&clients[i]->addr),
-                                    clients[i]->addr_len, host, sizeof(host), port, sizeof(port),
-                                    NI_NUMERICHOST | NI_NUMERICSERV);
-                if (s != 0)
-                {
-                    std::cerr << "getnameinfo: " << gai_strerror(s) << "\n";
-                    exit(EXIT_FAILURE);
-                }
-                std::cout << host << ":" << port << " left\n";
+                std::cout << clients[i]->client_host << ":" << clients[i]->client_port << " left\n";
                 delete clients[i];
                 clients.erase(clients.begin() + i);
             }
@@ -204,7 +194,7 @@ int main(int ac, char **av)
             }
             std::cout << "Listening on " << host << ":" << port << "\n";
             found = true;
-            acceptors.push_back(new Acceptor(reactor, sfd, router));
+            acceptors.push_back(new Acceptor(reactor, sfd, router, host, port));
         }
 
         if (!found)

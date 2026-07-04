@@ -33,7 +33,9 @@ class HTTPStream : public async::Future
 {
   public:
     HTTPStream(async::Reactor &reactor, int fd, const struct sockaddr_storage &addr,
-               socklen_t addr_len, Router &router, const std::string &host_str);
+               socklen_t addr_len, Router &router, const std::string client_host,
+               const std::string client_port, const std::string server_host,
+               const std::string server_port);
     async::Future::Poll readRequest();
     ~HTTPStream();
 
@@ -57,8 +59,13 @@ class HTTPStream : public async::Future
     socklen_t                          addr_len;
     std::map<std::string, std::string> status_pages;
     Router                            *_router;
-    const std::string                  _host_str;
-    ssize_t                            _max_resource_size;
+
+    const std::string client_host;
+    const std::string client_port;
+    const std::string server_host;
+    const std::string server_port;
+
+    ssize_t _max_resource_size;
 
   private:
     HTTPStream();

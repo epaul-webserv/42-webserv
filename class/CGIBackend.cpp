@@ -192,6 +192,12 @@ bool CGIBackend::check_files_validity(const char *cgi_name)
     return true;
 }
 
+std::string get_document_root(std::string file)
+{
+    size_t n = file.find_last_of('/');
+    return file.substr(0, n);
+}
+
 async::Future::Poll CGIBackend::get_body()
 {
     if (client_body_reader == NULL)
@@ -223,28 +229,37 @@ void CGIBackend::init()
     env_vector.push_back("REQUEST_METHOD=" + stream.request.method);
 
     // The name of the file being executed
-    std::string script_name      = get_file_name(stream.request.URI);
-    std::string script_full_path = std::string(_root) + "/" + script_name;
 
     if (!check_files_validity(_args[0].c_str()))
         return;
 
     // This is supposed to be whats after the script filename, and before the query string,
     // but Logan Martin told me to trust him, "tkt" was his explanation, it convinced me
-    env_vector.push_back("PATH_INFO=" + script_full_path);
+    env_vector.push_back("PATH_INFO=" + stream.request.query_string); // for wordpress
+    // env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
+    //                      get_file_name(stream.request.URI));
     // Internal decoded URI
-    env_vector.push_back("PATH_TRANSLATED=" + script_full_path);
+    // env_vector.push_back("PATH_TRANSLATED=" + script_full_path);
+    env_vector.push_back("DOCUMENT_ROOT=" + _root);
+    env_vector.push_back("SCRIPT_NAME=" + stream.request.rewrote_URI);
     // Tells the cgi EXACTLY what file to run
-    env_vector.push_back("SCRIPT_FILENAME=" + script_full_path);
+    env_vector.push_back("SCRIPT_FILENAME=" + _root + stream.request.rewrote_URI); // for wordpress
+    // env_vector.push_back("SCRIPT_FILENAME=" + std::string(_root) + "/" +
+    //                      get_file_name(stream.request.URI));
 
-    env_vector.push_back("SERVER_PORT=" + toString(stream._router->getPort()));
+    env_vector.push_back("SERVER_ADDR=" + toString(stream.server_host));
+    env_vector.push_back("SERVER_PORT=" + toString(stream.server_port));
 
     // name of teh server on the network ?
-    env_vector.push_back("SERVER_NAME=" + std::string(PROGNAME));
+    // env_vector.push_back("SERVER_NAME=" + std::string(PROGNAME)); // REMOVE
     // name of the program
     env_vector.push_back("SERVER_SOFTWARE=" + std::string(PROGNAME));
     // protocol
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
+
+    // env_vector.push_back("DOCUMENT_URI=" + stream.request.URI);
+    // env_vector.push_back("REQUEST_URI=" + stream.request.URI + "?" +
+    // stream.request.query_string);
 
     // std::string encoding = request.peekHeader("transfer-encoding");
 
@@ -281,9 +296,12 @@ void CGIBackend::init()
     // Really ?
     env_vector.push_back("AUTH_TYPE=");
     env_vector.push_back("GATEWAY_INTERFACE=CGI/1.1");
-    env_vector.push_back("REMOTE_ADDR=" + stream._host_str);
+
+    env_vector.push_back("REMOTE_ADDR=" + stream.client_host);
+    env_vector.push_back("REMOTE_PORT=" + stream.client_port);
+
     // ill just use the numeric addr
-    env_vector.push_back("REMOTE_HOST=" + stream._host_str);
+    // env_vector.push_back("REMOTE_HOST=" + stream._host_str);
     // env_vector.push_back("REMOTE_IDENT=");
 
     env_vector.push_back("REDIRECT_STATUS=");
@@ -327,7 +345,7 @@ void CGIBackend::init()
         argv.reserve(_args.size() + 2);
         for (size_t i = 0; i < _args.size(); i++)
             argv.push_back(const_cast<char *>(_args[i].c_str()));
-        argv.push_back(const_cast<char *>(script_full_path.c_str()));
+        argv.push_back(const_cast<char *>(stream.request.rewrote_URI.c_str()));
         argv.push_back(NULL);
         if (chdir(_root.c_str()) != 0)
         {
