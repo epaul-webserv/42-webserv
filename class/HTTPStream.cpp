@@ -70,22 +70,24 @@ static std::string get_next_word(std::vector<uint8_t> &line, char const &last_ch
 
 static std::string get_end_of_line(std::vector<uint8_t> &line)
 {
-    size_t      len     = 0;
-    size_t      skipped = 0;
-    std::string dest;
+    size_t skipped = 0;
 
     if (line.empty())
-        return (dest);
+        return (std::string());
     while (!line.empty() && std::isspace(static_cast<unsigned char>(line[0])))
     {
         line.erase(line.begin()), ++skipped;
         if (line.empty())
-            return (dest);
+            return (std::string());
     }
-    while (len < line.size() && line[len] != '\r' && line[len] != '\n')
-        ++len;
-    dest = std::string(&line[0], &line[len]);
-    line.erase(line.begin(), line.begin() + len);
+    if (line.back() == '\n')
+    {
+        line.pop_back();
+        if (line.back() == '\r')
+            line.pop_back();
+    }
+    std::string dest(line.data(), line.data() + line.size());
+    line.clear();
     return (dest);
 }
 
@@ -276,7 +278,11 @@ bool HTTPStream::setStatusResponse()
     return (false);
 }
 
-void HTTPStream::setBrokenConnection() { _broken_connection = true; }
+void HTTPStream::setBrokenConnection()
+{
+    _broken_connection = true;
+    response.setHeader("Connection", "close");
+}
 
 void HTTPStream::keepConnection() { _keep_connection = true; }
 

@@ -245,12 +245,13 @@ void CGIBackend::init()
     // protocol
     env_vector.push_back("SERVER_PROTOCOL=" + stream.request.http_version);
 
+#ifdef CGI_TESTER
     // TESTER
-    // env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
-    //                      get_file_name(stream.request.URI));
-    // env_vector.push_back("SCRIPT_FILENAME=" + std::string(_root) + "/" +
-    //                      get_file_name(stream.request.URI));
-
+    env_vector.push_back("PATH_INFO=" + std::string(_root) + "/" +
+                         get_file_name(stream.request.URI));
+    env_vector.push_back("SCRIPT_FILENAME=" + std::string(_root) + "/" +
+                         get_file_name(stream.request.URI));
+#else
     // WORDPRESS
     env_vector.push_back("PATH_INFO=");
     env_vector.push_back("SCRIPT_FILENAME=" + _root + stream.request.rewrote_URI); // for
@@ -262,6 +263,7 @@ void CGIBackend::init()
     if (!stream.request.query_string.empty())
         request_uri += "?" + stream.request.query_string;
     env_vector.push_back("REQUEST_URI=" + request_uri);
+#endif
 
     if (!request_body.empty())
     {
