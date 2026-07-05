@@ -1,4 +1,3 @@
-# WordPress VirtualHost Adaption
 mime_config = ["conf/mime_types.toml"]
 [[listeners]]
 	listen = { domain = "localhost", port = 8080 }
@@ -9,9 +8,7 @@ mime_config = ["conf/mime_types.toml"]
 	file_upload = true
 	index = ["index.php"]
 	path = "/"
-	# root = "/home/bl4st/github/webserv/serv_root"
-	root = "/srv/www/wordpress"
-	# root = "/srv/www/wordpress/pma"
+	root = "/home/$USER/wordpress"
 	method_map = [
 		{ GET = [
 		] },

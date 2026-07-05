@@ -438,9 +438,9 @@ mime_config = ["conf/mime_types.toml"]
 	#index = ["index.html"]
 	method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
 	path = "/"
-	root = "/home/$USER/goinfre/webserv/serv_root"
+	root = "/home/$USER/webserv/serv_root"
 	status_pages = [
-		{ status = 404, target = "/home/$USER/goinfre/webserv/serv_root/errors/404.html" },
+		{ status = 404, target = "/home/$USER/webserv/serv_root/errors/404.html" },
 	]
 	backends = [
 		[
@@ -461,14 +461,14 @@ mime_config = ["conf/mime_types.toml"]
 			".bla",
 			"cgi",
 			[
-				"/home/$USER/goinfre/webserv/serv_root/cgi_tester",
+				"/home/$USER/webserv/serv_root/cgi_tester",
 			],
 		],
 	]
 
 [[listeners.server.location]]
 	path = "/directory"
-	root = "/home/$USER/goinfre/webserv/serv_root/YoupiBanane"
+	root = "/home/$USER/webserv/serv_root/YoupiBanane"
 	file_upload = true
 	index = ["youpi.bad_extension"]
 	backends = [["php", "cgi", ["/bin/php-cgi"]]]
@@ -477,16 +477,16 @@ mime_config = ["conf/mime_types.toml"]
 
 [[listeners.server.location]]
 	path = "/directory"
-	root = "/home/$USER/goinfre/webserv/serv_root/YoupiBanane"
+	root = "/home/$USER/webserv/serv_root/YoupiBanane"
 	file_upload = true
 	index = ["youpi.bad_extension"]
-	backends = [[".bla", "cgi", ["/home/$USER/goinfre/goinfre/webserv/cgi_tester"]]]
+	backends = [[".bla", "cgi", ["/home/$USER/webserv/cgi_tester"]]]
 	directory_listing = false
 	method_map = [{ POST = [".bla"] }]
 
 [[listeners.server.location]]
 	path = "/"
-	root = "/home/$USER/goinfre/webserv/serv_root"
+	root = "/home/$USER/webserv/serv_root"
 	file_upload = true
 	max_resource_size = 100
 	directory_listing = false
@@ -504,9 +504,9 @@ mime_config = ["conf/mime_types.toml"]
 	file_upload = false
 	index = ["index.html"]
 	path = "/"
-	root = "/home/$USER/goinfre/webserv/serv_root_toto"
+	root = "/home/$USER/webserv/serv_root_toto"
 	status_pages = [
-		{ status = 404, target = "/home/$USER/goinfre/webserv/serv_root/errors/404.html" },
+		{ status = 404, target = "/home/$USER/webserv/serv_root/errors/404.html" },
 	]
 
 [[listeners.server]]
@@ -516,16 +516,16 @@ mime_config = ["conf/mime_types.toml"]
 	file_upload = false
 	index = ["index.html"]
 	path = "/"
-	root = "/home/$USER/goinfre/webserv/serv_root_tata"
+	root = "/home/$USER/webserv/serv_root_tata"
 	status_pages = [
-		{ status = 404, target = "/home/$USER/goinfre/webserv/serv_root/errors/404.html" },
+		{ status = 404, target = "/home/$USER/webserv/serv_root/errors/404.html" },
 	]
 ```
 
 # Setup Wordpress
 
 ```sh
-curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER/goinfre/www
+curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER
 docker run --detach --name mariadb-wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_DATABASE=wordpress -e MARIADB_ROOT_PASSWORD=wordpress -p 3306:3306 mariadb:latest
 ```
 
@@ -545,9 +545,7 @@ mime_config = ["conf/mime_types.toml"]
 	file_upload = true
 	index = ["index.php"]
 	path = "/"
-	# root = "/home/bl4st/github/webserv/serv_root"
-	root = "/home/$USER/goinfre/www"
-	# root = "/srv/www/wordpress/pma"
+	root = "/home/$USER/wordpress"
 	method_map = [
 		{ GET = [
 		] },
