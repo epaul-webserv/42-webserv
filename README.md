@@ -554,5 +554,7 @@ mime_config = ["conf/mime_types.toml"]
 ```sh
 curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER/goinfre/www
 docker run --detach --name mariadb-wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_DATABASE=wordpress -e MARIADB_ROOT_PASSWORD=wordpress -p 3306:3306 mariadb:latest
+make CXXFLAGS="-Wall -Wextra -Werror -std=c++98 -g3 -DCGI_TESTER" re
+
 ```
 
