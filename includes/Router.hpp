@@ -32,8 +32,7 @@ class Router
     RouterNode const *getServerNode(std::string const &host, HTTPStream &http_stream) const;
     static bool       matchSubPath(std::string const                            &URI,
                                    std::multimap<std::string, const RouterNode> &matching_nodes,
-                                   std::multimap<std::string, RouterNode> const &sub_nodes,
-                                   const RouterNode                             &serv);
+                                   std::multimap<std::string, RouterNode> const &sub_nodes);
     static RouterNode const                       *
     matchSubPath_2(std::string &URI, std::string const &method,
                                          std::multimap<std::string, const RouterNode> const &matching_nodes);

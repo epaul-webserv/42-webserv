@@ -126,8 +126,7 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
 
 bool Router::matchSubPath(std::string const                            &URI,
                           std::multimap<std::string, const RouterNode> &matching_nodes,
-                          std::multimap<std::string, RouterNode> const &sub_nodes,
-                          const RouterNode                             &serv)
+                          std::multimap<std::string, RouterNode> const &sub_nodes)
 {
     std::string cpy = URI;
 
@@ -137,8 +136,6 @@ bool Router::matchSubPath(std::string const                            &URI,
                   std::multimap<std::string, RouterNode>::const_iterator>
             range = sub_nodes.equal_range(cpy);
         matching_nodes.insert(range.first, range.second);
-        if (cpy == serv.location)
-            matching_nodes.insert(std::pair<std::string, const RouterNode>(serv.location, serv));
         size_t pos = cpy.find_last_of('/');
         if (!pos || pos == std::string::npos)
             break;
@@ -148,8 +145,6 @@ bool Router::matchSubPath(std::string const                            &URI,
               std::multimap<std::string, RouterNode>::const_iterator>
         range = sub_nodes.equal_range("/");
     matching_nodes.insert(range.first, range.second);
-    if (serv.location == "/")
-        matching_nodes.insert(std::pair<std::string, const RouterNode>(serv.location, serv));
     if (matching_nodes.empty())
         return (false);
     return (true);
@@ -231,15 +226,10 @@ RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &
     if (ruleset.redirects.find(http_stream.request.URI) != ruleset.redirects.end())
         return (&ruleset);
     std::multimap<std::string, const RouterNode> rn;
-    if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes, serv))
+    if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes))
     {
         matching_sub_node =
             matchSubPath_2(http_stream.request.rewrote_URI, http_stream.request.method, rn);
-        if (!matching_sub_node)
-        {
-            http_stream.setErrorResponse("405", "Method Not Allowed");
-            return (NULL);
-        }
     }
     if (matching_sub_node)
         return (defineRuleset(http_stream, *matching_sub_node, ruleset));
