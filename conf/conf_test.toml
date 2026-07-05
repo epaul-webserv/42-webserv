@@ -7,18 +7,7 @@ mime_config = ["conf/mime_types.toml"]
 	directory_listing = true
 	file_upload = false
 	#index = ["index.html"]
-	method_map = [
-		{ POST = [
-			".bla",
-			".php",
-			".py",
-		] },
-		{ GET = [
-		] },
-		{ DELETE = [
-			".php",
-		] },
-	]
+	method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
 	path = "/"
 	root = "/home/bl4st/github/webserv/serv_root"
 	status_pages = [
@@ -47,33 +36,6 @@ mime_config = ["conf/mime_types.toml"]
 			],
 		],
 	]
-
-[[listeners.server.location]]
-	path = "/"
-	root = "/home/bl4st/github/webserv/serv_root"
-	file_upload = true
-	method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
-	backends = [
-		[
-			".bla",
-			"cgi",
-			[
-				"/home/bl4st/github/webserv/serv_root/cgi_tester",
-			],
-		],
-	]
-
-[[listeners.server.location]]
-	path = "/"
-	root = "/home/bl4st/github/webserv/serv_root"
-	method_map = [{ GET = [] }]
-
-[[listeners.server.location]]
-	path = "/"
-	root = "/home/bl4st/github/webserv/serv_root"
-	method_map = [{ DELETE = [] }]
-	backends = [["php", "cgi", ["/bin/php-cgi"]]]
-
 
 [[listeners.server.location]]
 	path = "/directory"
