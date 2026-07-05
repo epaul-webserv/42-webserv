@@ -148,6 +148,8 @@ bool Router::matchSubPath(std::string const                            &URI,
               std::multimap<std::string, RouterNode>::const_iterator>
         range = sub_nodes.equal_range("/");
     matching_nodes.insert(range.first, range.second);
+    if (serv.location == "/")
+        matching_nodes.insert(std::pair<std::string, const RouterNode>(serv.location, serv));
     if (matching_nodes.empty())
         return (false);
     return (true);
