@@ -525,8 +525,17 @@ mime_config = ["conf/mime_types.toml"]
 # Setup Wordpress
 
 ```sh
+docker run --detach --name mariadb-wordpress \
+	-e MARIADB_USER=wordpress \
+	-e MARIADB_PASSWORD=wordpress \
+	-e MARIADB_DATABASE=wordpress \
+	-e MARIADB_ROOT_PASSWORD=wordpress \
+	-p 3306:3306 mariadb:latest
+toolbox create webserv
+toolbox enter webserv
+sudo dnf install php-cgi
+sudo dnf install php-mysqli
 curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER
-docker run --detach --name mariadb-wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_DATABASE=wordpress -e MARIADB_ROOT_PASSWORD=wordpress -p 3306:3306 mariadb:latest
 ```
 
 
