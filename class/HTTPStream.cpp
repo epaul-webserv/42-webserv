@@ -43,7 +43,7 @@ static size_t get_next_word(std::vector<uint8_t> &line, std::string &dest)
         return (skipped);
     while (len < line.size() && !std::isspace(static_cast<unsigned char>(line[len])))
         ++len;
-    dest = std::string(&line[0], &line[len]);
+    dest = std::string(&line[0], &line[std::min(len, line.size() - 1)]);
     line.erase(line.begin(), line.begin() + len);
     return (len + skipped);
 }
@@ -63,7 +63,7 @@ static std::string get_next_word(std::vector<uint8_t> &line, char const &last_ch
     while (len < line.size() && !std::isspace(static_cast<unsigned char>(line[len])) &&
            (!len || line[len - 1] != last_char))
         ++len;
-    dest = std::string(&line[0], &line[len]);
+    dest = std::string(&line[0], &line[std::min(len, line.size() - 1)]);
     line.erase(line.begin(), line.begin() + len);
     return (dest);
 }
