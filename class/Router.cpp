@@ -125,8 +125,9 @@ RouterNode const *Router::getServerNode(std::string const &host, HTTPStream &htt
 }
 
 bool Router::matchSubPath(std::string const                            &URI,
-                          std::multimap<std::string, RouterNode>       &matching_nodes,
-                          std::multimap<std::string, RouterNode> const &sub_nodes)
+                          std::multimap<std::string, const RouterNode> &matching_nodes,
+                          std::multimap<std::string, RouterNode> const &sub_nodes,
+                          const RouterNode                             &serv)
 {
     std::string cpy = URI;
 
@@ -136,6 +137,8 @@ bool Router::matchSubPath(std::string const                            &URI,
                   std::multimap<std::string, RouterNode>::const_iterator>
             range = sub_nodes.equal_range(cpy);
         matching_nodes.insert(range.first, range.second);
+        if (cpy == serv.location)
+            matching_nodes.insert(std::pair<std::string, const RouterNode>(serv.location, serv));
         size_t pos = cpy.find_last_of('/');
         if (!pos || pos == std::string::npos)
             break;
@@ -166,15 +169,15 @@ bool suffix_match(std::string const &URI, std::vector<std::string> const &array)
 
 RouterNode const *
 Router::matchSubPath_2(std::string &URI, std::string const &method,
-                       std::multimap<std::string, RouterNode> const &matching_nodes)
+                       std::multimap<std::string, const RouterNode> const &matching_nodes)
 {
-    std::map<std::string, RouterNode>::const_iterator ite = matching_nodes.end();
-    std::vector<std::string>                          suffixes;
-    RouterNode const                                 *ret          = NULL;
-    int                                               to_substract = 0;
+    std::map<std::string, const RouterNode>::const_iterator ite = matching_nodes.end();
+    std::vector<std::string>                                suffixes;
+    RouterNode const                                       *ret          = NULL;
+    int                                                     to_substract = 0;
 
-    for (std::map<std::string, RouterNode>::const_iterator it = matching_nodes.begin(); it != ite;
-         ++it)
+    for (std::map<std::string, const RouterNode>::const_iterator it = matching_nodes.begin();
+         it != ite; ++it)
     {
         std::pair<std::map<std::string, std::vector<std::string> >::const_iterator,
                   std::map<std::string, std::vector<std::string> >::const_iterator>
@@ -225,8 +228,8 @@ RouterRuleset *Router::defineRuleset(HTTPStream &http_stream, RouterNode const &
         ruleset.max_resource_size = serv.max_resource_size;
     if (ruleset.redirects.find(http_stream.request.URI) != ruleset.redirects.end())
         return (&ruleset);
-    std::multimap<std::string, RouterNode> rn;
-    if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes))
+    std::multimap<std::string, const RouterNode> rn;
+    if (matchSubPath(http_stream.request.rewrote_URI, rn, serv.sub_nodes, serv))
     {
         matching_sub_node =
             matchSubPath_2(http_stream.request.rewrote_URI, http_stream.request.method, rn);

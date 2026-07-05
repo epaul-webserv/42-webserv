@@ -124,7 +124,7 @@ async::Future::Poll HTTPStream::readFirstLine()
         request.URI          = request.URI.substr(0, request.URI.find('?'));
     }
     request.original_URI = request.URI;
-    request.rewrote_URI = request.URI;
+    request.rewrote_URI  = request.URI;
     if (request.http_version.empty())
     {
         request.http_version = "HTTP/0.9";

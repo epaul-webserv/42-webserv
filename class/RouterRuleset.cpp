@@ -12,7 +12,8 @@ RouterRuleset::get_corresponding_router(std::string const &URI) const
 
     for (std::vector<std::pair<
              std::string, std::pair<t_backend_type, std::vector<std::string> > > >::const_iterator
-             it = backend_rules.begin(); it != ite; ++it)
+             it = backend_rules.begin();
+         it != ite; ++it)
     {
         if (it->first.size() <= URI.size() &&
             !URI.compare(URI.size() - it->first.size(), it->first.size(), it->first))

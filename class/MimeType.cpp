@@ -71,8 +71,8 @@ std::string MimeType::getType(std::string const &URI)
     size_t                                             n = 1;
 
     for (std::map<std::string, std::string>::const_iterator match =
-             mime_type.lower_bound(rev_URI.substr(0, n)); match != ite && n < URI.size();
-         match = mime_type.lower_bound(rev_URI.substr(0, ++n)))
+             mime_type.lower_bound(rev_URI.substr(0, n));
+         match != ite && n < URI.size(); match = mime_type.lower_bound(rev_URI.substr(0, ++n)))
     {
         if (match->first.empty())
             return ("");

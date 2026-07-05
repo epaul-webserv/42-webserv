@@ -31,11 +31,12 @@ class Router
     static bool       validateRequest(HTTPStream &http_stream);
     RouterNode const *getServerNode(std::string const &host, HTTPStream &http_stream) const;
     static bool       matchSubPath(std::string const                            &URI,
-                                   std::multimap<std::string, RouterNode>       &matching_nodes,
-                                   std::multimap<std::string, RouterNode> const &sub_nodes);
-    static RouterNode const *
+                                   std::multimap<std::string, const RouterNode> &matching_nodes,
+                                   std::multimap<std::string, RouterNode> const &sub_nodes,
+                                   const RouterNode                             &serv);
+    static RouterNode const                       *
     matchSubPath_2(std::string &URI, std::string const &method,
-                   std::multimap<std::string, RouterNode> const &matching_nodes);
+                                         std::multimap<std::string, const RouterNode> const &matching_nodes);
     static RouterRuleset *defineRuleset(HTTPStream &http_stream, RouterNode const &serv,
                                         RouterRuleset &ruleset);
     static ABackend      *defineBackend(RouterRuleset const &ruleset, async::Reactor &reactor,

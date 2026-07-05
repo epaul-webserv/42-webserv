@@ -106,10 +106,10 @@ std::string fill_blanks(DIR *dir, FdStream &fdstream, std::string const &path,
 
 std::string get_html_dir(std::string const &path, std::string const &root)
 {
-    int  fd = open("srcs/html_generator/dir_sample.html", O_RDONLY);
+    int fd = open("srcs/html_generator/dir_sample.html", O_RDONLY);
     if (fd == -1)
         throw(std::runtime_error("Template is absent"));
-    FdStream    fdstream(fd);
+    FdStream fdstream(fd);
 
     DIR *dir = opendir((root + path).c_str());
     if (!dir)
