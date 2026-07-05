@@ -417,150 +417,14 @@ listen = { domain = "localhost", port = 42000 }
 
 Each listener is completely independent and owns its own server configuration. This allows the same application to serve different websites, roots, or behaviors depending on the listening port or hostname.
 
-## Example Conf file
+## CGI_TESTER Conf file
 
 Here is a configuration file matching the tester requirements
+```make CXXFLAGS="-Wall -Wextra -Werror -std=c++98 -g3 -DCGI_TESTER" re```
+
 
 To run the tester, download the cgi_tester to the server_root folder and give it execution rights
 
-```toml
-mime_config = ["conf/mime_types.toml"]
-[[listeners]]
-    listen = { domain = "localhost", port = 33000 }
-
-[[listeners.server]]
-    server_name = ""
-    directory_listing = true
-    file_upload = false
-    #index = ["index.html"]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root"
-    method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
-    status_pages = [
-        { status = 404, target = "/home/login/goinfre/webserv/serv_root/errors/404.html" },
-    ]
-    backends = [
-        [
-            "php",
-            "cgi",
-            [
-                "/bin/php-cgi",
-            ],
-        ],
-        [
-            "py",
-            "cgi",
-            [
-                "/bin/python3",
-            ],
-        ],
-        [
-            ".bla",
-            "cgi",
-            [
-                "/home/login/goinfre/webserv/serv_root/cgi_tester",
-            ],
-        ],
-    ]
-
-[[listeners.server.location]]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root"
-    file_upload = true
-    method_map = [{ POST = [".bla", ".php", ".py"] }, { GET = [] }]
-    backends = [
-        [
-            ".bla",
-            "cgi",
-            [
-                "/home/login/goinfre/webserv/serv_root/cgi_tester",
-            ],
-        ],
-    ]
-
-[[listeners.server.location]]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root"
-    method_map = [{ GET = [] }]
-
-[[listeners.server.location]]
-    path = "/directory"
-    root = "/home/login/goinfre/webserv/serv_root/YoupiBanane"
-    file_upload = true
-    index = ["youpi.bad_extension"]
-    backends = [["php", "cgi", ["/bin/php-cgi"]]]
-    directory_listing = false
-    method_map = [{ GET = [] }]
-
-[[listeners.server.location]]
-    path = "/directory"
-    root = "/home/login/goinfre/webserv/serv_root/YoupiBanane"
-    file_upload = true
-    index = ["youpi.bad_extension"]
-    backends = [
-        [
-            ".bla",
-            "cgi",
-            [
-                "/home/login/goinfre/goinfre/webserv/cgi_tester",
-            ],
-        ],
-    ]
-    directory_listing = false
-    method_map = [{ POST = [".bla"] }]
-
-[[listeners.server.location]]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root"
-    file_upload = true
-    max_resource_size = 100
-    directory_listing = false
-    method_map = [{ POST = ["post_body"] }]
-
-
-# second listener
-[[listeners]]
-    listen = { domain = "localhost", port = 42000 }
-
-[[listeners.server]]
-    method_map = [{ GET = [] }]
-    server_name = "toto.com:42000"
-    directory_listing = true
-    file_upload = false
-    index = ["index.html"]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root_toto"
-    status_pages = [
-        { status = 404, target = "/home/login/goinfre/webserv/serv_root/errors/404.html" },
-    ]
-
-[[listeners.server]]
-    method_map = [{ GET = [] }]
-    server_name = "tata.com:42000"
-    directory_listing = true
-    file_upload = false
-    index = ["index.html"]
-    path = "/"
-    root = "/home/login/goinfre/webserv/serv_root_tata"
-    status_pages = [
-        { status = 404, target = "/home/login/goinfre/webserv/serv_root/errors/404.html" },
-    ]
-
-
-```
-
-# Setup Wordpress
-
-```sh
-curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER/goinfre/www
-docker run --detach --name mariadb-wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_DATABASE=wordpress -e MARIADB_ROOT_PASSWORD=wordpress -p 3306:3306 mariadb:latest
-make CXXFLAGS="-Wall -Wextra -Werror -std=c++98 -g3 -DCGI_TESTER" re
-
-```
-
-
-
-# Wordpress Config
 ```toml
 mime_config = ["conf/mime_types.toml"]
 [[listeners]]
@@ -656,3 +520,49 @@ mime_config = ["conf/mime_types.toml"]
 		{ status = 404, target = "/home/$USER/goinfre/webserv/serv_root/errors/404.html" },
 	]
 ```
+
+# Setup Wordpress
+
+```sh
+curl https://wordpress.org/latest.tar.gz | tar zx -C /home/$USER/goinfre/www
+docker run --detach --name mariadb-wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_DATABASE=wordpress -e MARIADB_ROOT_PASSWORD=wordpress -p 3306:3306 mariadb:latest
+```
+
+
+
+## Wordpress Config
+
+
+```toml
+mime_config = ["conf/mime_types.toml"]
+[[listeners]]
+	listen = { domain = "localhost", port = 8080 }
+
+[[listeners.server]]
+	server_name = ""
+	directory_listing = false
+	file_upload = true
+	index = ["index.php"]
+	path = "/"
+	# root = "/home/bl4st/github/webserv/serv_root"
+	root = "/home/$USER/goinfre/www"
+	# root = "/srv/www/wordpress/pma"
+	method_map = [
+		{ GET = [
+		] },
+		{ POST = [
+		] },
+		{ DELETE = [
+		] },
+		{ OPTIONS = [
+		] },
+		{ PUT = [
+		] },
+		{ PATCH = [
+		] },
+	]
+	# backends = [["php", "cgi", ["/usr/bin/env", "python3", "ok.py"]]]
+	backends = [["php", "cgi", ["/bin/php-cgi"]]]
+
+```
+
